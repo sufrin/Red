@@ -37,7 +37,7 @@ import scala.swing.{Component, Container}
  *    just ignored.
  *
  * 2. "well-known" instruction keys (delete, rubout, tab, etc) --
- *    usually delivered as ascii keys in the control-character
+ *    usually, but not always,  delivered as ascii keys in the control-character
  *    range -- are consistently translated into `UserInput.Instruction`s.
  *
  * 3. A large variety of keystrokes are distinguished, and this
@@ -50,9 +50,13 @@ import scala.swing.{Component, Container}
  *
  *
  *
- * Any modifier keys (Alt, Meta, Shift, Control, ...) down at the time of a
- * keystroke are passed on as part of the `modifiers` field of
- * the `Instruction` or `Character`.
+ * Any modifier keys (Alt, Meta, Shift, Control, ...) or buttons down at the time of a
+ * keystroke are passed on as part of the `modifiers` field of the `Instruction` or
+ * `Character`. This has the value type `InputEvent.Detail`, and that type has a rich
+ * set of methods for interrogating them, as well as constants that can be used
+ * in straightfoward matching.
+ *
+ * The same holds holds for the reporting of mouse events.
  *
  * It is assumed that any keys typed with a `Control` or
  * `Meta` (OS/X=Cmd) modifier key down are intended to denote
@@ -110,7 +114,7 @@ abstract class InputPanel(val numPadAsCommand: Boolean = true,
      with Container.Wrapper {
 
   import InputPanel._
-  import InputEventDetail._
+  import Red.InputEvent.{Modifiers, Detail, Key}
 
   /** Link to an underlying `javax.swing.JPanel` to provide most
    *  of the functionality of this component
@@ -131,14 +135,9 @@ abstract class InputPanel(val numPadAsCommand: Boolean = true,
    *  mode the `Meta` and `Control` shifts cannot be distinguished,
    *  they are both reported as a `Control` shift.
    */
-  private def mappedMeta(modifiers: Int): Int =
-    if (mapMeta)
-      if ((modifiers&Modifiers.Meta)!=0)
-        (modifiers ^ Modifiers.Meta) | Modifiers.Control
-      else
-        modifiers
-    else
-       modifiers
+  private def metaToControl(detail: Detail): Detail =
+          if (mapMeta) detail.mapMeta else detail
+
 
   /**
    * Notifier of the details of keystrokes made when
@@ -223,6 +222,7 @@ abstract class InputPanel(val numPadAsCommand: Boolean = true,
       override def keyPressed(e: java.awt.event.KeyEvent): Unit = {
         val keyChar   = e.getKeyChar
         val modifiers = e.getModifiersEx
+        val detail    = Detail(modifiers)
         val location  = Key.Location(e.getKeyLocation)
         val keyCode   = e.getKeyCode
         val exKeyCode = e.getExtendedKeyCode
@@ -231,7 +231,7 @@ abstract class InputPanel(val numPadAsCommand: Boolean = true,
         if (e.isActionKey) {
           // one of the "standard" function keys
           val decoded =
-              Instruction(Key(exKeyCode), location, mappedMeta(modifiers))
+              Instruction(Key(exKeyCode), location, metaToControl(detail))
           if (logging)
              fine(s"==> $decoded")
           keystrokeInput.notify(decoded)
@@ -240,26 +240,26 @@ abstract class InputPanel(val numPadAsCommand: Boolean = true,
           val decoded =
             keyChar match {
               case 27 =>
-                Instruction(Key.Escape, location,   mappedMeta(modifiers))
+                Instruction(Key.Escape, location,      metaToControl(detail))
               case 8 =>
-                Instruction(Key.BackSpace, location,   mappedMeta(modifiers))
+                Instruction(Key.BackSpace, location,   metaToControl(detail))
               case 9 =>
-                Instruction(Key.Tab, location,   mappedMeta(modifiers))
+                Instruction(Key.Tab, location,         metaToControl(detail))
               case 25 => // OS/X maps
-                Instruction(Key.Tab, location,   mappedMeta(modifiers))
+                Instruction(Key.Tab, location,         metaToControl(detail))
               case 127 =>
-                Instruction(Key.Delete, location,   mappedMeta(modifiers))
-              case _ if modifiers.hasControl || modifiers.hasMeta || (location == Key.Location.Numpad && numpadAsCommand) =>
+                Instruction(Key.Delete, location,      metaToControl(detail))
+              case _ if detail.hasControl || detail.hasMeta || (location == Key.Location.Numpad && numpadAsCommand) =>
                 // Linux and OS/X are consistent about e.KeyCode from a numpad, but not about e.getExtendKeyCode
-                Instruction(Key(keyCode), location,   mappedMeta(modifiers))
+                Instruction(Key(keyCode), location,    metaToControl(detail))
               case _ =>
-                if (modifiers.hasAlt && modifiers.hasNone(Modifier.Control | Modifier.Meta)) {
-                  if (logging) finer(s"Alt-shifted '$keyChar' ${modifiers.asText} $location $keyCode ${e.getExtendedKeyCode}")
-                  Character(altKeyChar.getOrElse(shifted(keyCode, modifiers.hasShift), keyChar), location, mappedMeta(modifiers))
+                if (detail.hasAlt) {
+                  if (logging) finer(s"Alt-shifted '$keyChar' ${detail.asText} $location $keyCode ${e.getExtendedKeyCode}")
+                  Character(altKeyChar.getOrElse(shifted(keyCode, detail.hasShift), keyChar), location, metaToControl(detail))
                 }
                 //
                 else
-                  Character(keyChar, location, mappedMeta(modifiers))
+                  Character(keyChar, location, metaToControl(detail))
             }
           if (logging)
             fine(s"==> $decoded")
@@ -467,14 +467,14 @@ abstract class InputPanel(val numPadAsCommand: Boolean = true,
         val clicks      = e.getClickCount
         val (row, col)  = viewToModel(e.getPoint)
         val modifiers   = e.getModifiersEx
-        mouseInput.notify(MousePressed(row, col, clicks, modifiers))
+        mouseInput.notify(MousePressed(row, col, clicks, metaToControl(Detail(modifiers))))
       }
 
       override def mouseReleased(e: MouseEvent): Unit = {
         // The mouse was released
         val (row, col)  = viewToModel(e.getPoint)
         val modifiers   = e.getModifiersEx
-        mouseInput.notify(MouseReleased(row, col, modifiers))
+        mouseInput.notify(MouseReleased(row, col, metaToControl(Detail(modifiers))))
       }
 
       override def mouseEntered(e: MouseEvent): Unit =
@@ -489,14 +489,14 @@ abstract class InputPanel(val numPadAsCommand: Boolean = true,
        override def mouseDragged(e: MouseEvent): Unit = {
          val (row, col)  = viewToModel(e.getPoint)
          val modifiers   = e.getModifiersEx
-         mouseInput.notify(MouseDragged(row, col, modifiers))
+         mouseInput.notify(MouseDragged(row, col, metaToControl(Detail(modifiers))))
        }
     }
 
     // Report mouse wheel rotation over this component
     peer addMouseWheelListener {
       case e: MouseWheelEvent =>
-        mouseWheel(e.getWheelRotation, e.getModifiersEx)
+        mouseWheel(e.getWheelRotation, metaToControl(Detail(e.getModifiersEx)))
     }
   }
 
@@ -513,7 +513,7 @@ abstract class InputPanel(val numPadAsCommand: Boolean = true,
   /**
    *  Invoked when the mouse wheel is rotated
    */
-  protected def mouseWheel(rotation: Int, modifiers: Int): Unit
+  protected def mouseWheel(rotation: Int, modifiers: Detail): Unit
 }
 
 

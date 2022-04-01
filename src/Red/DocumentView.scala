@@ -329,7 +329,7 @@ package Red
     /** Respond to `MouseWheel` events by scrolling.
       * There is no need to inform the session.
       */
-    def mouseWheel(rotation: Int, mods: Int): Unit = {
+    def mouseWheel(rotation: Int, mods: InputEvent.Detail): Unit = {
         if (logging) info(s"wheel $rotation $mods")
         calculateDimensions()
         val newRow = (originRow + rotation) max 0

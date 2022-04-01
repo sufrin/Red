@@ -1,26 +1,11 @@
 package Red
 
-import InputEventDetail.ImplicitExtensions
+import InputEvent._
 
 import scala.swing.event.Key
 
 /**  Events generated from `DocumentView` and other components as a result
   *  of user interaction with keyboard and mouse.
-  *
-  *  The `mods` is the (bitwise) encoding of modifiers (shift-keys,
-  *  the particular mouse button pressed, etc) for the event.
-  *
-  *  In the scope of `import UserInput._` such a `mods` value can be queried
-  *  by the "implicit extension methods" provided by  `InputEventDetail`,
-  *  for example:
-  *  {{{
-  *    import InputEventDetail._
-  *    mods.hasButton1                  // Button 1 down
-  *    mods.hasButton1&&mods.hasButton3 // Buttons 1 and 3 down
-  *    mods.hasAll(Button1|Button3)     // Buttons 1 and 3 down
-  *
-  *    mods.asText                      // human-readable string
-  *  }}}
   */
 
   sealed abstract class UserInput
@@ -28,26 +13,26 @@ import scala.swing.event.Key
    * A mouse key was pressed `count` times  at `(row,col)` of the
    * model being viewed by the component.
    */
-  case class MousePressed(row: Int, col: Int, count: Int, mods: Int)
+  case class MousePressed(row: Int, col: Int, count: Int, mods: Detail)
     extends UserInput
 
   /**
    *  A mouse key was released in  at `(row,col)` of the
    *  model being viewed by the component.
    */
-  case class MouseReleased(row: Int, col: Int, mods: Int)
+  case class MouseReleased(row: Int, col: Int, mods: Detail)
     extends UserInput
 
   /**
     * The mouse was dragged (ie moved with one of its buttons down)
     * at `(row,col)` of the model being viewed by the component.
     */
-  case class MouseDragged(row: Int, col: Int, mods: Int)
+  case class MouseDragged(row: Int, col: Int, mods: Detail)
     extends UserInput
 
   /** The mouse wheel was turned by `rotation` clicks.
    */
-  case class MouseWheel(rotation: Int, mods: Int)
+  case class MouseWheel(rotation: Int, Detail: Int)
     extends UserInput
 
   case object MouseEntered extends UserInput
@@ -62,7 +47,7 @@ import scala.swing.event.Key
   case class Character
        (  char:     Char,
           location: Key.Location.Value,
-          mods:     Int
+          mods:     Detail
        )
     extends UserInput {
     @inline def character: String =
@@ -81,7 +66,7 @@ import scala.swing.event.Key
   case class Instruction
      (  key:      Key.Value,
         location: Key.Location.Value,
-        mods:     Int)
+        mods:     Detail)
     extends UserInput {
     override def toString: String =
       s"Instruction: ${mods.asText}Key.$key @ $location"

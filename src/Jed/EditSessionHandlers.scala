@@ -1,8 +1,7 @@
 package Jed
 
-import Red.InputEventDetail.Buttons._
-import Red.InputEventDetail.Key
-import Red.InputEventDetail.Modifiers._
+import Red.InputEvent.Key
+import Red.InputEvent.Modifiers._
 import Red._
 
 /**
@@ -70,8 +69,6 @@ class EditSessionHandlers(val DO: Commands.Command[EditSession]=>Unit) {
         case Instruction(Key.Up, _, NoModifier)    => DO(commands.prevLine)
       }
 
-
-      private val ControlButton1 = Control|Button1
 
       /** A handler that responds to single mouse clicks, but ignores
        *  multiple mouse clicks and mouse released events.

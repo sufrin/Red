@@ -3,9 +3,8 @@ package Jed
 import Red._
 import UserInputHandlers._
 import Commands._
-import InputEventDetail.Key
-import InputEventDetail.ImplicitExtensions
-import InputEventDetail.Modifiers._
+import InputEvent.Key
+import InputEvent.Modifiers._
 
 import java.awt.Color
 import scala.swing._
