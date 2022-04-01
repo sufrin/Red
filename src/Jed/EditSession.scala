@@ -1,9 +1,10 @@
 package Jed
+
 import Red._
 
 class EditSession(val document: DocumentInterface, val path: String)
   extends Session {
-  import  EditSession._
+  import EditSession._
 
   /** The current and previous cursor positions */
   private var _cursor, _lastCursor: Int     = 0
@@ -45,32 +46,33 @@ class EditSession(val document: DocumentInterface, val path: String)
    *   The latter notification subsumes the former.
    *   This should be invoked after every user-invoked command.
    *
-   *   TODO: [TL;DR] think again about the selection-changed test being an identity test.
-   *    This was inherited from `Red`, where there's a need to distinguish between `NoSelection' and a selection
-   *    with cursor and mark both at 0 in the document (of the kind that's made there during a cursor drag starting
-   *    at the origin). It may not be necessary here (because we don't yet implement cursor dragging).
-   *    IDEA: One possible implementation  of dragging here would be to have a "dragging" state, where drags are reported directly
-   *    to the document view during dragging, and the selection is remade when the drag terminates.
+   *    NB: The selection-changed test is an identity test deliberately.
+   *    There's a need to distinguish between `NoSelection' and a selection
+   *    with cursor and mark both at 0 in the document, which signifies a
+   *    dragging state started at 0.
    */
   def notifyHandlers(): Unit = {
+    val notification: DocumentEvent =
     if (_selection ne _lastSelection) {
       // selection and cursor may have changed
       val (mRow, mCol) = document.positionToCoordinates(_selection.mark)
       val (cRow, cCol) = document.positionToCoordinates(this.cursor)
-      notify(SelectionChanged(mRow,mCol,_selection.extent,cRow,cCol))
+      SelectionChanged(mRow,mCol,_selection.extent,cRow,cCol)
     } else
-      if (_cursor != _lastCursor) {
+    if (_cursor != _lastCursor) {
         // only the cursor has changed
         val (row, col) = document.positionToCoordinates(_cursor)
         if (logging) finer(s"cursor=${_cursor} // notifying ($row, $col)")
-        notify(CursorChanged(cursorRow=row, cursorCol=col))
-      } else {
+        CursorChanged(cursorRow=row, cursorCol=col)
+    } else {
         //  neither selection nor cursor have changed, but the document may
         //  have changed -- perhaps because selected characters were replaced
         //  and the replacement reselected. At the very least the
-        //  document view needs to know the cursor, because it
-        notify(DocumentChanged(document.positionToCoordinates(this.cursor)))
-      }
+        //  document view needs to know the cursor, because it needs to place it.
+        DocumentChanged(document.positionToCoordinates(this.cursor))
+    }
+    if (logging) finest(s"notifyHandlers: $notification")
+    notify(notification)
   }
 
   ////////////////////////////////////////////////////////////////////////////////////////
@@ -88,7 +90,7 @@ class EditSession(val document: DocumentInterface, val path: String)
   /** Returns cursor `(row, column)` to provide feedback for a user interface if needed */
   def getCursorPosition: (Int,Int) = document.positionToCoordinates(cursor)
 
-  /** Set the mark and change the selection. Notify observers of the change.  */
+  /** Set the mark and change the selection. */
   def setMark(row: Int, col: Int): Unit = {
     val newPosition = document.coordinatesToPosition(row, col)
     if (logging) finer(s"theSession.setMark($row, $col)")
@@ -96,7 +98,7 @@ class EditSession(val document: DocumentInterface, val path: String)
   }
 
 
-  /** Set the mark and change the selection. Notify observers of the change.  */
+  /** Set the mark and change the selection. */
   def setMark(newPosition: Int, indicative: Boolean=false): Unit = {
     if (logging) finer(s"theSession.setMark($newPosition)")
     selectUntil(newPosition, indicative)
@@ -113,7 +115,6 @@ class EditSession(val document: DocumentInterface, val path: String)
   ///////////////////////////////////////////////////////////////////////////////////
   /////////////////////////// Editing Command implementations ///////////////////////
   //////////////////////////////////////////////////////////////////////////////////
-  import Commands._
 
   /** Remove the mark
    *  (OPTIONAL PRACTICAL: cut the selection if in typeover mode)
@@ -193,25 +194,25 @@ class EditSession(val document: DocumentInterface, val path: String)
 
   /**
    *  Delete between cursor and cursor+extent (extent can be negative),
-   *  and merge the deletion with the current `sessionCut` as if it were a cut.
+   *  and record the deletion as a cut.
    */
   def deleteFor(extent: Int): Unit = {
     val (l, r) = if (extent>0) (cursor, cursor+extent) else (cursor+extent, cursor)
     val text   = document.getString(l, r)
-    mergeSessionCut(Cut(text, extent, cursor, document.generation))
+    recordCut(Cut(text, extent, cursor, document.generation))
     document.delete(l, r-l)
     cursor = l
   }
 
   /** Cut the selection, if any, to the clipboard.
    *  Returns the selected text; empty if no selection.
-   *  Merge the cut with the current `sessionCut`.
+   *  Record the deleted material as a cut.
    */
   def cut(): String = {
     if (hasNoSelection) "" else {
       val text = selectionText()
       SystemClipboard.set(text)
-      //mergeSessionCut(Cut(text, selection.extent, selection.cursor, document.generation))
+      //recordCut(Cut(text, selection.extent, selection.cursor, document.generation))
       //document.delete(selection.left, selection.right-selection.left)
       //if (selection.extent<0) cursor += selection.extent
       cursor=selection.cursor
@@ -246,7 +247,7 @@ class EditSession(val document: DocumentInterface, val path: String)
     if (hasNoSelection) "" else {
       val text = selectionText()
       SystemClipboard.set(text)
-      mergeSessionCut(Cut(text, selection.extent, selection.cursor, document.generation))
+      recordCut(Cut(text, selection.extent, selection.cursor, document.generation))
       document.delete(selection.left, selection.right-selection.left)
       if (selection.extent<0) cursor += selection.extent
       val oldCursor = cursor
@@ -267,21 +268,109 @@ class EditSession(val document: DocumentInterface, val path: String)
 
   def cutAll(): String = { selectAll(); cut() }
 
-  /** The most recent cut made in this session  */
-  protected var sessionCut: Cut = Cut(text="", extent=0, cursor=0, generation=0L)
+  /**
+   *  Record `thisCut` somewhere. By default this is a no-op.
+   *  It is intended to be overridden by cut-ring implementations.
+   *  (one such implementation is to be found in `CutRing.Plugin`)
+   */
+  def recordCut(thisCut: Cut): Unit = ()
 
   /**
-   *  Replace the session cut with the most recent session cut merged
-   *  with this cut (if they are adjacent temporally and spatially), or
-   *  just with this cut otherwise.
-   *
-   *  Override this method with an appropriate extension
-   *  to implement a cut ring.
+   * True if this session implements a cut ring.
    */
-  def mergeSessionCut(thisCut: Cut): Unit = {
-    if (logging) fine(s"$sessionCut merge $thisCut".replace("\n", "\\n"))
-    sessionCut = sessionCut merge thisCut
-    if (logging) fine(s"$sessionCut".replace("\n", "\\n"))
+  def hasCutRing: Boolean = false
+
+  // Implementation of find and replace
+
+  /** Low level methods need to be able to publish scrutable warnings  */
+  val warnings: Notifier[(String,String)] = new Notifier[(String, String)]
+
+  /** pre: document.textLength>=position+thePattern.length */
+  def matchesAt(pat: String, pos: Int): Boolean = {
+      var last  = pat.length
+      var lastc = pos+pat.length
+      while ({ last -= 1; lastc -= 1; last>=0})
+        if (document.character(lastc)!=pat(last))  return false
+      return true
+    }
+
+  /** Find the next (respectively: previous, when backwards is true) occurence of `thePattern` after
+   *  (respectively: completely before) the cursor, and position the cursor
+   *  at the right (respectively left) end of the occurence, and the mark
+   *  at its opposite end. Notify via `warnings` if this fails.
+   */
+  def find(thePattern: String, backwards: Boolean): Boolean = {
+    //  Expected time for Brute Force search is linear (in the size of the text), BUT IS NOT GUARANTEED
+    //  Knuth, Morris, Pratt (see Wikipedia) is better than this in the worst case
+    //
+    var searching    = true
+    backwards match {
+      case true =>
+        var position = cursor-thePattern.length
+        while (searching && position >= 0)
+          if (matchesAt(thePattern, position)) {
+            searching = false
+            // cursor at left end of selection
+            cursor = position
+            setMark(cursor + thePattern.length)
+          } else {
+            position -= 1
+          }
+        if (position>=0) true else { warnings.notify("Find", s"Cannot find backwards:\n  $thePattern");  false}
+      case false =>
+        var position = cursor
+        var lastPossible = document.textLength - thePattern.length
+        while (searching && position <= lastPossible)
+          if (matchesAt(thePattern, position)) {
+            searching = false
+            // cursor at right end of selection
+            cursor = position + thePattern.length
+            setMark(position)
+          } else {
+            position += 1
+          }
+        if (position<=lastPossible) true else { warnings.notify("Find", s"Cannot find\n  $thePattern");  false}
+    }
+  }
+
+  def replace(thePattern: String, theReplacement: String, backwards: Boolean) : Boolean =
+      if (selectionText()==thePattern) {
+        exch(theReplacement)
+        if (backwards) { val c = cursor; cursor -= theReplacement.length; setMark(c) }
+        true
+      } else {
+        warnings.notify("Replace", s"Pattern:\n  $thePattern\n is not selected.")
+        false
+      }
+
+  ///////////////////////////////////////////////////////////////////////////
+  ///////////////////////// Selection by cursor-dragging ////////////////////
+  ///////////////////////////////////////////////////////////////////////////
+
+
+  /**
+   *  Set the cursor and mark to the same position, thereby changing the selection
+   *  to an empty selection at the cursor. In this state dragCursor will extend
+   *  the selection.
+   */
+  def setCursorAndMark(row: Int, col: Int): Unit = {
+    val pos = document.coordinatesToPosition(row, col)
+    cursor = pos
+    setMark(pos)
+    if (logging)
+      finer(s"setCursorAndMark($row, $col) with selection=$selection")
+  }
+
+  /**
+   * Set the cursor whilst preserving the current mark, if there is one.
+   * Notify observers of changes in the selection/cursor.
+   */
+  def dragCursor(row: Int, col: Int): Unit = {
+    if (logging)
+      finer(s"DragCursor($row, $col) with selection=$selection")
+    val newcursor = document.coordinatesToPosition(row, col)
+    cursor=newcursor
+    if (selection ne NoSelection) selectUntil(selection.mark)
   }
 
 } // EditSession

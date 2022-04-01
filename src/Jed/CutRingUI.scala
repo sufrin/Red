@@ -1,9 +1,19 @@
 package Jed
-
 import Red._
 
+/**
+ *  A prototype UI for the cut ring.
+ *
+ *  This is implemented, opportunistically, as a "normal" UI to
+ *  a normal editing session on a document that is kept in sync
+ *  with the cut-ring. This is done by rewriting the text of the cut ring
+ *  anew into the document whenever the UI is visible and the cut ring
+ *  changes.
+ *
+ */
 object CutRingUI extends Logging.Loggable {
     private lazy val doc     = new Document()
+
     private lazy val session = new EditSession(doc, "CUT RING")
 
     private lazy val gui     = new UI(session) {

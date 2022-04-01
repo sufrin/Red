@@ -5,12 +5,36 @@ import Red.{Cut, Notifier, Settings}
 import scala.collection.mutable
 
 /**
- *  The cut ring keeps the most recent cuts taken
- *  from editing sessions; merging them where
- *  it is appropriate to do so.
+ *  The `CutRing` keeps the most recent cuts/deletions
+ *  from editing sessions that have installed the
+ *  `CutRing.Plugin` trait. It merges spatially+temporally
+ *  adjacent cuts.
  *
  */
 object CutRing extends Logging.Loggable {
+
+  /** A plugin that adds CutRing functionality to an `EditSession` by
+   *  implementing a substantive method to record material cut from the
+   *  session's document.
+   */
+  trait Plugin extends EditSession {
+        override def hasCutRing:Boolean = true
+
+        /** The merged aggregate of the most recent sequence of adjacent recorded cuts. */
+        var aggregatedCuts: Cut = emptyCut
+
+        /**
+         *   Record a cut; merging it with the current aggregate if possible, and
+         *   adding the state of the aggregate to the cut ring.
+         */
+        override def recordCut(thisCut: Cut): Unit = {
+          if (logging) finer(s"CutRing.Plugin: $thisCut")
+          aggregatedCuts = aggregatedCuts merge thisCut
+          CutRing.addCut(aggregatedCuts)
+          if (logging) finer(s"CutRing.Plugin [merged]: $aggregatedCuts")
+        }
+  }
+
   /** The maximum number of entries in the ring*/
   var bound = 80
   /** The actual number of entries in the ring: <= `bound` */
@@ -20,23 +44,6 @@ object CutRing extends Logging.Loggable {
   val emptyCut: Cut = Cut("", 0, 0, 0L)
 
   /** A plugin that adds `CutRing` functionality to an `EditSession` */
-  trait Plugin extends EditSession {
-    override def hasCutRing:Boolean = true
-
-    /** The merged aggregate of the most recent sequence of adjacent recorded cuts. */
-    var aggregatedCuts: Cut = emptyCut
-
-    /**
-     *   Record a cut; merging it with the current aggregate if possible, and
-     *   adding the state of the aggregate to the cut ring.
-     */
-    override def recordCut(thisCut: Cut): Unit = {
-      if (logging) finer(s"CutRing.Plugin: $thisCut")
-      aggregatedCuts = aggregatedCuts merge thisCut
-      CutRing.addCut(aggregatedCuts)
-      if (logging) finer(s"CutRing.Plugin [merged]: $aggregatedCuts")
-    }
-  }
 
   case class TimeStamped(text: String, time: String)
 

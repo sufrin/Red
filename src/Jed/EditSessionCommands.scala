@@ -1,5 +1,7 @@
 package Jed
+
 import Commands._
+import Red.SystemClipboard
 
 /**
  *   `Command`s derived from `EditSession` methods.
@@ -107,6 +109,44 @@ object EditSessionCommands extends Logging.Loggable {
     }
   }
 
+  /** Employed in implementing cursor-drag selections.
+    *  The undo must reset the selection
+    */
+  def setCursorAndMark(row: Int, col: Int): SessionCommand = new SessionCommand {
+    def DO(session: EditSession): StateChangeOption = {
+      val oldCursor = session.cursor
+      val oldSelection = session.selection
+      session.setCursorAndMark(row, col)
+      Some {
+        new StateChange {
+          def undo(): Unit = { session.selection = oldSelection; session.cursor = oldCursor }
+          def redo(): Unit = session.setCursorAndMark(row, col)
+        }
+      }
+    }
+  }
+
+  /**
+   *  Dragging the cursor is unusual.
+   *  There is no need for a history item, because a drag will always be
+   *  preceeded by a `setCursorAndMark`, whose  undo method will suffice
+   *  to undo the whole press-drag sequence, but whose redo method does not
+   *  redo the whole press-drag sequence -- simply restoring the cursor
+   *  to where the drag started.
+   *
+   *  '''TL;DR '''
+   *  In any case, having a history item per drag event would be
+   *  costly in terms of space and bandwidth: even if the drags were (as they
+   *  should be) merged.
+   */
+  def dragCursor(row: Int, col: Int): SessionCommand = new SessionCommand {
+    def DO(session: EditSession): StateChangeOption = {
+      session.dragCursor(row, col)
+      None
+    }
+  }
+
+
   def setMark(row: Int, col: Int): SessionCommand = new SessionCommand {
     def DO(session: EditSession): StateChangeOption = {
       val oldSelection = session.selection
@@ -124,13 +164,13 @@ object EditSessionCommands extends Logging.Loggable {
     def DO(session: EditSession): StateChangeOption = if (session.hasNoSelection) None
     else {
       val oldSelection = session.selection
-      val oldClip      = Red.SystemClipboard.getOrElse("")
+      val oldClip      = SystemClipboard.getOrElse("")
       session.copy()
       Some {
         new StateChange {
           def undo(): Unit = {
             session.selection = oldSelection
-            Red.SystemClipboard.set(oldClip)
+            SystemClipboard.set(oldClip)
           }
           def redo(): Unit = session.copy()
         }
@@ -143,12 +183,12 @@ object EditSessionCommands extends Logging.Loggable {
     else {
       val oldSelection = session.selection
       val oldCursor    = session.cursor
-      val oldClip      = Red.SystemClipboard.getOrElse("")
+      val oldClip      = SystemClipboard.getOrElse("")
       val oldSelected  = session.cut()
       Some {
         new StateChange {
           def undo(): Unit = {
-            Red.SystemClipboard.set(oldClip)
+            SystemClipboard.set(oldClip)
             // Should restore a selection with the correct polarity
             session.cursor    = oldSelection.left // reposition the session
             session.insert(oldSelected)           // insert the old selected text
@@ -169,7 +209,7 @@ object EditSessionCommands extends Logging.Loggable {
     def DO(session: EditSession): StateChangeOption = {
       val oldSelection = session.selection
       val oldCursor    = session.cursor
-      val oldClip      = Red.SystemClipboard.getOrElse("")
+      val oldClip      = SystemClipboard.getOrElse("")
       session.paste(oldClip)
       Some {
         new StateChange {
@@ -237,11 +277,11 @@ object EditSessionCommands extends Logging.Loggable {
     }
   }
 
-  val clearAll: SessionCommand = Commands.Command.andThen(selectAll, cut)
+  val clearAll: SessionCommand = Command.andThen(selectAll, cut)
 
   def exchangeCut: SessionCommand = new SessionCommand {
     def DO(session: EditSession): StateChangeOption = {
-      val oldClip         = Red.SystemClipboard.getOrElse("")
+      val oldClip         = SystemClipboard.getOrElse("")
       val oldSelection    = session.selection             // get the polarity right on undo
       val oldSelected     = session.exch(oldClip)
       Some {
@@ -252,4 +292,29 @@ object EditSessionCommands extends Logging.Loggable {
       }
     }
   }
+
+  def find(thePattern: String, backwards: Boolean): SessionCommand = new SessionCommand {
+    def DO(session: EditSession): StateChangeOption = {
+        val oldSelection = session.selection
+        val oldCursor = session.cursor
+        if (session.find(thePattern, backwards)) Some (new StateChange {
+           def undo(): Unit = { session.cursor=oldCursor; session.selection = oldSelection}
+           def redo(): Unit = session.find(thePattern, backwards)
+        }) else None
+    }
+  }
+
+
+  def replace(thePattern: String, theReplacement: String, backwards: Boolean) : SessionCommand =
+      new SessionCommand {
+        def DO(session: EditSession): StateChangeOption = {
+          val oldSelection = session.selection
+          val oldCursor = session.cursor
+          if (session.replace(thePattern, theReplacement, backwards)) Some (new StateChange {
+            def undo(): Unit = { session.exch(thePattern)  }
+            def redo(): Unit = session.replace(thePattern, theReplacement, backwards)
+          }) else None
+        }
+      }
+
 }

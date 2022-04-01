@@ -1,9 +1,9 @@
 package Jed
 
+import Red.InputEventDetail.Buttons._
+import Red.InputEventDetail.Key
+import Red.InputEventDetail.Modifiers._
 import Red._
-  import InputEventDetail.Buttons._
-  import InputEventDetail.Key
-  import InputEventDetail.Modifiers._
 
 /**
  *  This class defines handlers for keyboard and mouse events.
@@ -70,16 +70,36 @@ class EditSessionHandlers(val DO: Commands.Command[EditSession]=>Unit) {
         case Instruction(Key.Up, _, NoModifier)    => DO(commands.prevLine)
       }
 
+
+      private val ControlButton1 = Control|Button1
+
       /** A handler that responds to single mouse clicks, but ignores
-       *  multiple mouse clicks, mouse pressed and mouse released events.
+       *  multiple mouse clicks and mouse released events.
+       *
+       *  Selection-by-dragging (the cursor) is implemented. When the
+       *  cursor button is pressed, the mark and the cursor are moved to
+       *  the mouse position, and the session is now in a state where
+       *  dragging the cursor button extends the selection to the  mouse
+       *  position.
+       *
+       *  If the cursor button is pressed or dragged with the control modifier this just
+       *  moves the cursor.
+       *
        */
       val mouse: UserInputHandler =  {
-        case MousePressed(row, col, 1, Button1)  => DO(commands.setCursor(row, col))
-        case MousePressed(row, col, 1, Button3)  => DO(commands.setMark(row, col))
+        case MousePressed(row, col, 1, Button1)         => DO(commands.setCursorAndMark(row, col))
+        case MouseDragged(row, col,    Button1)         => DO(commands.dragCursor(row, col))
+
+        case MousePressed(row, col, 1, ControlButton1)  => DO(commands.setCursor(row, col))
+        case MouseDragged(row, col,    ControlButton1)  => DO(commands.setCursor(row, col))
+
+        case MousePressed(row, col, 1, Button3)         => DO(commands.setMark(row, col))
+
+        // Multiple presses
         case MousePressed(row, col, _, Button1)  => ()
         case MousePressed(row, col, _, Button3)  => ()
+
         case MouseReleased(_, _, _)              => ()
-        case MouseDragged(_, _, _)               => ()
       }
 
       /**
