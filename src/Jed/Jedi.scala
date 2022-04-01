@@ -3,8 +3,7 @@ package Jed
 import Red.Document
 
 import java.io.IOException
-import java.nio.file.{Files, Path, Paths}
-import scala.sys.process.stderr
+import java.nio.file.Files
 
 /** Start a UI on a session managing the document
  *  in the filestore at `path`, if it exists; and
@@ -19,7 +18,7 @@ class Jedi (var path: String) {
     doc.insert(0, reader)
   } catch {
     case exn: IOException =>
-         doc.insert(0, s"${exn}")
+         doc.insert(0, s"$exn")
          path = s"$path[NEW]"
   }
 

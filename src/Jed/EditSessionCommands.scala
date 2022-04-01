@@ -129,7 +129,7 @@ object EditSessionCommands extends Logging.Loggable {
   /**
    *  Dragging the cursor is unusual.
    *  There is no need for a history item, because a drag will always be
-   *  preceeded by a `setCursorAndMark`, whose  undo method will suffice
+   *  preceded by a `setCursorAndMark`, whose  undo method will suffice
    *  to undo the whole press-drag sequence, but whose redo method does not
    *  redo the whole press-drag sequence -- simply restoring the cursor
    *  to where the drag started.
@@ -308,8 +308,6 @@ object EditSessionCommands extends Logging.Loggable {
   def replace(thePattern: String, theReplacement: String, backwards: Boolean) : SessionCommand =
       new SessionCommand {
         def DO(session: EditSession): StateChangeOption = {
-          val oldSelection = session.selection
-          val oldCursor = session.cursor
           if (session.replace(thePattern, theReplacement, backwards)) Some (new StateChange {
             def undo(): Unit = { session.exch(thePattern)  }
             def redo(): Unit = session.replace(thePattern, theReplacement, backwards)

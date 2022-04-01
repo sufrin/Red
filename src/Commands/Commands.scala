@@ -16,8 +16,8 @@ package Commands
    */
   trait Command[T] {
     def DO(target: T): Option[StateChange]
-    def &&&(that: Command[T]) = Command.andThen(this, that)
-    def |||(that: Command[T]) = Command.orElse(this, that)
+    def &&&(that: Command[T]): Command[T] = Command.andThen(this, that)
+    def |||(that: Command[T]): Command[T] = Command.orElse(this, that)
   }
 
   /**
@@ -59,7 +59,7 @@ package Commands
       else
         None
 
-    val kind = "Nothing"
+    val kind: String = "Nothing"
   }
 
   object StateChange {
@@ -78,10 +78,10 @@ package Commands
       }
 
       override
-      val kind = u2.kind
+      val kind: String = u2.kind
 
       override
-      def toString() = s"${u1}/${u2}"
+      def toString: String= s"$u1/$u2"
     }
   }
 
@@ -93,14 +93,12 @@ package Commands
      * yields `None` and has no effect on the target.
      */
     def andThen[T](c1: Command[T], c2: Command[T]): Command[T] = new Command[T] {
-      def DO(target: T) =
+      def DO(target: T): Option[StateChange] =
         c1.DO(target) match {
           case Some(u1) =>
             c2.DO(target) match {
               case Some(u2) => Some(StateChange.compose(u1, u2))
-              case None => {
-                u1.undo(); None
-              }
+              case None     => u1.undo(); None
             }
           case None => None
         }
@@ -114,12 +112,10 @@ package Commands
      * and has no effect on the target.
      */
     def orElse[T](c1: Command[T], c2: Command[T]): Command[T] = new Command[T] {
-      def DO(target: T) =
+      def DO(target: T): Option[StateChange] =
         c1.DO(target) match {
-          case None => c2.DO(target)
-          case Some(u) => {
-            u.undo(); None
-          }
+          case None    => c2.DO(target)
+          case Some(u) => u.undo(); None
         }
     }
 
@@ -135,7 +131,7 @@ package Commands
         def undo(): Unit = ()
 
         override
-        def toString() = s"()"
+        def toString: String = s"()"
       }
 
       def DO(target: T): Option[StateChange] = Some(undoNothing)
@@ -161,11 +157,11 @@ package Commands
      */
     class StateChangeHistory[T](target: T) extends Red.Notifier[(Int, Int)] {
 
-      import scala.collection.mutable.Stack
+      import scala.collection._
 
-      val done, undone = new Stack[StateChange]
+      val done, undone = new mutable.Stack[StateChange]
 
-      override def toString() = s"""DONE: ${done.mkString(", ")}\nUNDONE: ${undone.mkString(", ")}"""
+      override def toString: String = s"""DONE: ${done.mkString(", ")}\nUNDONE: ${undone.mkString(", ")}"""
 
       def notifyHandlers(): Unit = notify((done.length, undone.length))
 
@@ -173,30 +169,30 @@ package Commands
        * Pop the topmost (most recent) entry of `done`, redo it, and push
        * it onto `undone`
        */
-      val UNDO = new Command[T] {
-        def DO(t: T) = {
-          if (!done.isEmpty) {
+      val UNDO: Command[T] = new Command[T] {
+        def DO(t: T): Option[StateChange] = {
+          if (done.nonEmpty) {
             undone.push(done.top); done.pop().undo(); notifyHandlers()
           }
           None
         }
 
-        override def toString(): String = "UNDO"
+        override def toString: String = "UNDO"
       }
 
       /**
        * Redo the topmost (most recent) entry of `undone`, undo it, and
        * push it onto to `done`
        */
-      val REDO = new Command[T] {
-        def DO(t: T) = {
-          if (!undone.isEmpty) {
+      val REDO: Command[T] = new Command[T] {
+        def DO(t: T): Option[StateChange] = {
+          if (undone.nonEmpty) {
             done.push(undone.top); undone.pop().redo(); notifyHandlers()
           }
           None
         }
 
-        override def toString(): String = "REDO"
+        override def toString: String = "REDO"
 
       }
 
@@ -209,23 +205,21 @@ package Commands
        */
       def DO(c: Command[T]): Unit =
         c.DO(target) match {
-          case None => ()
-          case Some(change) => {
-            undone.clear()
-            if (done.isEmpty)
-              done.push(change)
-            else {
-              done.top.merge(change) match {
-                case None => done.push(change)
-                case Some(merged) => {
-                  done.pop(); done.push(merged)
+            case None => ()
+            case Some(change) =>
+              undone.clear()
+              if (done.isEmpty)
+                done.push(change)
+              else {
+                done.top.merge(change) match {
+                  case None         => done.push(change)
+                  case Some(merged) => done.pop(); done.push(merged)
+
                 }
               }
+              notifyHandlers()
             }
-            notifyHandlers()
-          }
         }
-    }
   }
 
 

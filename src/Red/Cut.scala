@@ -2,7 +2,7 @@ package Red
 
 /** Representation of text that has been cut/deleted/copied in an editing
   * session. The `extent` is negative iff the cursor was to the right of the
-  * mark when this `Cut` was made. The intention is that when pasteing a `Cut`
+  * mark when this `Cut` was made. The intention is that when pasting a `Cut`
   * the cursor and mark end up at the correct ends of the pasted characters,
   * thereby allowing a cut action to be undone immediately by a paste of what
   * was cut, and a paste action to be undone immediately by a cut of the

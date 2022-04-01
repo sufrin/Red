@@ -171,7 +171,7 @@ package object Logging {
     case None =>
       assert(
         level.matches("[0-9]+"),
-        s"Logging.toLogLevel(${level}) -- unknown non-numeric level)"
+        s"Logging.toLogLevel($level) -- unknown non-numeric level)"
       ); level.toInt
     case Some((name, _)) => name
   }

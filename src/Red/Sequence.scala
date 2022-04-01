@@ -156,7 +156,7 @@ class Sequence [T: ClassTag](initialSize: Int=20) extends scala.collection.mutab
     length += count
   }
 
-  /** Insert all elements from the (finite) iterable, `elts`,  starting at position`
+  /** Insert all elements from the (finite) iterable, `elts`,  starting at position.
    *
    * '''Pre''' {{{ 0 <= position <= #elements }}}
    * '''Post''' {{{ elements=elements0 ↑ position ++ elts ++ elements0 ↓ position }}}

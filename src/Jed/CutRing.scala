@@ -41,7 +41,7 @@ object CutRing extends Logging.Loggable {
   def length: Int = cutRing.length
 
   /** The empty cut */
-  val emptyCut: Cut = Cut("", 0, 0, 0L)
+  @inline def emptyCut: Cut = Cut("", 0, 0, 0L)
 
   /** A plugin that adds `CutRing` functionality to an `EditSession` */
 
@@ -52,7 +52,7 @@ object CutRing extends Logging.Loggable {
    *  more appropriately be kept as a bounded cyclic list.
    *
    *  '''Inv:'''  `queue.length<=bound` */
-  private var cutRing: mutable.Queue[TimeStamped] = new mutable.Queue[TimeStamped]
+  private val cutRing: mutable.Queue[TimeStamped] = new mutable.Queue[TimeStamped]
 
   /** Add a cut to the ring, but if contains its
    *  predecessor in the ring then replace its

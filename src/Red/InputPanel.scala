@@ -1,8 +1,8 @@
 package Red
 
 import java.awt.Cursor
+import java.awt.event.{ComponentAdapter, ComponentEvent, FocusEvent, FocusListener, KeyAdapter, MouseWheelEvent}
 import java.awt.event.KeyEvent._
-import java.awt.event._
 import scala.collection.mutable
 import scala.swing.{Component, Container}
 
@@ -114,7 +114,7 @@ abstract class InputPanel(val numPadAsCommand: Boolean = true,
      with Container.Wrapper {
 
   import InputPanel._
-  import Red.InputEvent.{Modifiers, Detail, Key}
+  import InputEvent._
 
   /** Link to an underlying `javax.swing.JPanel` to provide most
    *  of the functionality of this component
@@ -218,7 +218,7 @@ abstract class InputPanel(val numPadAsCommand: Boolean = true,
 
   object Keyboard {
     // Bypass the `scala.swing.event` machinery for reporting keystrokes
-    val listener = new java.awt.event.KeyAdapter() {
+    val listener: KeyAdapter = new KeyAdapter() {
       override def keyPressed(e: java.awt.event.KeyEvent): Unit = {
         val keyChar   = e.getKeyChar
         val modifiers = e.getModifiersEx
@@ -227,7 +227,7 @@ abstract class InputPanel(val numPadAsCommand: Boolean = true,
         val keyCode   = e.getKeyCode
         val exKeyCode = e.getExtendedKeyCode
         if (logging)
-          finest(s"'$keyChar' $modifiers $location $keyCode  ${exKeyCode}")
+          finest(s"'$keyChar' $modifiers $location $keyCode  $exKeyCode")
         if (e.isActionKey) {
           // one of the "standard" function keys
           val decoded =
@@ -461,7 +461,7 @@ abstract class InputPanel(val numPadAsCommand: Boolean = true,
     import java.awt.event.{MouseAdapter, MouseEvent, MouseMotionAdapter}
 
     // Report presses, releases, enters, exits
-    val listener = new MouseAdapter {
+    val listener: MouseAdapter = new MouseAdapter {
       override def mousePressed(e: MouseEvent): Unit = {
         // The mouse was pressed (perhaps more than once)
         val clicks      = e.getClickCount
@@ -485,7 +485,7 @@ abstract class InputPanel(val numPadAsCommand: Boolean = true,
     }
 
     // Report mouse dragging
-    val motionListener = new MouseMotionAdapter {
+    val motionListener: MouseMotionAdapter = new MouseMotionAdapter {
        override def mouseDragged(e: MouseEvent): Unit = {
          val (row, col)  = viewToModel(e.getPoint)
          val modifiers   = e.getModifiersEx

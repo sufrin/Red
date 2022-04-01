@@ -71,10 +71,10 @@ class Notifier[Event] (name: String = "Anonymous") {
   /** Offer `event` to all handlers, and return true if any of them succeeded */
   def anyHandled(event: Event): Boolean = {
     var succeed = false
-    for ((tag, handler) <- handlers) {
+    for ((_, handler) <- handlers) {
       try   { handler.apply(event); succeed = true }
       catch {
-        case exn: scala.MatchError => {}
+        case _: scala.MatchError => ()
       }
     }
     succeed
@@ -83,10 +83,10 @@ class Notifier[Event] (name: String = "Anonymous") {
   /** Offer `event` to all handlers, and return true if none of them failed  */
   def allHandled(event: Event): Boolean = {
     var succeed = true
-    for ((tag, handler) <- handlers) {
+    for ((_, handler) <- handlers) {
       try   { handler.apply(event) }
       catch {
-        case exn: scala.MatchError => succeed = false
+        case _: scala.MatchError => succeed = false
       }
     }
     succeed
@@ -120,7 +120,7 @@ class Notifier[Event] (name: String = "Anonymous") {
 
   /**  The number of associated handlers with the given `tag` */
   def countTagged(tag: AnyRef): Int = handlers.count {
-    case (aTag, _) => (aTag eq tag)
+    case (aTag, _) => aTag eq tag
   }
 
   override def toString: String =
@@ -146,7 +146,7 @@ class Notifier[Event] (name: String = "Anonymous") {
    /**
     * A derived handler that is enabled only for the duration of a command
     */
-   def handleOnce(tag: AnyRef)(handler: Handler[Event])(body: => Unit) = {
+   def handleOnce(tag: AnyRef)(handler: Handler[Event])(body: => Unit): Unit = {
      handleWithTagged(tag)(handler)
      try     { body }
      finally { removeTagged(tag) }
@@ -174,9 +174,9 @@ class Notifier[Event] (name: String = "Anonymous") {
   def Handler[Event](handler: Handler[Event]): Handler[Event] = handler
 
  /** Ignore a report  */
-  private def ignoreUnhandled(report: => String): Unit = {}
+  private def ignoreUnhandled(report: => String): Unit = ()
 
-  private var _unHandled: ((=> String)=>Unit) = ignoreUnhandled(_)
+  private var _unHandled: (=> String)=>Unit = ignoreUnhandled(_)
 
   private [Notifier]
   def unHandled(handlerName: String, tag: AnyRef)(event: Any): Unit =
@@ -186,7 +186,7 @@ class Notifier[Event] (name: String = "Anonymous") {
    */
   def exceptionUnhandled(): Unit =
     _unHandled = {
-      case report => throw new IllegalArgumentException( report )
+      report => throw new IllegalArgumentException( report )
     }
 
   /** Henceforth unmatched notifications generate
@@ -195,7 +195,7 @@ class Notifier[Event] (name: String = "Anonymous") {
    */
   def stackTraceUnhandled(): Unit =
     _unHandled = {
-      case report  =>
+      report  =>
          new IllegalArgumentException(report).printStackTrace()
     }
 
@@ -204,7 +204,7 @@ class Notifier[Event] (name: String = "Anonymous") {
 
   /** Henceforth unmatched notifications are reported on the `System.err` console */
   def reportUnhandled(): Unit =
-    _unHandled = System.err.println(_)
+    _unHandled = System.err.println
 
   locally {
     stackTraceUnhandled()

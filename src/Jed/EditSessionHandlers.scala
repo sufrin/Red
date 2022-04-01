@@ -32,24 +32,6 @@ class EditSessionHandlers(val DO: Commands.Command[EditSession]=>Unit) {
   type UserInputHandler = Notifier.Handler[UserInput]
 
 
-      /** A handler that invokes the computation `act` in response to a newline */
-      def onNewline(act: => Unit): UserInputHandler = {
-        case Character('\n', _, _) => act
-      }
-
-      /** A handler that logs every input event, with `log.finest` then fails.
-       *  {{{
-       *    logAll(log) orElse handler
-       *  }}}
-       *  behaves like `handler` but also logs input events with `log.finest`.
-       */
-      def logAll(title: String="", log: Logging.Logger = Logging.Default.log): UserInputHandler = {
-        case what: UserInput if {
-          log.finest(s"$title $what")
-          false
-        } => ()
-      }
-
       val keyboard: UserInputHandler =  {
         case Character(char, _, NoModifier)            => DO(commands.insert(char))
         case Character(char, _, Shift)                 => DO(commands.insert(char))
@@ -93,8 +75,8 @@ class EditSessionHandlers(val DO: Commands.Command[EditSession]=>Unit) {
         case MousePressed(row, col, 1, Button3)         => DO(commands.setMark(row, col))
 
         // Multiple presses
-        case MousePressed(row, col, _, Button1)  => ()
-        case MousePressed(row, col, _, Button3)  => ()
+        case MousePressed(_, _, _, Button1)  => ()
+        case MousePressed(_, _, _, Button3)  => ()
 
         case MouseReleased(_, _, _)              => ()
       }

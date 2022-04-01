@@ -46,8 +46,11 @@ class TextLine(cols: Int) extends BoxPanel(Orientation.Horizontal) {
 
   protected val handler = new EditSessionHandlers(DoHere)
 
-  protected def firstHandler: UserInputHandler = { case _: UserInput if false => {} }
-  protected def lastHandler:  UserInputHandler = { case other: UserInput => Logging.Default.warn(s"TextLine: unhandled [[$other]]") }
+  protected def firstHandler: UserInputHandler =
+  { case _: UserInput if false => () }
+
+  protected def lastHandler:  UserInputHandler =
+  { case other: UserInput => if (logging) warn(s"TextLine: unhandled [[$other]]") }
 
   locally {
     contents += view

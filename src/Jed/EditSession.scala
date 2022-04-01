@@ -294,9 +294,9 @@ class EditSession(val document: DocumentInterface, val path: String)
       true
     }
 
-  /** Find the next (respectively: previous, when backwards is true) occurence of `thePattern` after
+  /** Find the next (respectively: previous, when backwards is true) occurrence of `thePattern` after
    *  (respectively: completely before) the cursor, and position the cursor
-   *  at the right (respectively left) end of the occurence, and the mark
+   *  at the right (respectively left) end of the occurrence, and the mark
    *  at its opposite end. Notify via `warnings` if this fails.
    */
   def find(thePattern: String, backwards: Boolean): Boolean = {

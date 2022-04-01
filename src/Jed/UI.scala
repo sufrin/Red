@@ -13,7 +13,7 @@ import BorderPanel.Position._
 class UI(val theSession: EditSession) extends SimpleSwingApplication {
 
   /**
-   *  `theSession`` emits warnings about things like find/replace failures
+   *  `theSession` emits warnings about things like find/replace failures
    *  that we wish to report via the user interface.
    */
   locally {
@@ -65,11 +65,6 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
     focusable = true
   }
 
-  /** An undo button */
-  private val undoButton   = Button("\u25c0") { UI_DO(history.UNDO) } // (<) ◀
-  /** A redo button */
-  private val redoButton   = Button("\u25ba") { UI_DO(history.REDO) } // (>) ►
-
   /** The history manager for the sessions. It responds to DO/UNDO
    * commands as described in its specification
    */
@@ -83,9 +78,15 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
     history.notifyHandlers()
   }
 
+  /** An undo button */
+  private val undoButton   = Button("\u25c0") { UI_DO(history.UNDO) } // (<) ◀
+  /** A redo button */
+  private val redoButton   = Button("\u25ba") { UI_DO(history.REDO) } // (>) ►
+
+
   /**
    *
-   * Execute the given commanf, `c` under supervision of
+   * Execute the given command, `c` under supervision of
    * the history manager, then present the feedback, and
    * finally make the session notify all handlers if
    * any changes have been made in the session. It is
@@ -100,18 +101,18 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
 
   /** The document view and the find and replace text lines all map Ctrl-F/Ctrl-R
    *  to Find and Replace. This is the handler that implements the mapping.
-   *  It should be added to existing handlers for ther view and the textlines.
+   *  It should be added to existing handlers for the view and the text lines.
    */
   val findreplHandler: UserInputHandler = {
     case Instruction(Key.F, _, mods)  => find(findLine.text, backwards = mods.hasShift)
     case Instruction(Key.R, _, mods)  => replace(findLine.text, replLine.text, backwards = mods.hasShift)
   }
 
-  private val findLine  = new Jed.TextLine(25) {
-    override def firstHandler = findreplHandler
+  private val findLine: TextLine  = new TextLine(25) {
+    override def firstHandler: UserInputHandler = findreplHandler
   }
-  private val replLine  = new Jed.TextLine(25) {
-    override def firstHandler = findreplHandler
+  private val replLine: TextLine  = new TextLine(25) {
+    override def firstHandler: UserInputHandler = findreplHandler
   }
 
   private val theWidgets = new  BoxPanel(Orientation.Horizontal) {
