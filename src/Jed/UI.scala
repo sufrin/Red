@@ -69,20 +69,20 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
    * commands as described in its specification
    */
   private val history = new Command.StateChangeHistory(theSession)
+  /** An undo button */
+  private val undoButton   = Button("\u25c0") { UI_DO(history.UNDO) } // (<) ◀
+  /** A redo button */
+  private val redoButton   = Button("\u25ba") { UI_DO(history.REDO) } // (>) ►
+
   locally {
     history.handleWith {
       case (done, undone) =>
         undoButton.enabled = done>0
         redoButton.enabled = undone>0
     }
-    history.notifyHandlers()
+    undoButton.enabled = false
+    redoButton.enabled = false
   }
-
-  /** An undo button */
-  private val undoButton   = Button("\u25c0") { UI_DO(history.UNDO) } // (<) ◀
-  /** A redo button */
-  private val redoButton   = Button("\u25ba") { UI_DO(history.REDO) } // (>) ►
-
 
   /**
    *
