@@ -15,15 +15,19 @@ import scala.reflect.ClassTag
  *  concrete arrays of `[T]` can be built. It won't require any special
  *  action from clients of this class.
  *
- *
- *
  *  Copyright (C) B.A. Sufrin, 2021 and J.M. Spivey. 2015
  *
  *  The present implementation is one component of the refactored and redesigned
  *  document representation (`Text`) used in Mike Spivey's original "ewoks" program.
  *
- *  @see `CharacterSequence`
- *  @see `Document`
+ *  In the documentation of `Sequence` and its subclasses we use the infix operators `↑, ↓`
+ *  to denote the `take` and `drop` functions over abstract sequences, and the expression
+ *  `e†n` to denote a sequence of `n` copies of `e`.
+ *
+ *  In other words:  `s↑n = s[0..n)`, and `s↓n = s[n..#s)`.
+ *
+ *  @see `Red.CharacterSequence`
+ *  @see `Red.Document`
  */
 
 class Sequence [T: ClassTag](initialSize: Int=20) extends scala.collection.mutable.Seq[T] {
@@ -140,7 +144,7 @@ class Sequence [T: ClassTag](initialSize: Int=20) extends scala.collection.mutab
   /** Insert `count` copies of `elt` at `position`
    *
    * '''Pre''' {{{ 0 <= position <= #elements }}}
-   * '''Post''' {{{ elements=elements0 ↑ position ++ [elt] ++ elements0 ↓ position }}}
+   * '''Post''' {{{ elements=elements0 ↑ position ++ [elt†count] ++ elements0 ↓ position }}}
    *
    * */
   def insert(position: Int, elt: T, count: Int=1): Unit = {
