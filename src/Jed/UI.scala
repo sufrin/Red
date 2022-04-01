@@ -1,6 +1,8 @@
 package Jed
 
 import Red._
+import UserInputHandlers._
+import Commands._
 import InputEventDetail.Key
 import InputEventDetail.ImplicitExtensions
 import InputEventDetail.Modifiers._
@@ -10,8 +12,20 @@ import scala.swing._
 import BorderPanel.Position._
 
 class UI(val theSession: EditSession) extends SimpleSwingApplication {
-  type UserInputHandler = Notifier.Handler[UserInput]
 
+  /**
+   *  `theSession`` emits warnings about things like find/replace failures
+   *  that we wish to report via the user interface.
+   */
+  locally {
+    theSession.warnings.handleWith { case (from, message) => warning(from, message) }
+  }
+  /** The source of handlers for user input events.  */
+  protected val handlers = new EditSessionHandlers(UI_DO)
+
+  /**
+   * Show a popup window, entitled `from`, with a warning message in it.
+   */
   def warning(from: String, message: String): Unit = {
     Dialog.showMessage(
       theView,
@@ -22,6 +36,10 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
     )
   }
 
+  /**
+   *  A text field in which feedback about the editing session is placed
+   *  after every user command.
+   */
   private val theFeedback = new TextField(40) {
     font = Settings.feedbackFont
     horizontalAlignment = Alignment.Center
@@ -30,22 +48,33 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
     peer.setForeground(Settings.feedbackColor)
   }
 
+  /**
+   * Place the given `message` in the feedback field, along
+   * with details about the editing session.
+   */
   def feedback(message: String): Unit = {
     val (row, col) = theSession.getCursorPosition
-    theFeedback.text = s"$message ${theSession.path}@$row:$col [${theSession.cursor}/${theSession.document.textLength}]"
+    val changed = if (theSession.document.hasChanged)  " (✖) " else " (✓) "
+    theFeedback.text = s"$message ${theSession.path}@$row:$col $changed [${theSession.cursor}/${theSession.document.textLength}]"
   }
 
+  /** The view in which `theSession`'s document will be shown.
+   *  It is `theSession` itself that notifies
+   *  */
   private val theView = new DocumentView(theSession) {
     preferredSize = defaultSize()
     focusable = true
   }
 
-  val handlers = new EditSessionHandlers(DoInUI)
+  /** An undo button */
+  private val undoButton   = Button("\u25c0") { UI_DO(history.UNDO) } // (<) ◀
+  /** A redo button */
+  private val redoButton   = Button("\u25ba") { UI_DO(history.REDO) } // (>) ►
 
-  private val undoButton   = Button("\u25c0") { DoInUI(history.UNDO) } // (<)
-  private val redoButton   = Button("\u25ba") { DoInUI(history.REDO) } // (>)
-
-  private val history = new Commands.Command.StateChangeHistory(theSession)
+  /** The history manager for the sessions. It responds to DO/UNDO
+   * commands as described in its specification
+   */
+  private val history = new Command.StateChangeHistory(theSession)
   locally {
     history.handleWith {
       case (done, undone) =>
@@ -55,18 +84,35 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
     history.notifyHandlers()
   }
 
-  private val findLine      = new Jed.TextLine(25) {
-    override def firstHandler: UserInputHandler = handlers.logAll(log=UI.log) orElse {
-      case Character('\n', _, mods)       => find(this.text, backwards=mods.hasShift)
-      case Character('\r', _, Shift)      => find(this.text, backwards=true)
-    }
+  /**
+   *
+   * Execute the given commanf, `c` under supervision of
+   * the history manager, then present the feedback, and
+   * finally make the session notify all handlers if
+   * any changes have been made in the session. It is
+   * this final method call that causes `theView` to
+   * be synchronised with the session.
+   */
+  def UI_DO(c: Commands.Command[EditSession]): Unit = {
+    history.DO(c)
+    feedback("")
+    theSession.notifyHandlers()
   }
 
-  private val replLine = new Jed.TextLine(25) {
-    override def firstHandler: UserInputHandler = handlers.logAll(log=UI.log) orElse {
-      case Character('\n', _, mods)       => replace(findLine.text, this.text, backwards=mods.hasShift)
-      case Character('\r', _, Shift)      => replace(findLine.text, this.text, backwards=true)
-    }
+  /** The document view and the find and replace text lines all map Ctrl-F/Ctrl-R
+   *  to Find and Replace. This is the handler that implements the mapping.
+   *  It should be added to existing handlers for ther view and the textlines.
+   */
+  val findreplHandler: UserInputHandler = {
+    case Instruction(Key.F, _, mods)  => find(findLine.text, backwards = mods.hasShift)
+    case Instruction(Key.R, _, mods)  => replace(findLine.text, replLine.text, backwards = mods.hasShift)
+  }
+
+  private val findLine  = new Jed.TextLine(25) {
+    override def firstHandler = findreplHandler
+  }
+  private val replLine  = new Jed.TextLine(25) {
+    override def firstHandler = findreplHandler
   }
 
   private val theWidgets = new  BoxPanel(Orientation.Horizontal) {
@@ -76,6 +122,12 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
     contents += replLine
     contents += undoButton
     contents += redoButton
+
+    // If the session has a cut ring feature, then make a button to start its UI
+    if (theSession.hasCutRing)
+        contents += Button("Cut Ring") {
+          CutRingUI.refreshIfVisible()
+        }
   }
 
   private val thePanel = new BorderPanel {
@@ -85,34 +137,47 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
   }
 
   def find(thePattern: String, backwards: Boolean): Unit = {
-      warning("Find", s"unimplemented: find $thePattern ($backwards)")
+      UI_DO(EditSessionCommands.find(thePattern, backwards))
   }
 
   def replace(thePattern: String, theReplacement: String, backwards: Boolean): Unit = {
-    warning("Replace", s"unimplemented: replace $thePattern/$theReplacement ($backwards)")
-  }
-
-  def DoInUI(c: Commands.Command[EditSession]): Unit = {
-    history.DO(c)
-    feedback("")
-    theSession.notifyHandlers()
+      UI_DO(EditSessionCommands.replace(thePattern, theReplacement, backwards))
   }
 
   val top: Frame = new MainFrame() {
-      title = "Jedi"
+      title = s"Jedi: ${theSession.path}"
       contents = thePanel
       // menuBar = theMenuBar
       background = Color.lightGray
 
-      theView.keystrokeInput.handleWithTagged("UI") {
+      theView.keystrokeInput.handleWith {
           handlers.mouse       orElse
+          findreplHandler      orElse
           handlers.keyboard    orElse {
-            case Instruction(Key.Z, _, ControlShift) => DoInUI(history.REDO)
-            case Instruction(Key.Z, _, Control)      => DoInUI(history.UNDO)
+            case Instruction(Key.Z, _, ControlShift) => UI_DO(history.REDO)
+            case Instruction(Key.Z, _, Control)      => UI_DO(history.UNDO)
             case other: UserInput                    => Logging.Default.info(s"Unhandled user input [[$other]] ")
           }
       }
+
+    locally {
+      // Undocumented magic to place the window sensibly
+      peer.setLocationByPlatform(true)
+      // Undocumented magic to avoid window-closing shutting down the entire app
+      peer.setDefaultCloseOperation(javax.swing.WindowConstants.DO_NOTHING_ON_CLOSE)
+      // Initial feedback when the window opens
+      reactions += { case event.WindowOpened(_) => feedback("")
+      }
+    }
+
+    /**
+     *  Invoked when the window closes.
+     */
+    override def closeOperation(): Unit = {}
+
   }
+
+  def isVisible: Boolean = top.visible
 
   def start(): Unit = main(Array())
 }

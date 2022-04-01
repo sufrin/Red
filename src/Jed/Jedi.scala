@@ -23,7 +23,7 @@ class Jedi (var path: String) {
          path = s"$path[NEW]"
   }
 
-  val session = new EditSession(doc, path)
+  val session = new EditSession(doc, path) with CutRing.Plugin
   val ui      = new UI(session)
 
   locally { ui.start() }
