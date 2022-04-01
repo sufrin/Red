@@ -47,7 +47,7 @@ class EditSession(val document: DocumentInterface, val path: String)
    *   This should be invoked after every user-invoked command.
    *
    *    NB: The selection-changed test is an identity test deliberately.
-   *    There's a need to distinguish between `NoSelection' and a selection
+   *    There's a need to distinguish between `NoSelection` and a selection
    *    with cursor and mark both at 0 in the document, which signifies a
    *    dragging state started at 0.
    */
@@ -257,9 +257,9 @@ class EditSession(val document: DocumentInterface, val path: String)
     }
   }
 
-  def toEnd(): Unit = cursor = document.textLength
+  def toEnd(): Unit = { cursor = document.textLength }
 
-  def toHome(): Unit = cursor = 0
+  def toHome(): Unit = { cursor = 0 }
 
   def selectAll(): Unit = {
     selection = Span(0, document.textLength)
@@ -291,7 +291,7 @@ class EditSession(val document: DocumentInterface, val path: String)
       var lastc = pos+pat.length
       while ({ last -= 1; lastc -= 1; last>=0})
         if (document.character(lastc)!=pat(last))  return false
-      return true
+      true
     }
 
   /** Find the next (respectively: previous, when backwards is true) occurence of `thePattern` after
@@ -319,7 +319,7 @@ class EditSession(val document: DocumentInterface, val path: String)
         if (position>=0) true else { warnings.notify("Find", s"Cannot find backwards:\n  $thePattern");  false}
       case false =>
         var position = cursor
-        var lastPossible = document.textLength - thePattern.length
+        val lastPossible = document.textLength - thePattern.length
         while (searching && position <= lastPossible)
           if (matchesAt(thePattern, position)) {
             searching = false

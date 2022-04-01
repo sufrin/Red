@@ -32,9 +32,9 @@ object CutRingUI extends Logging.Loggable {
         // Deal with opening and closing of this UI window
         listenTo(top)
         reactions += {
-          case swing.event.WindowOpened(peer)      => visible = true; refreshIfVisible()
-          case swing.event.WindowIconified(peer)   => visible = false
-          case swing.event.WindowDeiconified(peer) => visible = true; refreshIfVisible()
+          case swing.event.WindowOpened(_)      => visible = true; refreshIfVisible()
+          case swing.event.WindowIconified(_)   => visible = false
+          case swing.event.WindowDeiconified(_) => visible = true; refreshIfVisible()
         }
       }
     }
