@@ -1,0 +1,5 @@
+# Red.Red: stand-alone
+# Maxprintline sets the largest unbroken width for pdflatex log lines
+export max_print_line=4000
+REDPORT=STANDALONE java -Xdock:icon=/Users/sufrin/bin/cred.png  -Xdock:name=MacRed \
+     -jar ~/bin/Red.Red.jar "$@"

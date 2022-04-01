@@ -1,0 +1,386 @@
+\documentclass{ip3}
+\lecture{I: Introduction and Fundamental Concepts}
+\begin{document}
+
+\Section{Opening Remarks}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{foil}[The Context]
+
+\begin{note}[Programming in the Large]
+      We take ``Programming in the Large'' to mean: \textit{building
+      programs with nontrivial internal interfaces}. Your understanding of
+      this depends on your understanding of ``nontrivial interface'', of
+      course, but \textit{we} take a nontrivial interface to be an
+      interface whose change would result in a significant amount of work
+      -- say more than a day's work (at either side of the interface) by
+      reasonably skilled programmers.\footnote{Ok! What does
+      \textit{reasonably skilled} mean?} Another view, not inconsistent
+      with this, is that ``Programming in the Large'' means building
+      systems that need the work of more than a handful of programmers if
+      they are to start functioning in reasonable time.\footnote{Let's be
+      reasonable about the meaning of \textit{reasonable}, here!}
+
+\end{note}
+
+\begin{itemize}
+        \item Object-Oriented Programming 
+        \begin{itemize}
+              \item Evolved in response to the challenges of \textit{Programming in the Large}
+              \item Well-adapted to most scales of programming task
+        \end{itemize}
+        
+        \vitem Large Systems: some big challenges
+        \begin{itemize}
+                \item Problem domains can be intrinsically complex 
+                \item End-user requirements evolve continuously
+                \item Systems evolve over several years or decades
+                \begin{note}[Systems Evolve]
+                      System designers rarely know in advance the
+                      real requirements of their clients or the
+                      end-users of their systems.
+                      So systems evolve over time as the needs
+                      of the end-users become better understood, and
+                      as tools and technologies change or obsolesce.
+                \end{note}
+                \item Underlying hardware \& software technologies change continuously
+                      \begin{note}[Legacy Interfaces to Legacy Code]
+                      Programmers have to build systems which use
+                      legacy interfaces to legacy code, and to
+                      cope with the consequences of other people's
+                      irreversible design decisions.
+                      \end{note}
+                \item Systems have to adapt to changing environments
+                \item Systems accumulate more and more components
+                \item The programming team no longer controls the whole program
+                \begin{note}[Code Ownership]
+                      The realistic programmer does not expect to
+                      possess (let alone \textit{control}) all the source
+                      code which contributes to the behaviour of
+                      the program under construction.
+
+                      Most programming teams under most circumstances
+                      don't write every line of code that is used
+                      in their program. They incorporate library
+                      components and/or framework code in their systems,
+                      rather than reinventing the wheel.
+
+                      The big challenge here (from the perspective
+                      of the users of an imported component) is that
+                      if the component doesn't do exactly what the
+                      team wants, they have to program round the
+                      behaviour they don't like.  As well as being
+                      intrinsically irritating, this is dangerous,
+                      because the behaviour in question might change
+                      with the next release of the library/framework.
+
+                      Much important component design activity is
+                      generic -- in the sense that it is the design
+                      of frameworks that will be finished by clients,
+                      and/or of libraries of components that will
+                      be used by them.                      
+
+                      From the perspective of the component builder 
+                      the challenge is to build functionally stable
+                      and well-documented components that are
+                      adaptable for use in large numbers of systems.
+                \end{note}
+        \end{itemize}
+\end{itemize}
+\end{foil}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{foil}[Desirable qualities of a system, a program or a component]
+\begin{itemize}
+\begin{note}[Specifications and Requirements]
+      If a program/component doesn't do what it's supposed to do
+      then its other qualities matter little. 
+      
+      But the specification of a \textit{system}  or a \textit{program}
+      is more than a purely technical question. The program, as
+      specified, must meet its operational requirements. It must
+      support its end users to do their jobs or live their lives.
+      
+      Those who commission or purchase a corporate or governmental system
+      are not often its end users, and there are countless cases of
+      expensive systems that, whilst \textit{technically correct} 
+      do not meet the requirements of the situation in which they will
+      be deployed. The sociotechnical problem of \textit{requirements elicitation} is
+      interesting in its own right. 
+\end{note}
+\item Correctness: perform its task as defined by its specification.
+\item Verifiability: the ease with which correctness can be shown 
+\begin{note}[Verification, testing and other challenges]
+      It can be quite hard to specify software in a way that
+      makes its designer's intentions clear whilst implementing it
+      by means that make its correctness \textit{provable}. 
+\par      
+      A slightly weaker form of verification than proof is \textit{testing},
+      and these days there are some interesting tools and disciplines 
+      that can be used for \textit{systematic} testing --
+      particularly of components.
+\par      
+      It is also a challenge to take a (possibly-prealgorithmic) specification
+      and test its potential utility to end-users without first building it, or at least 
+      building a prototype.
+\end{note}
+\item Robustness: the ability of a software system to function without catastrophic failure -- even in abnormal conditions.
+\item Maintainability: the ease with which a software system may be adapted to changes in its
+specification and/or operational environment.
+\item Reusability: the ease with which a component may be used in the construction of a variety of systems.
+\item Composability: the ease with which a component can be combined with other components.
+\item Efficiency: degree to which space and computational resources are conserved
+\item Ease of Use
+\begin{note}[Ease of Use]
+Of course ease of use, the degree to which brain-cells are conserved
+when deploying or using a program, is an extremely desirable quality.
+
+The listed qualities are not necessarily consistent with each
+other. For example, often code that is very computationally efficient can be rather
+hard to verify. That's why disciplines of program refinement have evolved,
+that enable programmers to transform an ``inefficient but obviously 
+correct'' program into an ``efficient but not obviously correct'' program
+by means of small, understandable, correctness-preserving transformations.
+
+\end{note}
+\end{itemize}
+\end{foil}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{foil}[Managing Complexity]
+Managing complexity: the key conceptual tools
+ \begin{itemize}
+         \vfill\item Modularity
+         \begin{itemize}
+                 \item complex systems should be composed of modules.
+                 \item each component (module) should play a single well-understood role.               
+                 \item components should have well-defined interfaces.
+          \end{itemize}
+          \vfill\item Abstraction (make explicit only what is \textit{relevant} to the task)
+                  \begin{itemize}                        
+                          \item components should be treated as ``black boxes''
+                          \item black boxes with identical specifications should be interchangeable
+                          \item we must never rely on knowledge of a component's implementation details
+                  \end{itemize}                
+          \vfill\item Reuseability
+          \begin{itemize}
+                 \item Reuse existing components (unless there's
+                 good reason to design new ones)
+                 \item Design new components for reuseability
+                 (unless there's good reason not to)
+          \end{itemize}
+ \end{itemize}
+\begin{note}[Abstraction]
+\begin{itemize}
+\item Abstraction is our defence against conceptual complexity. We
+seek to abstract the essential conceptual core of a problem or
+solution from the mass of detail which is not relevant in a
+particular context.
+
+\item Modularity -- the decoupling of the implementation structures
+of the major conceptual components of a system -- is one of the
+most important techniques we can use to defend ourselves against
+continuously changing requirements and contexts.
+\end{itemize}
+\end{note}
+\begin{note}[]
+The \textit{decoupling} of functional specification from
+implementation details is the most important technique which
+can be used to defend a program from evolving into a form which
+is unnecessarily complicated. The recognition that language
+support for such decoupling is necessary came more than fifty
+years ago. 
+
+The theories (of program and data refinement) which provide
+the conceptual foundation for practising such separation
+(at least on a small scale, and for sequential programs)
+have been well-understood for more than forty years. They have
+been institutionalised in a number of systematic approaches
+to program construction, some of which are backed-up by
+tools. 
+
+But, as in all engineering domains, there is a difference
+between what we  ``know intuitively''  about the artefacts
+we build, and what we can prove (intuitively or formally) about them.
+
+Although it is frequently the case that something that was
+``known'' before a proof was started is  discovered to
+be wrong in the course of an attempt at proof, the economics of program
+construction seem to dictate that a huge proportion of mistakes
+be discovered accidentally by end-users (and their victims)
+rather than deliberately by programmers.
+
+Although formal proof is arduous and unappealing to many, the use of
+abstraction techniques can be very helpful in making
+a program's structure more intuitively understandable.
+\end{note}
+\end{foil}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{foil}[Good practice]
+
+\begin{itemize}
+\item[]
+\begin{itemize}
+
+\item Structure a system or program around whole data structures
+      together with their operations (not just around individual operation/function
+      definitions).
+      \begin{note} 
+          A whole data structure usually maps to a \textit{conceptual
+          structure} {or a real life entity} in the problem- or
+          solution- domain: an individual operation generally
+          represents nothing on its own.
+\par          
+          The advent of type-classes in (some) functional languages 
+          also makes this possible -- at least in principle.
+      \end{note}
+
+
+
+\item Clients that \textit{use} a data structure must depend only on
+      its ``official'' interface -- rather than exploiting any internal
+      details of its implementation that happen to be known.
+       \begin{note}[Clients and Suppliers]
+          We say that a piece of code that uses one or more resources supplied by another
+          piece of code is a \textit{client} of that \textit{supplier}.
+       \end{note}
+\end{itemize}
+
+
+\item[] Object-oriented languages provide linguistic machinery to support and enforce these practices.
+      \begin{note}[Black-Box design techniques]
+      In engineering these practices are known as ``black-box'' design techniques. 
+      In the programming milieu they have various aliases, principally:
+      \begin{itemize}
+              \item[] Information hiding
+              \item[] Abstract (data) types
+              \item[] Abstract machines
+              There is a technical difference between the ADT and  AM terminology.
+              \par
+              An abstract machine is \textit{mutable}: it has an internal
+              state which can be changed in some externally observable
+              way, by its operations.
+              \par
+              On the other hand, a (value of an) abstract data type
+              is \textit{immutable} (doesn't change). 
+      \end{itemize}
+      \par      
+      The logistical value of these practices can be seen when the code
+      that implements a structure has to be maintained. For example,
+      perhaps the representation of a table that implements a mapping
+      has to be changed from a sorted array to a hashtable in order to
+      make key lookup faster. If the table implementation wasn't a black
+      box then there may be places in the code that uses the table that
+      rely on the fact that it is stored as an ordered array. The job
+      of maintaining a single data structure now has to be supplemented
+      with a search through every program that might use that structure
+      for the places where it is used.      
+      \end{note}
+\end{itemize}
+\end{foil}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{foil}[Fundamental Concepts: Objects, Classes, Traits]
+\begin{itemize}
+\item An \textit{Object} is a record-like data structure, with 
+      \begin{itemize}
+      \item Fields  -- these are named values, or named variables with values
+            \begin{note}
+                  The values of fields may be simple scalar values
+                  (integers, booleans, characters, floating point numbers,
+                  \textit{etc}), or references to other objects)
+            \end{note}
+      
+      \item[]and  
+      
+      
+      \item Methods -- these are procedures (specifications of computations): which may be 
+           \begin{itemize}
+           \item Operations/Mutators  -- that change the values of the variable  fields
+           
+           \item[]or
+           
+           
+           \item Functions/Observations -- that compute values from the fields
+            
+           \end{itemize}
+           \begin{note}[Operations and Observations]
+               We use the terms \textit{operation} and  \textit{mutator} interchangeably to
+               describe a method which may change the state of an object, but which
+               does not return any value. We use the terms \textit{observation}
+               and \textit{function} interchangeably to describe a method which
+               calculates and returns a value or another object. Some functions
+               can change the state of an object, but it is bad practice to design
+               them to do so in a way which is detectable from outside the object
+           \par    
+               In practice we shall see that different kinds of client are permitted to invoke
+               different kinds of method. The degree of support for classifying
+               clients varies dramatically from OOPL to OOPL. The two
+               extremes are Eiffel (where arbitrary classes of client can be
+               distinguished) and Python (where there are simply users and descendants).
+          \par     
+               In a non-technical sense it makes sense to let a trusted client have access to 
+               some methods which it might be inadvisable to allow an untrusted client to
+               use. Trust may offer a performance advantage to the trustee (for example, the use
+               of methods which don't check their arguments for soundness), but
+               imposes obligations on the trustee, principally to maintain the internal
+               invariants of the data structure.
+           \end{note}
+           
+           \item  Fields and methods are collectively called  
+                  \textit{members} or \textit{features}.
+      \end{itemize}
+      \begin{note}
+          Most OOPls require that \textit{immutable} composite values
+          (for example complex numbers, cartesian co-ordinates, strings)
+          be represented as objects, specified by classes or traits. The
+          values of the observations one can make of such composite values
+          never changes -- although there is no formal prohibition on the details
+          of their internal representations changing.  Internal representation
+          changes that do not compromise the \textit{specified} behaviour
+          are sometimes called ``benign side-effects''.
+          \par
+          Scala provides abbreviations for designating and constructing certain kinds of built-in 
+          immutable composites, notably $n$-tuples (cartesian products).\footnote{For each $n\in\{0..22\}$}
+          and functions.
+      \end{note}
+
+\end{itemize}
+\end{foil}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{foil}
+\begin{itemize}
+\vitem A \textit{Class} is the definition of a family of objects which have features in common
+\vitem An \textit{Abstract Class} is a class in which certain features have yet to be fully defined
+\vitem A \textit{Trait} (in Scala) is the definition of a family of classes: an interface to all their objects
+\end{itemize}
+\end{foil}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{foil}[Caveat]
+\begin{itemize}
+
+
+\item Some principles and ideas are best discussed first in small case studies
+
+\vitem The practicals will demand work with at least one big program
+
+\vitem Scala is the \textit{medium of instruction}, not the subject of the course
+\begin{itemize}
+\item It is a complex language with lots of details to understand
+\item Some important details are discussed here only in passing
+\item You will need to pick up many details from the recommended documentation
+\end{itemize}
+\end{itemize}
+\end{foil}
+
+
+
+\end{document}
+
+
+

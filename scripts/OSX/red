@@ -1,0 +1,2 @@
+# Run MacRed from IJ out/production/Red.Red classfiles
+scala -cp /Users/sufrin/local/scalalib/scala-swing.jar:out/production/Red Red.MacRed "$@"

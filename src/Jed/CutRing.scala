@@ -1,0 +1,85 @@
+package Jed
+
+import Red.{Cut, Notifier, Settings}
+
+import scala.collection.mutable
+
+/**
+ *  The cut ring keeps the most recent cuts taken
+ *  from editing sessions; merging them where
+ *  it is appropriate to do so.
+ *
+ */
+object CutRing extends Logging.Loggable {
+  /** The maximum number of entries in the ring*/
+  var bound = 80
+  /** The actual number of entries in the ring: <= `bound` */
+  def length: Int = cutRing.length
+
+  /** The empty cut */
+  val emptyCut: Cut = Cut("", 0, 0, 0L)
+
+  /** A plugin that adds `CutRing` functionality to an `EditSession` */
+  trait Plugin extends EditSession {
+    override def hasCutRing:Boolean = true
+
+    /** The merged aggregate of the most recent sequence of adjacent recorded cuts. */
+    var aggregatedCuts: Cut = emptyCut
+
+    /**
+     *   Record a cut; merging it with the current aggregate if possible, and
+     *   adding the state of the aggregate to the cut ring.
+     */
+    override def recordCut(thisCut: Cut): Unit = {
+      if (logging) finer(s"CutRing.Plugin: $thisCut")
+      aggregatedCuts = aggregatedCuts merge thisCut
+      CutRing.addCut(aggregatedCuts)
+      if (logging) finer(s"CutRing.Plugin [merged]: $aggregatedCuts")
+    }
+  }
+
+  case class TimeStamped(text: String, time: String)
+
+  /**
+   *  The cut ring is implemented here as a bounded queue, though it would
+   *  more appropriately be kept as a bounded cyclic list.
+   *
+   *  '''Inv:'''  `queue.length<=bound` */
+  private var cutRing: mutable.Queue[TimeStamped] = new mutable.Queue[TimeStamped]
+
+  /** Add a cut to the ring, but if contains its
+   *  predecessor in the ring then replace its
+   *  predecessor. This is the way successive
+   *  adjacent deletions/cuts end up occupying
+   *  a single slot in the ring. This method is
+   *  not particularly efficient, but it is
+   *  straightforward.
+   */
+  def addCut(aCut: Cut): Unit = {
+    // contains its predecessor
+    if (cutRing.nonEmpty &&  aCut.text.contains(cutRing.last.text))
+      cutRing.dropRightInPlace(1) // remove from the end of the queue
+
+    /** Make space, if necessary, by removing the least-recently queued. */
+    if (cutRing.length >= bound) cutRing.dequeue()
+
+    cutRing.enqueue(TimeStamped(aCut.text, Settings.dateString()))
+    ringChanged.notify(())
+  }
+
+  /** Materialize the entire cut ring, in reverse order, as text -- embedding each individual
+   *  cut in "««««« ... »»»»»".
+   */
+  def toText: String =
+  { val buf=new StringBuilder()
+    for { cut <- cutRing.reverse } {
+      buf append s"«««««««« ${cut.time}\n"
+      buf append cut.text
+      buf append s"\n»»»»»»»»\n"
+    }
+    buf.toString()
+  }
+
+  /** Publish the fact that the cut ring has changed  */
+  val ringChanged: Notifier[Unit] = new Notifier[Unit] { }
+}

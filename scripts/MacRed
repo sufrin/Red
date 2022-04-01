@@ -1,0 +1,2 @@
+# Script synthesised by makeBin
+scala -cp /Users/sufrin/local/scalalib/scala-swing.jar:MacRed.jar MacRed "$@"
