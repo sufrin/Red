@@ -1,12 +1,18 @@
 package Jed
-import  Red._
-
+import Jed.EditSessionCommands.{SessionCommand, StateChangeOption}
+import Red._
 import UserInputHandlers._
+
 import scala.swing._
 
 /**
  * A single, horizontal, line of text with configurable keyboard and
- * mouse behaviour. Input events are handled by the composition:
+ * mouse behaviour. Newline (`'\n'`) characters are represented visually and
+ * by the character sequence specified as `surrogateLF`,
+ * which by default is `"(ɴ)"` (ɴ is at unicode \u0274). They
+ * are externalized as `'\n'`.
+ *
+ * Input events are handled by the composition:
  * {{{
  *   firstHandler orElse handleOneLineInput orElse lastHandler
  * }}}
@@ -27,43 +33,56 @@ import scala.swing._
  * }
  * }}}
  *
- * Newline characters are represented visually and internally by the character sequence specified as `surrogateLF`,
- * which by default is `"(ɴ)"` (ɴ is at unicode \u0274).
  */
 class TextLine(cols: Int) extends BoxPanel(Orientation.Horizontal) {
   import TextLine._
 
   protected val (realLF, surrogateLF): (String, String) = ("\n", "(\u0274)")
 
-  protected val doc:     DocumentInterface      = new Document()
-  protected val session: EditSession            = new EditSession(doc, "") {
-     override def insert(string: String): Unit  = super.insert(string.replace(realLF, surrogateLF))
-     override def selectionText(): String       = super.selectionText().replace(realLF, surrogateLF)
+  private val insertLF: SessionCommand  = new SessionCommand {
+    def DO(session: EditSession): StateChangeOption = {
+      session.insert(surrogateLF)
+      None
+    }
   }
+
+  private trait LFPlugin extends EditSession { host =>
+    override def insert(string: String): Unit  = super.insert(string.replace(realLF, surrogateLF))
+    override def insert(ch: Char): Unit        = super.insert(s"$ch")
+    override def selectionText(): String       = super.selectionText().replace(realLF, surrogateLF)
+  }
+
+  protected val doc:     DocumentInterface      = new Document()
+  protected val session: EditSession            = new EditSession(doc, "") with LFPlugin
   protected val view     = new DocumentView(session, 1, cols, font=Utils.widgetFont)
 
-  def DoHere(command: Commands.Command[EditSession]): Unit = { command.DO(session); session.notifyHandlers() }
+  def DO(command: Commands.Command[EditSession]): Unit = { command.DO(session); session.notifyHandlers() }
 
-  protected val handler = new EditSessionHandlers(DoHere)
+  protected val handler = new EditSessionHandlers(DO)
 
-  protected def firstHandler: UserInputHandler =
-  { case _: UserInput if false => () }
+  protected val lfHandler: UserInputHandler = {
+    case Character('\n', _, _) => DO(insertLF)
+  }
 
-  protected def lastHandler:  UserInputHandler =
-  { case other: UserInput => if (logging) warn(s"TextLine: unhandled [[$other]]") }
+  protected def firstHandler: UserInputHandler = { case _: UserInput if false => {} }
+  protected def lastHandler:  UserInputHandler = { case other: UserInput => Logging.Default.warn(s"TextLine: unhandled [[$other]]") }
 
   locally {
     contents += view
     view.viewLineNumbers(0)
     view.keystrokeInput.handleWith {
         firstHandler                  orElse
+        lfHandler                     orElse
         handler.singleLineKeyboard    orElse
         handler.mouse                 orElse
         lastHandler
     }
   }
 
+  /** The current text in the line */
   def text: String                  = doc.toString.replace(surrogateLF, realLF)
+
+  /** Set the current text in the line */
   def text_=(newText: String): Unit = {
     session.cutAll()
     session.insert(newText)
