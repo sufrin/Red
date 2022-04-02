@@ -17,9 +17,7 @@ class Jedi (var path: String) {
     val reader = Files.newBufferedReader(fsPath)
     doc.insert(0, reader)
   } catch {
-    case exn: IOException =>
-         doc.insert(0, s"$exn")
-         path = s"$path[NEW]"
+    case exn: IOException => path = s"$path${Utils.NEWFILESUFFIX}"
   }
 
   val session = new EditSession(doc, path) with CutRing.Plugin

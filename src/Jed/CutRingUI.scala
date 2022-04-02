@@ -14,7 +14,7 @@ import Red._
 object CutRingUI extends Logging.Loggable {
     private lazy val doc     = new Document()
 
-    private lazy val session = new EditSession(doc, "CUT RING")
+    private lazy val session = new EditSession(doc, s"«CUTRING»")
 
     private lazy val gui     = new UI(session) {
       override def feedback(message: String): Unit = {

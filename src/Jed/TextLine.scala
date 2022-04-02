@@ -40,7 +40,7 @@ class TextLine(cols: Int) extends BoxPanel(Orientation.Horizontal) {
      override def insert(string: String): Unit  = super.insert(string.replace(realLF, surrogateLF))
      override def selectionText(): String       = super.selectionText().replace(realLF, surrogateLF)
   }
-  protected val view     = new DocumentView(session, 1, cols, font=Settings.widgetFont)
+  protected val view     = new DocumentView(session, 1, cols, font=Utils.widgetFont)
 
   def DoHere(command: Commands.Command[EditSession]): Unit = { command.DO(session); session.notifyHandlers() }
 

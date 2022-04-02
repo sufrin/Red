@@ -1,6 +1,6 @@
 package Jed
 
-import Red.{Cut, Notifier, Settings}
+import Red.{Cut, Notifier}
 
 import scala.collection.mutable
 
@@ -70,7 +70,7 @@ object CutRing extends Logging.Loggable {
     /** Make space, if necessary, by removing the least-recently queued. */
     if (cutRing.length >= bound) cutRing.dequeue()
 
-    cutRing.enqueue(TimeStamped(aCut.text, Settings.dateString()))
+    cutRing.enqueue(TimeStamped(aCut.text, Utils.dateString()))
     ringChanged.notify(())
   }
 

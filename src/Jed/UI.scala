@@ -1,25 +1,26 @@
 package Jed
 
-import Red._
-import UserInputHandlers._
 import Commands._
-import InputEvent.Key
-import InputEvent.Modifiers._
+import Red.InputEvent.Key
+import Red.InputEvent.Modifiers._
+import Red.UserInputHandlers._
+import Red._
 
 import java.awt.Color
+import java.nio.file.Files
+import scala.swing.BorderPanel.Position._
 import scala.swing._
-import BorderPanel.Position._
 
 class UI(val theSession: EditSession) extends SimpleSwingApplication {
 
   /**
-   *  `theSession` emits warnings about things like find/replace failures
-   *  that we wish to report via the user interface.
+   * `theSession` emits warnings about things like find/replace failures
+   * that we wish to report via the user interface.
    */
   locally {
     theSession.warnings.handleWith { case (from, message) => warning(from, message) }
   }
-  /** The source of handlers for user input events.  */
+  /** The source of handlers for user input events. */
   protected val handlers = new EditSessionHandlers(UI_DO)
 
   /**
@@ -31,20 +32,20 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
       message,
       from,
       Dialog.Message.Warning,
-      icon = Settings.redIcon
+      icon = Utils.redIcon
     )
   }
 
   /**
-   *  A text field in which feedback about the editing session is placed
-   *  after every user command.
+   * A text field in which feedback about the editing session is placed
+   * after every user command.
    */
   private val theFeedback = new TextField(40) {
-    font = Settings.feedbackFont
+    font = Utils.feedbackFont
     horizontalAlignment = Alignment.Center
     text = ""
     enabled = true
-    peer.setForeground(Settings.feedbackColor)
+    peer.setForeground(Utils.feedbackColor)
   }
 
   /**
@@ -53,13 +54,13 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
    */
   def feedback(message: String): Unit = {
     val (row, col) = theSession.getCursorPosition
-    val changed = if (theSession.document.hasChanged)  " (✖) " else " (✓) "
+    val changed = if (hasChanged) " (✖) " else " (✓) "
     theFeedback.text = s"$message ${theSession.path}@$row:$col $changed [${theSession.cursor}/${theSession.document.textLength}]"
   }
 
   /** The view in which `theSession`'s document will be shown.
-   *  It is `theSession` itself that notifies
-   *  */
+   * It is `theSession` itself that notifies
+   * */
   private val theView = new DocumentView(theSession) {
     preferredSize = defaultSize()
     focusable = true
@@ -70,15 +71,19 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
    */
   private val history = new Command.StateChangeHistory(theSession)
   /** An undo button */
-  private val undoButton   = Button("\u25c0") { UI_DO(history.UNDO) } // (<) ◀
+  private val undoButton = Button("\u25c0") {
+    UI_DO(history.UNDO)
+  } // (<) ◀
   /** A redo button */
-  private val redoButton   = Button("\u25ba") { UI_DO(history.REDO) } // (>) ►
+  private val redoButton = Button("\u25ba") {
+    UI_DO(history.REDO)
+  } // (>) ►
 
   locally {
     history.handleWith {
       case (done, undone) =>
-        undoButton.enabled = done>0
-        redoButton.enabled = undone>0
+        undoButton.enabled = done > 0
+        redoButton.enabled = undone > 0
     }
     undoButton.enabled = false
     redoButton.enabled = false
@@ -100,65 +105,115 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
   }
 
   /** The document view and the find and replace text lines all map Ctrl-F/Ctrl-R
-   *  to Find and Replace. This is the handler that implements the mapping.
-   *  It should be added to existing handlers for the view and the text lines.
+   * to Find and Replace. This is the handler that implements the mapping.
+   * It should be added to existing handlers for the view and the text lines.
    */
   val findreplHandler: UserInputHandler = {
-    case Instruction(Key.F, _, mods)  => find(findLine.text, backwards = mods.hasShift)
-    case Instruction(Key.R, _, mods)  => replace(findLine.text, replLine.text, backwards = mods.hasShift)
+    case Instruction(Key.F, _, mods) => find(findLine.text, backwards = mods.hasShift)
+    case Instruction(Key.R, _, mods) => replace(findLine.text, replLine.text, backwards = mods.hasShift)
   }
 
-  private val findLine: TextLine  = new TextLine(25) {
+  private val findLine: TextLine = new TextLine(25) {
     override def firstHandler: UserInputHandler = findreplHandler
   }
-  private val replLine: TextLine  = new TextLine(25) {
+  private val replLine: TextLine = new TextLine(25) {
     override def firstHandler: UserInputHandler = findreplHandler
   }
 
-  private val theWidgets = new  BoxPanel(Orientation.Horizontal) {
-    contents += Button("\u24bb") { find(findLine.text, false) } // (F)
+  private val theWidgets = new BoxPanel(Orientation.Horizontal) {
+    contents += Button("\u24bb") {
+      find(findLine.text, false)
+    } // (F)
     contents += findLine
-    contents += Button("\u24c7") { replace(findLine.text, replLine.text, false )} // (R)
+    contents += Button("\u24c7") {
+      replace(findLine.text, replLine.text, false)
+    } // (R)
     contents += replLine
     contents += undoButton
     contents += redoButton
-
-    // If the session has a cut ring feature, then make a button to start its UI
-    if (theSession.hasCutRing)
-        contents += Button("Cut Ring") {
-          CutRingUI.refreshIfVisible()
-        }
   }
 
+  private val theMenuBar: MenuBar = new MenuBar {
+    def Item(name: String)(act: => Unit): MenuItem = new MenuItem(Action(name) {
+      act
+    }) {
+      font = Utils.buttonFont
+    }
+
+    contents += new Menu("File") {
+
+      contents += Item("New") {
+        new Jedi(s"New@${Utils.dateString()}")
+      }
+
+      contents += Item("Open \u24bb") {
+        val path = findLine.text
+        new Jedi(path)
+      }
+
+      contents += Item("Save") {
+        Retry.reset()
+        theSession.path = Utils.save(theSession.path, theSession.document)
+        feedback("Saved")
+      }
+
+      contents += Item("Close") {
+        if (hasChanged && Retry.must)
+          warning("Jedi", "Document may need saving: repeat if you're sure")
+        else
+          closeUI()
+      }
+
+      contents += Item("Quit") {
+        if (hasChanged && Retry.must)
+          warning("Jedi", "Document may need saving: repeat if you're sure")
+        else
+          sys.exit()
+      }
+    } // File Menu
+
+    contents += new Menu("Edit") {
+        contents += Item("Replace \u24bb with \u24c7 in the entire selection") {
+
+        }
+
+        if (theSession.hasCutRing) {
+          contents += Item("Cut Ring") {
+            CutRingUI.refreshIfVisible()
+          }
+        }
+    } // Edit Menu
+  } // theMenuBar
+
   private val thePanel = new BorderPanel {
-    layout(theWidgets)  = North
-    layout(theView)     = Center
+    layout(theWidgets) = North
+    layout(theView) = Center
     layout(theFeedback) = South
   }
 
   def find(thePattern: String, backwards: Boolean): Unit = {
-      UI_DO(EditSessionCommands.find(thePattern, backwards))
+    UI_DO(EditSessionCommands.find(thePattern, backwards))
   }
 
   def replace(thePattern: String, theReplacement: String, backwards: Boolean): Unit = {
-      UI_DO(EditSessionCommands.replace(thePattern, theReplacement, backwards))
+    UI_DO(EditSessionCommands.replace(thePattern, theReplacement, backwards))
   }
 
   val top: Frame = new MainFrame() {
-      title = s"Jedi: ${theSession.path}"
-      contents = thePanel
-      // menuBar = theMenuBar
-      background = Color.lightGray
+    title = s"Jedi: ${theSession.path}"
+    background = Color.lightGray
+    contents = thePanel
+    if (isFileEditor) menuBar = theMenuBar
 
-      theView.keystrokeInput.handleWith {
-          handlers.mouse       orElse
-          findreplHandler      orElse
-          handlers.keyboard    orElse {
-            case Instruction(Key.Z, _, ControlShift) => UI_DO(history.REDO)
-            case Instruction(Key.Z, _, Control)      => UI_DO(history.UNDO)
-            case other: UserInput                    => Logging.Default.info(s"Unhandled user input [[$other]] ")
-          }
+    theView.keystrokeInput.handleWith {
+      handlers.mouse orElse
+        findreplHandler orElse
+        handlers.keyboard orElse {
+        case Instruction(Key.Z, _, ControlShift) => UI_DO(history.REDO)
+        case Instruction(Key.Z, _, Control) => UI_DO(history.UNDO)
+        case other: UserInput => Logging.Default.info(s"Unhandled user input [[$other]] ")
       }
+    }
 
     locally {
       // Undocumented magic to place the window sensibly
@@ -171,13 +226,39 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
     }
 
     /**
-     *  Invoked when the window closes.
+     * Invoked when the window closes.
      */
-    override def closeOperation(): Unit = {}
+    override def closeOperation(): Unit = warning("Jedi", "Use File/Close or File/Quit")
 
   }
 
+  /** Has the document being edited here changed? */
+  def hasChanged: Boolean = theSession.hasChanged
+
+  /** Is this a genuine File-editing UI? It might be a cut ring UI,
+   * which can dispense with parts of the "full" UI.
+   */
+  def isFileEditor: Boolean = theSession.hasCutRing
+
+  /** Close this UI (and only this) */
+  def closeUI(): Unit = top.close()
+
+  /** Asking `Retry.must` yields true the first time, thereafter false,
+   * until `Retry.reset()` */
+  object Retry {
+    private var _must: Boolean = true
+
+    def reset(): Unit = {
+      _must = true
+    }
+
+    def must: Boolean = {
+      val reallyMust = _must; _must = false; reallyMust
+    }
+  }
+
   def isVisible: Boolean = top.visible
+
 
   def start(): Unit = main(Array())
 }

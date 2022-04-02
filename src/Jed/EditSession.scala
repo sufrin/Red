@@ -1,10 +1,27 @@
 package Jed
-
 import Red._
 
-class EditSession(val document: DocumentInterface, val path: String)
+/**
+ * An edit session controlling the given `document`. Usually the `path`
+ * is the name of the file in the filestore from which the
+ * document was loaded, and to which it is intended to be
+ * saved.
+ *
+ * TODO: (Eliminate Code Smell) If the document was not read from the filestore,
+ *       then `path` may have a different interpretation. This only
+ *       happens if the document is new, or is the record of a cut ring.
+ *
+ * @param document
+ * @param path
+ */
+class EditSession(val document: DocumentInterface, var path: String)
   extends Session {
   import EditSession._
+
+  /** The document being edited here has changed since it was last
+   *  loaded or written
+   */
+  def hasChanged: Boolean = document.hasChanged
 
   /** The current and previous cursor positions */
   private var _cursor, _lastCursor: Int     = 0
