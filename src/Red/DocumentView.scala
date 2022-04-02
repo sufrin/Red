@@ -191,7 +191,7 @@ package Red
 
 
     /**
-     * Key locations in the selectin
+     * Key locations in the selection:
      *
      * 1 The selection is on lines between `selectionTop` and `selectionBottom`.
      *
@@ -200,12 +200,12 @@ package Red
      * 3 The selection is to the left of `selectionRight` on `selectionBottom`.
      *
      */
-    var selectionTop, selectionBottom, selectionLeft, selectionRight = 0
+    private var selectionTop, selectionBottom, selectionLeft, selectionRight = 0
 
     /**
      * Calculate the extent of the selection
      */
-    def calculateSelectionExtent(): Unit = if (markedTextLength!=0) {
+    private def calculateSelectionExtent(): Unit = if (markedTextLength!=0) {
       if (cursorRow<markedRow) {
         selectionTop=cursorRow
         selectionLeft=cursorCol
@@ -350,7 +350,7 @@ package Red
     }
 
     /** Handler for `DocumentEvent`s notified by the editing session */
-    def handleDocumentEvent(event: DocumentEvent): Unit = event match {
+    private def handleDocumentEvent(event: DocumentEvent): Unit = event match {
 
       case CursorChanged(row, col) =>
         recomputeOrigin(row, col)

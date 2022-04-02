@@ -216,7 +216,7 @@ abstract class InputPanel(val numPadAsCommand: Boolean = true,
 
   /////////////////////////// HANDLING KEYSTROKES ///////////////////////
 
-  object Keyboard {
+  private object Keyboard {
     // Bypass the `scala.swing.event` machinery for reporting keystrokes
     val listener: KeyAdapter = new KeyAdapter() {
       override def keyPressed(e: java.awt.event.KeyEvent): Unit = {
@@ -275,6 +275,42 @@ abstract class InputPanel(val numPadAsCommand: Boolean = true,
   //
   //
 
+  private val mathTrans = List(
+    unshifted('A') -> '\u03b1', // alpha
+    unshifted('B') -> '\u03b2', // beta
+    unshifted('C') -> '\u03b3', // gamma
+    shifted('C') -> '\u0393',   // GAMMA
+    unshifted('D') -> '\u03b4', // delta
+    shifted('D') -> '\u0394',   // DELTA
+    unshifted('E') -> '\u03b5',
+    unshifted('F') -> '\u03b6',
+    unshifted('G') -> '\u03b7',
+    unshifted('H') -> '\u03b8',
+    shifted('H') -> '\u0398',  // THETA
+    unshifted('I') -> '\u03b9',
+    unshifted('J') -> '\u03b9',
+    unshifted('K') -> '\u03ba',
+    unshifted('L') -> '\u03bb',
+    shifted('L') -> '\u039b',  // LAMBDA
+    unshifted('M') -> '\u03bc',
+    unshifted('N') -> '\u03bd',
+    unshifted('Z') -> '\u03be', // Zeta
+    unshifted('O') -> '\u03bf',
+    unshifted('P') -> '\u03c0',
+    unshifted('Q') -> '\u03c2',
+    unshifted('R') -> '\u03c1',  // Rho
+    unshifted('S') -> '\u03C3',  // Sigma
+    shifted('S')   -> '\u03A3',  // SIGMA
+    unshifted('T') -> '\u03C4',  // Tau
+    unshifted('U') -> '\u03C5',  // Nu
+    unshifted('V') -> '\u03C6',  // Phi
+    unshifted('W') -> '\u03C9',  // omega
+    unshifted('X') -> '\u03C7',  // xi
+    unshifted('Y') -> '\u03C8',  // Psi
+    unshifted('Z') -> '\u03C9',
+    shifted('=') -> '\u2262',   // IDENTICAL TO
+    unshifted('=') -> '\u2261'  // NOT IDENTICAL TO
+  )
   /**
    * Supplementary mapping of keycodes to characters: applied
    * only when  `Alt` or `Alt+Shift`  are in effect. This may be
@@ -345,43 +381,6 @@ abstract class InputPanel(val numPadAsCommand: Boolean = true,
    * is provided in the "abbreviation" facility of the complete
    * `Red` editor.
    */
-  private val mathTrans = List(
-    unshifted('A') -> '\u03b1', // alpha
-    unshifted('B') -> '\u03b2', // beta
-    unshifted('C') -> '\u03b3', // gamma
-    shifted('C') -> '\u0393',   // GAMMA
-    unshifted('D') -> '\u03b4', // delta
-    shifted('D') -> '\u0394',   // DELTA
-    unshifted('E') -> '\u03b5',
-    unshifted('F') -> '\u03b6',
-    unshifted('G') -> '\u03b7',
-    unshifted('H') -> '\u03b8',
-    shifted('H') -> '\u0398',  // THETA
-    unshifted('I') -> '\u03b9',
-    unshifted('J') -> '\u03b9',
-    unshifted('K') -> '\u03ba',
-    unshifted('L') -> '\u03bb',
-    shifted('L') -> '\u039b',  // LAMBDA
-    unshifted('M') -> '\u03bc',
-    unshifted('N') -> '\u03bd',
-    unshifted('Z') -> '\u03be', // Zeta
-    unshifted('O') -> '\u03bf',
-    unshifted('P') -> '\u03c0',
-    unshifted('Q') -> '\u03c2',
-    unshifted('R') -> '\u03c1',  // Rho
-    unshifted('S') -> '\u03C3',  // Sigma
-    shifted('S')   -> '\u03A3',  // SIGMA
-    unshifted('T') -> '\u03C4',  // Tau
-    unshifted('U') -> '\u03C5',  // Nu
-    unshifted('V') -> '\u03C6',  // Phi
-    unshifted('W') -> '\u03C9',  // omega
-    unshifted('X') -> '\u03C7',  // xi
-    unshifted('Y') -> '\u03C8',  // Psi
-    unshifted('Z') -> '\u03C9',
-    shifted('=') -> '\u2262',   // IDENTICAL TO
-    unshifted('=') -> '\u2261'  // NOT IDENTICAL TO
-  )
-
   var altKeyChar: mutable.Map[Int, Char] = new mutable.HashMap[Int, Char]().addAll(mathTrans)
 
   /////////////////////// HANDLING COMPONENT-RESIZE EVENTS //////
@@ -448,16 +447,16 @@ abstract class InputPanel(val numPadAsCommand: Boolean = true,
       override def focusLost(e: FocusEvent): Unit   = focusChanged(false)
     }
   }
-
-  /////////////////////// HANDLE MOUSE EVENTS  /////////////////
-
+  
   /** (Defined in subclasses): map the location of a mouse event
    *  relative to this component, to its  `(row, col)` coordinates
    *  relative to the model being displayed in this component.
    */
   protected def viewToModel(location: java.awt.Point): (Int, Int) // (row, col)
 
-  object Mouse {
+  /////////////////////////// HANDLING MOUSE EVENTS ///////////////////////
+
+  private object Mouse {
     import java.awt.event.{MouseAdapter, MouseEvent, MouseMotionAdapter}
 
     // Report presses, releases, enters, exits
