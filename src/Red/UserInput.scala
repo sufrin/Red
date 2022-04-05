@@ -1,6 +1,6 @@
 package Red
 
-import InputEvent._
+import UserInputDetail._
 
 import scala.swing.event.Key
 

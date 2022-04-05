@@ -52,7 +52,7 @@ import scala.swing.{Component, Container}
  *
  * Any modifier keys (Alt, Meta, Shift, Control, ...) or buttons down at the time of a
  * keystroke are passed on as part of the `modifiers` field of the `Instruction` or
- * `Character`. This has the value type `InputEvent.Detail`, and that type has a rich
+ * `Character`. This has the value type `UserInputDetail.Detail`, and that type has a rich
  * set of methods for interrogating them, as well as constants that can be used
  * in straightfoward matching.
  *
@@ -114,7 +114,7 @@ abstract class InputPanel(val numPadAsCommand: Boolean = true,
      with Container.Wrapper {
 
   import InputPanel._
-  import InputEvent._
+  import UserInputDetail._
 
   /** Link to an underlying `javax.swing.JPanel` to provide most
    *  of the functionality of this component

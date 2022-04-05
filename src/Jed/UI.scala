@@ -1,8 +1,8 @@
 package Jed
 
 import Commands._
-import Red.InputEvent.Key
-import Red.InputEvent.Modifiers._
+import Red.UserInputDetail.Key
+import Red.UserInputDetail.Modifiers._
 import Red.UserInputHandlers._
 import Red._
 
