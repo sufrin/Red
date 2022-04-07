@@ -206,8 +206,8 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
     if (isFileEditor) menuBar = theMenuBar
 
     theView.keystrokeInput.handleWith {
-      handlers.mouse orElse
-        findreplHandler orElse
+        handlers.mouse    orElse
+        findreplHandler   orElse
         handlers.keyboard orElse {
         case Instruction(Key.Z, _, ControlShift) => UI_DO(history.REDO)
         case Instruction(Key.Z, _, Control) => UI_DO(history.UNDO)
