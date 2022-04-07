@@ -20,7 +20,7 @@ class Jedi (var path: String) {
     case exn: IOException => path = s"$path${Utils.NEWFILESUFFIX}"
   }
 
-  val session = new EditSession(doc, path) with CutRing.Plugin
+  val session = new EditSession(doc, path) 
   val ui      = new UI(session)
 
   locally { ui.start() }
