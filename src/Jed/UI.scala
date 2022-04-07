@@ -170,14 +170,11 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
 
     contents += new Menu("Edit") {
         contents += Item("Replace \u24bb with \u24c7 in the entire selection") {
-
+            // Scoped replace-all
         }
 
-        if (theSession.hasCutRing) {
-          contents += Item("Cut Ring") {
-            CutRingUI.refreshIfVisible()
-          }
-        }
+        // Menu entry to show the Cut ring
+
     } // Edit Menu
   } // theMenuBar
 
