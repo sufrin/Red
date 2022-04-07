@@ -63,7 +63,6 @@ object Utils {
     val thePath = if (path.endsWith(NEWFILESUFFIX))
                      path.substring(0, path.length-NEWFILESUFFIX.length)
                   else path
-    backup(path)
     val writer = java.nio.file.Files.newBufferedWriter(
       new java.io.File(thePath).toPath,
       java.nio.charset.Charset.forName("UTF-8")
@@ -73,30 +72,6 @@ object Utils {
     thePath
   }
 
-  /** If a file exists in the filestore at `path`, then copy it to a new file at a path
-   *  derived from `path` by adding a string derived from the time at which the existing
-   *  file was written, and ending in a `"~"`.
-   *
-   *  This is crude, but safer than trying to manage without backups at all,
-   *  or with just a single backup. Modern filestores are large enough to cope
-   *  with storing a sequence of backups; and they obviously need not be kept
-   *  indefinitely.
-   *
-   *  By invoking this method just before saving a document to the filestore,
-   *  the very latest saved copy of an edited document will be found at the right place
-   *  along with a (perhaps empty) sequence of its predecessors -- all with the
-   *  same prefix, and with suffixes that permit easy and systematic tidying up.
-   */
-  def backup(path: String): Unit = {
-    import java.nio.file.{Files, StandardCopyOption}
-    val thePath = new File(path).toPath
-    if (Files.exists(thePath)) {
-      val fileTime = try  Files.getLastModifiedTime(thePath).toMillis catch {
-        case _: Exception => 0L
-      }
-      val backupPath = new File(s"$path-${dateString(fileTime)}~").toPath
-      Files.copy(thePath, backupPath, StandardCopyOption.REPLACE_EXISTING)
-    }
-  }
+
 
 }
