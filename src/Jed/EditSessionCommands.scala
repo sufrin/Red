@@ -160,70 +160,7 @@ object EditSessionCommands extends Logging.Loggable {
     }
   }
 
-  val copy: SessionCommand = new SessionCommand {
-    def DO(session: EditSession): StateChangeOption = if (session.hasNoSelection) None
-    else {
-      val oldSelection = session.selection
-      val oldClip      = SystemClipboard.getOrElse("")
-      session.copy()
-      Some {
-        new StateChange {
-          def undo(): Unit = {
-            session.selection = oldSelection
-            SystemClipboard.set(oldClip)
-          }
-          def redo(): Unit = session.copy()
-        }
-      }
-    }
-  }
-
-  val cut: SessionCommand = new SessionCommand {
-    def DO(session: EditSession): StateChangeOption = if (session.hasNoSelection) None
-    else {
-      val oldSelection = session.selection
-      val oldCursor    = session.cursor
-      val oldClip      = SystemClipboard.getOrElse("")
-      val oldSelected  = session.cut()
-      Some {
-        new StateChange {
-          def undo(): Unit = {
-            SystemClipboard.set(oldClip)
-            // Should restore a selection with the correct polarity
-            session.cursor    = oldSelection.left // reposition the session
-            session.insert(oldSelected)           // insert the old selected text
-            session.cursor    = oldSelection.cursor
-            session.selection = Span(session.cursor, oldSelection.mark)
-          }
-          def redo(): Unit = {
-            session.selection = oldSelection
-            session.cursor    = oldCursor
-            session.cut()
-          }
-        }
-      }
-    }
-  }
-
-  val paste: SessionCommand = new SessionCommand {
-    def DO(session: EditSession): StateChangeOption = {
-      val oldSelection = session.selection
-      val oldCursor    = session.cursor
-      val oldClip      = SystemClipboard.getOrElse("")
-      session.paste(oldClip)
-      Some {
-        new StateChange {
-          def undo(): Unit = {
-            session.selection = oldSelection
-            session.cursor = oldCursor
-            session.delete(oldClip.length)
-          }
-
-          def redo(): Unit = session.paste(oldClip)
-        }
-      }
-    }
-  }
+  
 
   val toHome: SessionCommand = new SessionCommand {
     def DO(session: EditSession): StateChangeOption = {
@@ -277,20 +214,7 @@ object EditSessionCommands extends Logging.Loggable {
     }
   }
 
-  val clearAll: SessionCommand = Command.andThen(selectAll, cut)
 
-  def exchangeCut: SessionCommand = new SessionCommand {
-    def DO(session: EditSession): StateChangeOption = {
-      val oldClip         = SystemClipboard.getOrElse("")
-      val oldSelection    = session.selection             // get the polarity right on undo
-      val oldSelected     = session.exch(oldClip)
-      Some {
-        new StateChange {
-          def undo(): Unit = { session.exch(oldSelected); session.selection = oldSelection }
-          def redo(): Unit = session.exch(oldClip)
-        }
-      }
-    }
-  }
+
   
 }
