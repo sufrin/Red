@@ -104,20 +104,11 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
     theSession.notifyHandlers()
   }
 
-  /** The document view and the find and replace text lines all map Ctrl-F/Ctrl-R
-   * to Find and Replace. This is the handler that implements the mapping.
-   * It should be added to existing handlers for the view and the text lines.
-   */
-  val findreplHandler: UserInputHandler = {
-    case Instruction(Key.F, _, mods) => find(findLine.text, backwards = mods.hasShift)
-    case Instruction(Key.R, _, mods) => replace(findLine.text, replLine.text, backwards = mods.hasShift)
-  }
+
 
   private val findLine: TextLine = new TextLine(25) {
-    override def firstHandler: UserInputHandler = findreplHandler
   }
   private val replLine: TextLine = new TextLine(25) {
-    override def firstHandler: UserInputHandler = findreplHandler
   }
 
   /**
@@ -197,11 +188,11 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
   }
 
   def find(thePattern: String, backwards: Boolean): Unit = {
-    UI_DO(EditSessionCommands.find(thePattern, backwards))
+    Logging.Default.info(s"find($thePattern, $backwards) -- unimplemented")
   }
 
   def replace(thePattern: String, theReplacement: String, backwards: Boolean): Unit = {
-    UI_DO(EditSessionCommands.replace(thePattern, theReplacement, backwards))
+    Logging.Default.info(s"replace($thePattern, $theReplacement, $backwards) -- unimplemented")
   }
 
   val top: Frame = new MainFrame() {
@@ -212,7 +203,6 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
 
     theView.keystrokeInput.handleWith {
         handlers.mouse    orElse
-        findreplHandler   orElse
         handlers.keyboard orElse {
         case Instruction(Key.Z, _, ControlShift) => UI_DO(history.REDO)
         case Instruction(Key.Z, _, Control) => UI_DO(history.UNDO)
