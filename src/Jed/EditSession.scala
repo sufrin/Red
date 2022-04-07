@@ -301,65 +301,7 @@ class EditSession(val document: DocumentInterface, var path: String)
 
   /** Low level methods need to be able to publish scrutable warnings  */
   val warnings: Notifier[(String,String)] = new Notifier[(String, String)]
-
-  /** pre: document.textLength>=position+thePattern.length */
-  def matchesAt(pat: String, pos: Int): Boolean = {
-      var last  = pat.length
-      var lastc = pos+pat.length
-      while ({ last -= 1; lastc -= 1; last>=0})
-        if (document.character(lastc)!=pat(last))  return false
-      true
-    }
-
-  /** Find the next (respectively: previous, when backwards is true) occurrence of `thePattern` after
-   *  (respectively: completely before) the cursor, and position the cursor
-   *  at the right (respectively left) end of the occurrence, and the mark
-   *  at its opposite end. Notify via `warnings` if this fails.
-   */
-  def find(thePattern: String, backwards: Boolean): Boolean = {
-    //  Expected time for Brute Force search is linear (in the size of the text), BUT IS NOT GUARANTEED
-    //  Knuth, Morris, Pratt (see Wikipedia) is better than this in the worst case
-    //
-    var searching    = true
-    backwards match {
-      case true =>
-        var position = cursor-thePattern.length
-        while (searching && position >= 0)
-          if (matchesAt(thePattern, position)) {
-            searching = false
-            // cursor at left end of selection
-            cursor = position
-            setMark(cursor + thePattern.length)
-          } else {
-            position -= 1
-          }
-        if (position>=0) true else { warnings.notify("Find", s"Cannot find backwards:\n  $thePattern");  false}
-      case false =>
-        var position = cursor
-        val lastPossible = document.textLength - thePattern.length
-        while (searching && position <= lastPossible)
-          if (matchesAt(thePattern, position)) {
-            searching = false
-            // cursor at right end of selection
-            cursor = position + thePattern.length
-            setMark(position)
-          } else {
-            position += 1
-          }
-        if (position<=lastPossible) true else { warnings.notify("Find", s"Cannot find\n  $thePattern");  false}
-    }
-  }
-
-  def replace(thePattern: String, theReplacement: String, backwards: Boolean) : Boolean =
-      if (selectionText()==thePattern) {
-        exch(theReplacement)
-        if (backwards) { val c = cursor; cursor -= theReplacement.length; setMark(c) }
-        true
-      } else {
-        warnings.notify("Replace", s"Pattern:\n  $thePattern\n is not selected.")
-        false
-      }
-
+  
   ///////////////////////////////////////////////////////////////////////////
   ///////////////////////// Selection by cursor-dragging ////////////////////
   ///////////////////////////////////////////////////////////////////////////
