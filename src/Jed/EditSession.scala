@@ -198,16 +198,7 @@ class EditSession(val document: DocumentInterface, var path: String)
     } else false
   }
 
-  /** Copy the selection, if any, to the clipboard.
-   *  Returns the selected text; empty if no selection.
-   */
-  def copy(): String = {
-    if (hasNoSelection) "" else {
-      val text = selectionText()
-      SystemClipboard.set(text)
-      text
-    }
-  }
+
 
   /**
    *  Delete between cursor and cursor+extent (extent can be negative),
@@ -221,59 +212,6 @@ class EditSession(val document: DocumentInterface, var path: String)
     cursor = l
   }
 
-  /** Cut the selection, if any, to the clipboard.
-   *  Returns the selected text; empty if no selection.
-   *  Record the deleted material as a cut.
-   */
-  def cut(): String = {
-    if (hasNoSelection) "" else {
-      val text = selectionText()
-      SystemClipboard.set(text)
-      //recordCut(Cut(text, selection.extent, selection.cursor, document.generation))
-      //document.delete(selection.left, selection.right-selection.left)
-      //if (selection.extent<0) cursor += selection.extent
-      cursor=selection.cursor
-      deleteFor(selection.extent)
-      selection = NoSelection
-      text
-    }
-  }
-
-  /** Paste the system clipboard into the text at the
-   *  cursor, and select it. Returns the previously-selected text.
-   */
-  def paste(): String = paste(SystemClipboard.getOrElse(""))
-
-  /**
-   *  Paste `theClip` and select it, with mark to the left.
-   *  Return the previously-selected text
-   */
-  def paste(theClip: String): String = {
-    val oldCursor = cursor
-    val theText = selectionText()
-    insert(theClip)
-    selection = Span(cursor, oldCursor)
-    theText
-  }
-
-  /**
-   *  Paste `theClip` and select it, with mark to the left.
-   *  Cut and return the previously-selected text.
-   */
-  def exch(theClip: String): String = {
-    if (hasNoSelection) "" else {
-      val text = selectionText()
-      SystemClipboard.set(text)
-      recordCut(Cut(text, selection.extent, selection.cursor, document.generation))
-      document.delete(selection.left, selection.right-selection.left)
-      if (selection.extent<0) cursor += selection.extent
-      val oldCursor = cursor
-      insert(theClip)
-      selection = Span(cursor, oldCursor)
-      text
-    }
-  }
-
   def toEnd(): Unit = { cursor = document.textLength }
 
   def toHome(): Unit = { cursor = 0 }
@@ -282,9 +220,7 @@ class EditSession(val document: DocumentInterface, var path: String)
     selection = Span(0, document.textLength)
     cursor    = 0
   }
-
-  def cutAll(): String = { selectAll(); cut() }
-
+  
   /**
    *  Record `thisCut` somewhere. By default this is a no-op.
    *  It is intended to be overridden by cut-ring implementations.
