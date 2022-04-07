@@ -84,7 +84,12 @@ class TextLine(cols: Int) extends BoxPanel(Orientation.Horizontal) {
 
   /** Set the current text in the line */
   def text_=(newText: String): Unit = {
-    session.cutAll()
+    // session.selectAll()
+    // session.cut()
+    session.cursor=0
+    session.setMark(session.document.textLength)
+    session.deleteFor(session.selection.extent)
+    //
     session.insert(newText)
     session.cursor=newText.length
     session.selection=Jed.NoSelection
