@@ -221,6 +221,14 @@ class EditSession(val document: DocumentInterface, var path: String)
     cursor = l
   }
 
+  def flip(): Unit = {
+    if (cursor>=2) {
+      val text = document.getString(cursor-2, cursor)
+      deleteFor(-2)
+      insert(text.reverse)
+    }
+  }
+
   /** Cut the selection, if any, to the clipboard.
    *  Returns the selected text; empty if no selection.
    *  Record the deleted material as a cut.

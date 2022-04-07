@@ -36,6 +36,7 @@ class EditSessionHandlers(val DO: Commands.Command[EditSession]=>Unit) {
         case Character(char, _, NoModifier)            => DO(commands.insert(char))
         case Character(char, _, Shift)                 => DO(commands.insert(char))
         case Instruction(Key.BackSpace, _, NoModifier) => DO(commands.delete)
+        case Instruction(Key.BackSpace, _, Control)    => DO(commands.flip)
 
         case Instruction(Key.X, _, Control)       => DO(commands.cut)
         case Instruction(Key.C, _, Control)       => DO(commands.copy)
