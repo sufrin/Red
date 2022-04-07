@@ -15,10 +15,12 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
 
   /**
    * `theSession` emits warnings about things like find/replace failures
-   * that we wish to report via the user interface.
+   * that we wish to report via this user interface.
    */
   locally {
-    theSession.warnings.handleWith { case (from, message) => warning(from, message) }
+    theSession.warnings.handleWith {
+        case (from, message) => warning(from, message)
+    }
   }
   /** The source of handlers for user input events. */
   protected val handlers = new EditSessionHandlers(UI_DO)
@@ -55,29 +57,27 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
   def feedback(message: String): Unit = {
     val (row, col) = theSession.getCursorPosition
     val changed = if (hasChanged) " (✖) " else " (✓) "
-    theFeedback.text = s"$message ${theSession.path}@$row:$col $changed [${theSession.cursor}/${theSession.document.textLength}]"
+    theFeedback.text =
+      s"$message ${theSession.path}@$row:$col $changed [${theSession.cursor}/${theSession.document.textLength}]"
   }
 
-  /** The view in which `theSession`'s document will be shown.
-   * It is `theSession` itself that notifies
-   * */
+  /** The component in which `theSession`'s document will be shown.
+   *  It is `theSession` that notifies this component of cursor,
+   *  selection, or document changes.
+   */
   private val theView = new DocumentView(theSession) {
     preferredSize = defaultSize()
-    focusable = true
+    focusable     = true
   }
 
-  /** The history manager for the sessions. It responds to DO/UNDO
-   * commands as described in its specification
+  /** The history manager for `theSession`. It responds to DO/UNDO
+   *  commands as described in its specification
    */
   private val history = new Command.StateChangeHistory(theSession)
   /** An undo button */
-  private val undoButton = Button("\u25c0") {
-    UI_DO(history.UNDO)
-  } // (<) ◀
+  private val undoButton = Button("\u25c0") { UI_DO(history.UNDO) } // ◀
   /** A redo button */
-  private val redoButton = Button("\u25ba") {
-    UI_DO(history.REDO)
-  } // (>) ►
+  private val redoButton = Button("\u25ba") { UI_DO(history.REDO) } // ►
 
   locally {
     history.handleWith {
@@ -120,6 +120,11 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
     override def firstHandler: UserInputHandler = findreplHandler
   }
 
+  /**
+   *  The top line below the menu bar holds the find and replace
+   *  buttons and text lines, as well as an undo and a redo button
+   *  linked to the undo history
+   */
   private val theWidgets = new BoxPanel(Orientation.Horizontal) {
     contents += Button("\u24bb") {
       find(findLine.text, false)
@@ -221,8 +226,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
       // Undocumented magic to avoid window-closing shutting down the entire app
       peer.setDefaultCloseOperation(javax.swing.WindowConstants.DO_NOTHING_ON_CLOSE)
       // Initial feedback when the window opens
-      reactions += { case event.WindowOpened(_) => feedback("")
-      }
+      reactions += { case event.WindowOpened(_) => feedback("") }
     }
 
     /**
