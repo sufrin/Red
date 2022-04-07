@@ -7,8 +7,8 @@ import Red.SystemClipboard
  *   `Command`s derived from `EditSession` methods.
  *
  *   Commands are constants, except for those that
- *   are parameterised by characters (to insert), or
- *   document positions.
+ *   are parameterised by characters (to insert), strings
+ *   (for find/replace) or document positions.
  */
 object EditSessionCommands extends Logging.Loggable {
 
