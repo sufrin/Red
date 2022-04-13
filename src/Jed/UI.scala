@@ -183,8 +183,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
                 contents += Item("Cut Ring") {
                   warning("Jedi", "The Cut Ring interface is not yet implemented")
                 }
-
-
+      
     } // Edit Menu
   } // theMenuBar
 
