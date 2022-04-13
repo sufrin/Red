@@ -130,6 +130,11 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
   }
 
   private val theMenuBar: MenuBar = new MenuBar {
+
+    /** Returns a menu item, with the given `name` on it, that
+     *  invokes `act` when it is pressed. This is used to populate
+     *  the menus that are defined within this menu bar.
+     */
     def Item(name: String)(act: => Unit): MenuItem = new MenuItem(Action(name) {
       act
     }) {
@@ -138,42 +143,47 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
 
     contents += new Menu("File") {
 
-      contents += Item("New") {
-        new Jedi(s"New@${Utils.dateString()}")
-      }
+                contents += Item("New") {
+                  new Jedi(s"New@${Utils.dateString()}")
+                }
 
-      contents += Item("Open \u24bb") {
-        val path = findLine.text
-        new Jedi(path)
-      }
+                contents += Item("Open \u24bb") {
+                  val path = findLine.text
+                  new Jedi(path)
+                }
 
-      contents += Item("Save") {
-        Retry.reset()
-        theSession.path = Utils.save(theSession.path, theSession.document)
-        feedback("Saved")
-      }
+                contents += Item("Save") {
+                  Retry.reset()
+                  theSession.path = Utils.save(theSession.path, theSession.document)
+                  feedback("Saved")
+                }
 
-      contents += Item("Close") {
-        if (hasChanged && Retry.must)
-          warning("Jedi", "Document may need saving: repeat if you're sure")
-        else
-          closeUI()
-      }
+                contents += Item("Close") {
+                  if (hasChanged && Retry.must)
+                    warning("Jedi", "Document may need saving: repeat if you're sure")
+                  else
+                    closeUI()
+                }
 
-      contents += Item("Quit") {
-        if (hasChanged && Retry.must)
-          warning("Jedi", "Document may need saving: repeat if you're sure")
-        else
-          sys.exit()
-      }
+                contents += Item("Quit") {
+                  if (hasChanged && Retry.must)
+                    warning("Jedi", "Document may need saving: repeat if you're sure")
+                  else
+                    sys.exit()
+                }
     } // File Menu
 
     contents += new Menu("Edit") {
-        contents += Item("Replace \u24bb with \u24c7 in the entire selection") {
-            // Scoped replace-all
-        }
+                // Scoped replace-all
+                contents += Item("Replace \u24bb with \u24c7 in the entire selection") {
+                  warning("Jedi", "Scoped replace-all is not yet implemented")
+                }
 
-        // Menu entry to show the Cut ring
+                // Menu entry to show the Cut ring
+                contents += Item("Cut Ring") {
+                  warning("Jedi", "The Cut Ring interface is not yet implemented")
+                }
+
 
     } // Edit Menu
   } // theMenuBar
@@ -192,11 +202,15 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
     Logging.Default.info(s"replace($thePattern, $theReplacement, $backwards) -- unimplemented")
   }
 
+  /** The top-level window of a Jedi session. Visible
+   *  on the screen, with dimensions controllable by
+   *  the user.
+   */
   val top: Frame = new MainFrame() {
     title = s"Jedi: ${theSession.path}"
     background = Color.lightGray
-    contents = thePanel
-    if (isFileEditor) menuBar = theMenuBar
+    contents   = thePanel
+    menuBar    = theMenuBar
 
     theView.keystrokeInput.handleWith {
         handlers.mouse    orElse
@@ -208,11 +222,11 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
     }
 
     locally {
-      // Undocumented magic to place the window sensibly
+      // Undocumented magic to place the window sensibly when the app starts
       peer.setLocationByPlatform(true)
       // Undocumented magic to avoid window-closing shutting down the entire app
       peer.setDefaultCloseOperation(javax.swing.WindowConstants.DO_NOTHING_ON_CLOSE)
-      // Initial feedback when the window opens
+      // Initial feedback must be given when the window opens
       reactions += { case event.WindowOpened(_) => feedback("") }
     }
 
@@ -221,7 +235,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
      */
     override def closeOperation(): Unit = warning("Jedi", "Use File/Close or File/Quit")
 
-  }
+  } // top
 
   /** Has the document being edited here changed? */
   def hasChanged: Boolean = theSession.hasChanged

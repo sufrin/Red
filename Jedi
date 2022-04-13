@@ -1,2 +1,2 @@
 # Script synthesised by makeBin
-scala -cp ~/local/scalalib/scala-swing.jar:Jedi.jar Jed.Jedi "$@"
+scala -cp /Users/sufrin/local/scalalib/scala-swing.jar:Jedi.jar Jed.Jedi "$@"
