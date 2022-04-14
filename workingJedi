@@ -1,0 +1,2 @@
+# Script synthesised by make
+scala -cp scala-swing_2.13-2.1.1.jar:WorkingJedi.jar Jed.Jedi "$@"

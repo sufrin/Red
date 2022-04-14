@@ -2,18 +2,21 @@ Building Jedi
 
 ** Building Jedi.jar in/from the Jed folder
 
-    ./make
+    make
 
 This makes a jar that can be run anywhere, on any operating system, 
-from the scala top-level.
+from the scala top-level. The files Makefile, and makeBin specify
+various other make targets, including doc, clean, etc. The latter
+sets a class path variable, CP to include the compiled scala swing library, 
+scala-swing.jar
 
-You can test any new variant you have with the script 
+You can test the new variant you have compiled with the script 
 
     ./Jedi <arguments>
  
 You will need to provide at least one filename argument for the
 program UI to be started; though the named file doesn't yet have
-to exist.
+to exist. 
 
 You can set specify the logging of classes/modules by providing
 arguments of the form
