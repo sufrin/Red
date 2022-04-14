@@ -1,1 +1,0 @@
-scala -cp ~/local/scalalib/scala-swing.jar:out/production/Jed Jed.Jedi "$@"

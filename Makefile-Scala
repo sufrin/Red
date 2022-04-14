@@ -1,9 +1,8 @@
-#!/usr/bin/env make -f  
 #
 #          A monolithic executable Makefile that recompiles (see
 #          SCALAC) all discoverable sources if ANY were edited later
-#          than the target. It is invoked by ./make with MAIN and JAR
-#          parameters set appropriately.
+#          than the target. It should be "include"d with MAIN, JAR, and
+#          PKG parameters set appropriately. 
 #
 
 FOILS  := $(wildcard [0-9x][0-9x]*.tex)
@@ -14,6 +13,7 @@ CP     := $(LIB)/scala-swing.jar
 #       Parameters: where the outputs will go. 
 #       * RUN specifies the name of the (local) script that runs scala using the 
 #         compilation classpath augmented the compiler's destination folder
+#       * PKG specifies a package prefix for the main object that the scrpt runs: $(PKG)$MAIN)
 #       * BIN specifies the compiler's destination folder
 #       * DOC specifies the folder into which the documentation is generated
 #       * $(DOC)/index.html is the root of the documentation tree.
@@ -22,9 +22,16 @@ BIN    := bin
 DOC    := doc
 RUN    := run
 
+#
+#       If you happen to use IntelliJ, then the following parameters will be useful
+#        
+#
+
 #       Parameters: compiler, flags, documentation program
 #
-#       SCALAC specifies the scala compiler: it can be "fsc" (the "fast" compiler) or "scalac"
+#       SCALAC specifies the scala compiler
+#               I no longer trust "fsc" (the incremental Scala compiler), 
+#
 #       SFLAGS specifies the flags given to the scala compiler
 #
 
@@ -33,18 +40,19 @@ SFLAGS   := -deprecation -feature
 SCALADOC := scaladoc -deprecation -groups -sourcepath src
 
 
+
 #       Targets. The default target is "all"
 
-all:        $(MAIN) $(JAR) $(RUN)
+all:        $(MAIN) $(IJMAIN) $(JAR) 
 
 $(BIN):     $(SOURCE); mkdir -p bin; $(SCALAC) $(SFLAGS) -cp $(CP) -d $(BIN) $(SOURCE); touch $@
 $(JAR):     $(SOURCE); touch $(JAR); $(SCALAC) $(SFLAGS) -cp $(CP) -d $(JAR) $(SOURCE); touch $@
 $(DOC):     $(SOURCE); mkdir -p $(DOC) ; $(SCALADOC) -dependencyfile $@.DEP -cp $(CP) -d $(DOC) $(SOURCE) ; touch $@
-$(RUN):     ; echo "# Script synthesised by makeBin" > ./$(RUN) ; echo scala -cp $(CP):$(JAR) $(PKG)$(MAIN) '"'$$\@'"' >> ./$(RUN); chmod +x $(RUN)
-$(MAIN):    $(JAR) $(RUN); cp -p $(RUN) $(MAIN)
+$(MAIN):    $(JAR) ; echo "# Script synthesised by make" > ./$(MAIN)   ; echo scala -cp $(CP):$(JAR)   $(PKG).$(MAIN) '"'$$\@'"' >> ./$(MAIN); chmod +x $(MAIN)
+$(IJMAIN):         ; echo "# Script synthesised by make" > ./$(IJMAIN) ; echo scala -cp $(CP):$(IJOUT) $(PKG).$(MAIN) '"'$$\@'"' >> ./$(IJMAIN); chmod +x $(IJMAIN)
 
 DEPS:       $(JAR); jdeps -R -verbose:class -apionly -q   $(JAR)  | egrep -v 'anon|java|scala' | sed -e"s/[ ]*.jar//" > DEPS
 
 .PHONY:     clean shutdown
-clean:      ; rm -rf .compiled $(BIN) $(DOC) $(RUN); fsc -shutdown
-shutdown:   ; fsc -shutdown
+clean:      shutdown; rm -rf .compiled $(BIN) $(DOC) $(MAIN) $(IJMAIN)
+shutdown:   ; [ $(SCALAC) != fsc ] || fsc -shutdown

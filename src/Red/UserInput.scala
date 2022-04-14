@@ -50,11 +50,15 @@ import scala.swing.event.Key
           mods:     Detail
        )
     extends UserInput {
-    @inline def character: String =
+
+    @inline private def character: String =
       if (char.isControl)
         s"^${(char + 'A' - 1).toChar.toString}"
       else
         char.toString
+
+    /** Representation of this `Character` instruction, including
+     * a representation of the modifier/detail and location fields */
     override def toString: String =
       s"Character: ${mods.asText}'$character'@ $location)"
   }

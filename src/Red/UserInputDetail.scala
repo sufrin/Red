@@ -19,11 +19,20 @@ package Red
   *   mods.hasAny(Buttons.Button1|Buttons.Meta|Buttons.Control)
   * }}}
   *
-  *
   */
 object UserInputDetail {
 
-  /** Intelligibly-decodable modifier details  */
+  /** An ''intelligible'' representation of the details of the various shifts and
+   * buttons that might be pressed when a `UserInput` "event" originates from
+   * the keyboard or the mouse. The Swing toolkit, and Scala Swing, encode these
+   * as bit-patterns that are inconvenient and error-prone to use in the
+   * "higher level" components that translate them into actions.
+   *
+   * @see Red.UserInputDetail
+   *
+   * '''NB:'''
+   *  Scala implements ''value classes'' such as this very efficiently in the running program.
+   */
   class Detail(val mods: Int) extends AnyVal {
     import Modifier._
     import Button._
@@ -39,9 +48,14 @@ object UserInputDetail {
     def hasAny(bitMask: Int): Boolean  = (mods & bitMask) != 0
     def hasNone(bitMask: Int): Boolean = (mods & bitMask) == 0
 
-    /** Replace Meta with Control */
+    /** If the `Meta` bit is present, replace it with the Control` bit.
+     *  The `InputPanel` documentation explains why this is useful.
+     */
     def mapMeta: Detail = if ((mods&Meta) == 0) this else new Detail((mods ^ Meta) | Control)
 
+    /** Human readable text description of this `Detail` value, for example:
+     *  `"ctrl+shift+Button1+"`
+     */
     def asText: String = {
       import Modifier._
       import Button._
@@ -57,6 +71,7 @@ object UserInputDetail {
     }
   }
 
+  /** Companion object: factory for `Detail` values. */
   object Detail {
     def apply(modifiers: Int) = new Detail(modifiers)
   }
