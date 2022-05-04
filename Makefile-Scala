@@ -7,7 +7,7 @@
 
 FOILS  := $(wildcard [0-9x][0-9x]*.tex)
 SOURCE := $(wildcard */*/*/*.scala */*/*.scala */*.scala)
-LIB    := ~/local/scalalib
+LIB    := $(PWD)
 CP     := $(LIB)/scala-swing.jar
 
 #       Parameters: where the outputs will go. 
@@ -43,7 +43,7 @@ SCALADOC := scaladoc -deprecation -groups -sourcepath src
 
 #       Targets. The default target is "all"
 
-all:        $(MAIN) $(IJMAIN) $(JAR) 
+all:        $(MAIN) $(JAR) 
 
 $(BIN):     $(SOURCE); mkdir -p bin; $(SCALAC) $(SFLAGS) -cp $(CP) -d $(BIN) $(SOURCE); touch $@
 $(JAR):     $(SOURCE); touch $(JAR); $(SCALAC) $(SFLAGS) -cp $(CP) -d $(JAR) $(SOURCE); touch $@

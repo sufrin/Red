@@ -1,14 +1,22 @@
-Building Jedi
+Building Jedi on Linux or OS/X
+(Revision 2: 28 April, 2022)
 
 ** Building Jedi.jar in/from the Jed folder
+===========================================
 
     make
 
-This makes a jar that can be run anywhere, on any operating system, 
-from the scala top-level. The files Makefile, and makeBin specify
-various other make targets, including doc, clean, etc. The latter
-sets a class path variable, CP to include the compiled scala swing library, 
-scala-swing.jar
+This makes a jar file that can be run anywhere, on any operating system, 
+from the scala top-level. 
+
+The files Makefile, and makeBin specify various other make targets,
+including doc, clean, and Jedi. The latter is an executable command file
+that will run your compiled editor.
+
+The Makefile defines a variable, LIB, to point to the folder where it is
+expected that the compiled scala swing library will be placed.  For your
+convenience, this is the Jed directory itself; but you may change it if you
+decide you want to move the swing library.
 
 You can test the new variant you have compiled with the script 
 
@@ -18,6 +26,22 @@ You will need to provide at least one filename argument for the
 program UI to be started; though the named file doesn't yet have
 to exist. 
 
+** Building with IntelliJ
+=========================
+If you decide to use IntelliJ/IDEA to make Jedi I hope you know how 
+to set up a scala project that uses a library. It's beyond them scope of
+the practicals to support you in this. Nevertheless, the command
+
+        make iJedi
+        
+will build you an executable command file, iJedi, that will run Jedi
+with the appropriate classpath; assuming you have specified the default 
+output folder in your IntelliJ project.
+
+ 
+
+LOGGING
+=======
 You can set specify the logging of classes/modules by providing
 arguments of the form
 
