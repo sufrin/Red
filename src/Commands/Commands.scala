@@ -115,7 +115,7 @@ package Commands
       def DO(target: T): Option[StateChange] =
         c1.DO(target) match {
           case None    => c2.DO(target)
-          case Some(u) => u.undo(); None
+          case some    => some
         }
     }
 
