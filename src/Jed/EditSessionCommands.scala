@@ -320,8 +320,9 @@ object EditSessionCommands extends Logging.Loggable {
   def replace(thePattern: String, theReplacement: String, backwards: Boolean) : SessionCommand =
       new SessionCommand {
         def DO(session: EditSession): StateChangeOption = {
-          if (session.replace(thePattern, theReplacement, backwards)) Some (new StateChange {
-            def undo(): Unit = { session.exch(thePattern)  }
+          val replaced = session.replace(thePattern, theReplacement, backwards)
+          if (replaced.isDefined) Some (new StateChange {
+            def undo(): Unit = { session.exch(replaced.get)  }
             def redo(): Unit = session.replace(thePattern, theReplacement, backwards)
           }) else None
         }

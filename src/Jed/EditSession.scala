@@ -324,7 +324,7 @@ class EditSession(val document: DocumentInterface, var path: String)
    *  at the right (respectively left) end of the occurrence, and the mark
    *  at its opposite end. Notify via `warnings` if this fails.
    */
-  def find(thePattern: String, backwards: Boolean): Boolean = {
+  /* def find(thePattern: String, backwards: Boolean): Boolean = {
     //  Expected time for Brute Force search is linear (in the size of the text), BUT IS NOT GUARANTEED
     //  Knuth, Morris, Pratt (see Wikipedia) is better than this in the worst case
     //
@@ -357,16 +357,64 @@ class EditSession(val document: DocumentInterface, var path: String)
         if (position<=lastPossible) true else { warnings.notify("Find", s"Cannot find\n  $thePattern");  false}
     }
   }
+  */
 
-  def replace(thePattern: String, theReplacement: String, backwards: Boolean) : Boolean =
-      if (selectionText()==thePattern) {
-        exch(theReplacement)
-        if (backwards) { val c = cursor; cursor -= theReplacement.length; setMark(c) }
-        true
-      } else {
-        warnings.notify("Replace", s"Pattern:\n  $thePattern\n is not selected.")
-        false
+  /** bad style... */
+  private var lastMatch: Option[gnieh.regex.Match] = None
+
+  def find(thePattern: String, backwards: Boolean): Boolean = {
+    import gnieh.regex._
+    val regex = new Regex(thePattern)
+    if (backwards) {
+      lastMatch = regex.findLastMatchIn(document.characters, Some(0), Some(cursor))
+      lastMatch match {
+        case None => false
+        case Some(matched) =>
+          cursor = matched.start
+          setMark(matched.end)
+          true
       }
+    } else {
+      lastMatch = regex.findFirstMatchIn(document.characters, Some(cursor))
+      lastMatch match {
+        case None => false
+        case Some(matched) =>
+          cursor = matched.end
+          setMark(matched.start)
+          true
+      }
+    }
+  }
+
+  /**  If the text, `t`, matched by the last `find` is the same as the selection:
+   *      exchange it with the text formed by expanding the replacement text
+   *      -- substituting `group(i)`` of the match for occurrences of `$i` in the replacement text --
+   *      then return `Some(t)`.
+   *
+   *   Otherwise:
+   *      return `None`
+   */
+  def replace(thePattern: String, theReplacement: String, backwards: Boolean) : Option[String] = {
+      import gnieh.regex._
+      lastMatch = new Regex(thePattern).findFirstMatchIn(selectionText())
+      lastMatch match {
+        case None =>
+             warnings.notify("Replace", s"Pattern:\n  $thePattern\n is not matched by the selection.")
+             None
+        case Some(matched) =>
+          if (selectionText() == matched.matched.getOrElse("")) {
+            val repl = matched.substitute(theReplacement)
+            exch(repl)
+            if (backwards) {
+              val c = cursor; cursor -= repl.length; setMark(c)
+            }
+            matched.matched
+          } else {
+            warnings.notify("Replace", s"Pattern:\n  $thePattern\n is not matched by the selection.")
+            None
+          }
+      }
+  }
 
   ///////////////////////////////////////////////////////////////////////////
   ///////////////////////// Selection by cursor-dragging ////////////////////
