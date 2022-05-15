@@ -327,4 +327,15 @@ object EditSessionCommands extends Logging.Loggable {
         }
       }
 
+  def replaceAllInSelection(thePattern: String, theReplacement: String, asRegex: Boolean): SessionCommand =
+    new SessionCommand {
+      def DO(session: EditSession): StateChangeOption = {
+        val replaced = session.replaceAllInSelection(thePattern, theReplacement, asRegex)
+        if (replaced.isDefined) Some (new StateChange {
+          def undo(): Unit = { session.exch(replaced.get)  }
+          def redo(): Unit = session.replaceAllInSelection(thePattern, theReplacement, asRegex)
+        }) else None
+      }
+    }
+
 }

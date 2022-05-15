@@ -186,6 +186,8 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
 
     contents += new Menu("Edit") {
         contents += Item("Replace \u24bb with \u24c7 in the entire selection") {
+          val asRegex = regexCheck.selected
+          UI_DO(EditSessionCommands.replaceAllInSelection(findLine.text, replLine.text, asRegex))
         }
 
         if (theSession.hasCutRing) {

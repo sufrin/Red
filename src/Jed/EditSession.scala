@@ -443,6 +443,20 @@ class EditSession(val document: DocumentInterface, var path: String)
       None
   }
 
+  def replaceAllInSelection(thePattern: String, theReplacement: String, asRegex: Boolean): Option[String] =
+    try {
+      import gnieh.regex._
+      val regex = RegexCache(if (asRegex) thePattern else compiler.Parser.quote(thePattern))
+      val selected = selectionText()
+      val (count, repl) = regex.substituteAll(selected, theReplacement, !asRegex)
+      warnings.notify("Replace All", s"$count replacements")
+      if (count>0) { exch(repl); Some(selected) } else None
+    } catch {
+      case exn: java.lang.RuntimeException =>
+        warnings.notify("Replace All", s"Pattern:\n  $thePattern\n is not well-formed\n ${exn.getMessage}")
+        None
+    }
+
   ///////////////////////////////////////////////////////////////////////////
   ///////////////////////// Selection by cursor-dragging ////////////////////
   ///////////////////////////////////////////////////////////////////////////
