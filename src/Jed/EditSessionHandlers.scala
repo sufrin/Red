@@ -42,6 +42,13 @@ class EditSessionHandlers(val DO: Commands.Command[EditSession]=>Unit) {
         case Instruction(Key.C, _, Control)       => DO(commands.copy)
         case Instruction(Key.V, _, Control)       => DO(commands.paste)
         case Instruction(Key.B, _, Control)       => DO(commands.exchangeCut)
+
+        // Sufrin's favourites
+        case Instruction(Key.F1, _, Control)       => DO(commands.cut)
+        case Instruction(Key.F3, _, Control)       => DO(commands.copy)
+        case Instruction(Key.F2, _, Control)       => DO(commands.paste)
+        case Instruction(Key.F4, _, Control)       => DO(commands.exchangeCut)
+
         case Instruction(Key.Home, _, NoModifier) => DO(commands.toHome)
         case Instruction(Key.End, _, NoModifier)  => DO(commands.toEnd)
         case Instruction(Key.A, _, Control)       => DO(commands.selectAll)

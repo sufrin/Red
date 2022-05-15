@@ -362,10 +362,11 @@ class EditSession(val document: DocumentInterface, var path: String)
   /** bad style... */
   private var lastMatch: Option[gnieh.regex.Match] = None
 
-  def find(thePattern: String, backwards: Boolean): Boolean = {
+  def find(thePattern: String, backwards: Boolean, asRegex: Boolean): Boolean = {
     import gnieh.regex._
+
     try {
-      val regex = new Regex(thePattern)
+      val regex = new Regex(if (asRegex) thePattern else compiler.Parser.quote(thePattern))
       if (backwards) {
         lastMatch = regex.findLastMatchIn(document.characters, Some(0), Some(cursor))
         lastMatch match {
@@ -400,16 +401,16 @@ class EditSession(val document: DocumentInterface, var path: String)
    *   Otherwise:
    *      return `None`
    */
-  def replace(thePattern: String, theReplacement: String, backwards: Boolean) : Option[String] = {
+  def replace(thePattern: String, theReplacement: String, backwards: Boolean, asRegex: Boolean) : Option[String] = {
       import gnieh.regex._
-      lastMatch = new Regex(thePattern).findFirstMatchIn(selectionText())
+      lastMatch = new Regex(if (asRegex) thePattern else compiler.Parser.quote(thePattern)).findFirstMatchIn(selectionText())
       lastMatch match {
         case None =>
              warnings.notify("Replace", s"Pattern:\n  $thePattern\n is not matched by the selection.")
              None
         case Some(matched) =>
           if (selectionText() == matched.matched.getOrElse("")) {
-            val repl = matched.substitute(theReplacement)
+            val repl = if (asRegex) matched.substitute(theReplacement) else theReplacement
             exch(repl)
             if (backwards) {
               val c = cursor; cursor -= repl.length; setMark(c)

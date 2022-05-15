@@ -7,7 +7,6 @@ import Red.UserInputHandlers._
 import Red._
 
 import java.awt.Color
-import java.nio.file.Files
 import scala.swing.BorderPanel.Position._
 import scala.swing._
 
@@ -119,6 +118,9 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
   private val replLine: TextLine = new TextLine(25) {
     override def firstHandler: UserInputHandler = findreplHandler
   }
+  private val regexCheck: CheckBox = new CheckBox("") {
+    tooltip  = "Match regular expression / Match literal"
+  }
 
   /**
    *  The top line below the menu bar holds the find and replace
@@ -126,6 +128,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
    *  linked to the undo history
    */
   private val theWidgets = new BoxPanel(Orientation.Horizontal) {
+    contents += regexCheck
     contents += Button("\u24bb") {
       find(findLine.text, false)
     } // (F)
@@ -179,7 +182,6 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
 
     contents += new Menu("Edit") {
         contents += Item("Replace \u24bb with \u24c7 in the entire selection") {
-
         }
 
         if (theSession.hasCutRing) {
@@ -197,11 +199,13 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
   }
 
   def find(thePattern: String, backwards: Boolean): Unit = {
-    UI_DO(EditSessionCommands.find(thePattern, backwards))
+    val asRegex = regexCheck.selected
+    UI_DO(EditSessionCommands.find(thePattern, backwards, asRegex))
   }
 
   def replace(thePattern: String, theReplacement: String, backwards: Boolean): Unit = {
-    UI_DO(EditSessionCommands.replace(thePattern, theReplacement, backwards))
+    val asRegex = regexCheck.selected
+    UI_DO(EditSessionCommands.replace(thePattern, theReplacement, backwards, asRegex))
   }
 
   val top: Frame = new MainFrame() {

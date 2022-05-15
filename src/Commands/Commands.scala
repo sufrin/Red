@@ -72,7 +72,6 @@ package Commands
       def undo(): Unit = {
         u2.undo(); u1.undo()
       }
-
       def redo(): Unit = {
         u1.redo(); u2.redo()
       }
@@ -81,7 +80,7 @@ package Commands
       val kind: String = u2.kind
 
       override
-      def toString: String= s"$u1/$u2"
+      def toString: String= s"StateChange.compose($u1,  $u2)"
     }
   }
 
@@ -114,8 +113,8 @@ package Commands
     def orElse[T](c1: Command[T], c2: Command[T]): Command[T] = new Command[T] {
       def DO(target: T): Option[StateChange] =
         c1.DO(target) match {
-          case None    => c2.DO(target)
-          case Some(u) => u.undo(); None
+          case None     => c2.DO(target)
+          case c1Change => c1Change
         }
     }
 
@@ -127,7 +126,6 @@ package Commands
     def doNothing[T]: Command[T] = new Command[T] {
       object undoNothing extends StateChange {
         def redo(): Unit = ()
-
         def undo(): Unit = ()
 
         override
