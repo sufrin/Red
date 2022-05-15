@@ -364,25 +364,31 @@ class EditSession(val document: DocumentInterface, var path: String)
 
   def find(thePattern: String, backwards: Boolean): Boolean = {
     import gnieh.regex._
-    val regex = new Regex(thePattern)
-    if (backwards) {
-      lastMatch = regex.findLastMatchIn(document.characters, Some(0), Some(cursor))
-      lastMatch match {
-        case None => false
-        case Some(matched) =>
-          cursor = matched.start
-          setMark(matched.end)
-          true
+    try {
+      val regex = new Regex(thePattern)
+      if (backwards) {
+        lastMatch = regex.findLastMatchIn(document.characters, Some(0), Some(cursor))
+        lastMatch match {
+          case None => false
+          case Some(matched) =>
+            cursor = matched.start
+            setMark(matched.end)
+            true
+        }
+      } else {
+        lastMatch = regex.findFirstMatchIn(document.characters, Some(cursor))
+        lastMatch match {
+          case None => false
+          case Some(matched) =>
+            cursor = matched.end
+            setMark(matched.start)
+            true
+        }
       }
-    } else {
-      lastMatch = regex.findFirstMatchIn(document.characters, Some(cursor))
-      lastMatch match {
-        case None => false
-        case Some(matched) =>
-          cursor = matched.end
-          setMark(matched.start)
-          true
-      }
+    } catch {
+      case exn: java.lang.RuntimeException =>
+        warnings.notify("Find", s"Pattern:\n  $thePattern\n is not well-formed\n ${exn.getMessage}")
+        false
     }
   }
 
