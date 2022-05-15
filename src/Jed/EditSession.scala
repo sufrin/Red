@@ -310,21 +310,41 @@ class EditSession(val document: DocumentInterface, var path: String)
   /** Low level methods need to be able to publish scrutable warnings  */
   val warnings: Notifier[(String,String)] = new Notifier[(String, String)]
 
+
+
+  /**
+   * Cache for most recent regex: avoids recompilation on
+   * repeated find/repl.
+   */
+  object RegexCache {
+    import gnieh.regex._
+    var lastExpr: String = ""
+    var lastRegex: Regex = Regex("")
+    def apply(expr: String): Regex = {
+      if (expr!=lastExpr) {
+        lastExpr  = expr
+        lastRegex = Regex(lastExpr)
+      }
+      lastRegex
+    }
+  }
+
+ /* KEPT IN RESERVE FOR LITERAL FIND PERFORMANCE IF NEEDED
   /** pre: document.textLength>=position+thePattern.length */
   def matchesAt(pat: String, pos: Int): Boolean = {
-      var last  = pat.length
-      var lastc = pos+pat.length
-      while ({ last -= 1; lastc -= 1; last>=0})
-        if (document.character(lastc)!=pat(last))  return false
-      true
-    }
-
-  /** Find the next (respectively: previous, when backwards is true) occurrence of `thePattern` after
+    var last  = pat.length
+    var lastc = pos+pat.length
+    while ({ last -= 1; lastc -= 1; last>=0})
+      if (document.character(lastc)!=pat(last))  return false
+    true
+  }
+  /**
+   *  Find the next (respectively: previous, when backwards is true) occurrence of `thePattern` after
    *  (respectively: completely before) the cursor, and position the cursor
    *  at the right (respectively left) end of the occurrence, and the mark
    *  at its opposite end. Notify via `warnings` if this fails.
    */
-  /* def find(thePattern: String, backwards: Boolean): Boolean = {
+    def find(thePattern: String, backwards: Boolean): Boolean = {
     //  Expected time for Brute Force search is linear (in the size of the text), BUT IS NOT GUARANTEED
     //  Knuth, Morris, Pratt (see Wikipedia) is better than this in the worst case
     //
@@ -359,30 +379,26 @@ class EditSession(val document: DocumentInterface, var path: String)
   }
   */
 
-  /** bad style... */
-  private var lastMatch: Option[gnieh.regex.Match] = None
-
   def find(thePattern: String, backwards: Boolean, asRegex: Boolean): Boolean = {
     import gnieh.regex._
-
     try {
-      val regex = new Regex(if (asRegex) thePattern else compiler.Parser.quote(thePattern))
+      val regex = RegexCache(if (asRegex) thePattern else compiler.Parser.quote(thePattern))
       if (backwards) {
-        lastMatch = regex.findLastMatchIn(document.characters, Some(0), Some(cursor))
+        val lastMatch = regex.findLastMatchIn(document.characters, Some(0), Some(cursor))
         lastMatch match {
           case None => false
-          case Some(matched) =>
-            cursor = matched.start
-            setMark(matched.end)
+          case Some(instance) =>
+            cursor = instance.start
+            setMark(instance.end)
             true
         }
       } else {
-        lastMatch = regex.findFirstMatchIn(document.characters, Some(cursor))
+        val lastMatch = regex.findFirstMatchIn(document.characters, Some(cursor))
         lastMatch match {
           case None => false
-          case Some(matched) =>
-            cursor = matched.end
-            setMark(matched.start)
+          case Some(instance) =>
+            cursor = instance.end
+            setMark(instance.start)
             true
         }
       }
@@ -401,26 +417,30 @@ class EditSession(val document: DocumentInterface, var path: String)
    *   Otherwise:
    *      return `None`
    */
-  def replace(thePattern: String, theReplacement: String, backwards: Boolean, asRegex: Boolean) : Option[String] = {
+  def replace(thePattern: String, theReplacement: String, backwards: Boolean, asRegex: Boolean) : Option[String] = try {
       import gnieh.regex._
-      lastMatch = new Regex(if (asRegex) thePattern else compiler.Parser.quote(thePattern)).findFirstMatchIn(selectionText())
+      val lastMatch = RegexCache(if (asRegex) thePattern else compiler.Parser.quote(thePattern)).findFirstMatchIn(selectionText())
       lastMatch match {
         case None =>
              warnings.notify("Replace", s"Pattern:\n  $thePattern\n is not matched by the selection.")
              None
-        case Some(matched) =>
-          if (selectionText() == matched.matched.getOrElse("")) {
-            val repl = if (asRegex) matched.substitute(theReplacement) else theReplacement
+        case Some(instance) =>
+          if (selectionText() == instance.matched.get) {
+            val repl = if (asRegex) instance.substitute(theReplacement) else theReplacement
             exch(repl)
             if (backwards) {
               val c = cursor; cursor -= repl.length; setMark(c)
             }
-            matched.matched
+            instance.matched
           } else {
             warnings.notify("Replace", s"Pattern:\n  $thePattern\n is not matched by the selection.")
             None
           }
       }
+  } catch {
+    case exn: java.lang.RuntimeException =>
+      warnings.notify("Replace", s"Pattern:\n  $thePattern\n is not well-formed\n ${exn.getMessage}")
+      None
   }
 
   ///////////////////////////////////////////////////////////////////////////

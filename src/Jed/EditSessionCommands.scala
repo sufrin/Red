@@ -316,7 +316,6 @@ object EditSessionCommands extends Logging.Loggable {
     }
   }
 
-
   def replace(thePattern: String, theReplacement: String, backwards: Boolean, asRegex: Boolean) : SessionCommand =
       new SessionCommand {
         def DO(session: EditSession): StateChangeOption = {

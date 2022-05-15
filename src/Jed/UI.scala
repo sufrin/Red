@@ -108,6 +108,10 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
    * It should be added to existing handlers for the view and the text lines.
    */
   val findreplHandler: UserInputHandler = {
+    // Keypad bindings to find and replace
+    case Instruction(Key.Decimal, _, mods) => replace(findLine.text, replLine.text, backwards = mods.hasShift)
+    case Instruction(Key.Numpad0, _, mods) => find(findLine.text, backwards = mods.hasShift)
+
     case Instruction(Key.F, _, mods) => find(findLine.text, backwards = mods.hasShift)
     case Instruction(Key.R, _, mods) => replace(findLine.text, replLine.text, backwards = mods.hasShift)
   }

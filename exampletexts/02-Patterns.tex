@@ -1,0 +1,1872 @@
+\documentclass{ip3}
+\lecture{Design Patterns}
+\verbatimsize{\scalasqueezesize}
+\def\mt(#1){\mathtt{#1}}
+\def\hasType(#1){\mathop{\colon}\mt(#1)}
+
+\begin{document}
+\Section{Design Patterns}
+\exercisenewpage
+\answernewpage
+
+\begin{foil}[Introduction]
+\begin{itemize}
+\item Expert Designers don't solve every problem from first principles.
+\item They tend to re-use components and {architectures} which worked well in the past. 
+\item Successful patterns of program structuring and of inter-class communication recur. 
+\item Knowing the key patterns helps us write better programs and read programs better!
+\item The ``Design Patterns'' movement catalogues the essences of successful patterns, of
+which the most important are now very well known. 
+\end{itemize}
+\begin{note}[Design Patterns: rationale]\label{rationale}
+A programmer's knowledge and experience isn't organised along syntactic lines
+but in much larger conceptual structures: ``algorithm'', ``data structure'', 
+``protocol''. We are quite used to classifying
+certain kinds of algorithm using terms such as ``dynamic programming'', 
+``greedy'', ``divide and conquer''. These terms offer us a level of
+discourse above the level of individual programming language constructs,
+and thereby facilitate communication between algorithm designers. Likewise
+we are used to classifying {\em information structures} in abstract terms
+such as ``set'', ``mapping'', ``injective mapping'' and implementation
+techniques for them in terms such as ``B-Tree'', ``Hash Table'' -- the
+discourse is again above the level of individual programming language constructs 
+(well, usually).
+
+In the late 1980s the ``Design Patterns'' community -- which evolved in the
+world of object oriented programming, inspired by the work of  
+the architect Christopher Alexander -- began to catalogue
+and classify patterns of structure and communication which are 
+frequently found  in well-designed systems. Much of the vocabulary
+was, then, unfamiliar to an orthodox computing scientist: ``Iterator'',
+``Action'', ``Subject-Observer'', ``Visitor'' -- but some of the
+concepts and patterns were quite familiar -- either from
+their theoretical experience, or because they
+had been reading and writing programs which utilised the 
+patterns.
+
+People learning OOP often complain that the systems they're working with
+use inheritance in convoluted ways, and that the flow of control is hard
+to follow. Familiarity with some of the design patterns outlined in
+these lectures may help you: both to read existing programs, and to
+write better ones yourself.
+
+
+The original ``Gang of Four'' book (with $C^{+\!+}$ as an expository Albatross\footnote{A metaphor
+arising from Coleridge's surreal poem ``The Rime of the Ancient Mariner'' in which the
+narrator is punished for bringing bad luck to his crewmates by having the
+corpse of an Albatross he killed hung around his neck.}) is 
+probably still worth reading if you can find the time. You can still pick
+up a Kindle  version for about \pounds 10.00, and a hardback of the first edition
+is \pounds 15.00 - 30.00. 
+\begin{verbatim}
+        Design Patterns
+        by Erich Gamma,   Richard Helm, 
+           Ralph Johnson, John Vlissides
+           Addison Wesley, 1994 
+\end{verbatim}
+
+A typical entry in a ``Pattern Catalogue''  will have 
+\begin{itemize}
+\item Name
+\item Description: context and typical concrete example
+\item Rationale: considerations that give rise to the chosen solutions
+\item Solution(s): to the example and to more general forms of the problem
+\item Consequences: balance sheet
+\end{itemize}
+But
+\begin{itemize}
+\item Some patterns are so trivial and/or obvious as not to deserve naming.
+\item Patterns that are semantically close are sometimes named differently.
+\item There are quasi-religious arguments over the choice of names. 
+\item There are quasi-religious arguments over whether a slight modification.
+to a particular pattern constitutes a new pattern that's worth cataloguing.
+\item The technical details of the examples can sometimes be a bit misleading.
+\end{itemize}
+
+Advice:
+\begin{itemize}
+\item When reading the pattern books treat them as collections of case-studies.
+\item Try to understand the essence of the situations presented in the examples.
+\item Remember that some so-called ``patterns'' are really just frequently-used idioms that overcome
+      problems in the design of a specific programming language.
+\item There's no cheap substitute for thinking.
+\end{itemize}
+\end{note}
+\end{foil}
+
+\Section[3]{Iterator}
+%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{foil}[Iterator]
+\begin{itemize} 
+        \item  Iterators provide sequential access to information structures.
+        \begin{itemize}
+                \item  They appear pervasively in the \sc/scala.collection/ classes.
+                \item  Here, for simplicity, we explore an \textit{explanatory surrogate with a different name}
+        \end{itemize}
+        
+\begin{scala}
+
+                trait Iter[T] {          // $\state seq: [T]$
+                 def hasNext: Boolean    // $\post seq=\old{seq}; \returns seq\not=[]$
+                 def next():  T          // $\pre seq\not=[]; \post seq=tail\:\old{seq}; \returns hd\:\old{seq}$
+                }
+\end{scala}
+        \vitem  The information structures may be 
+        \begin{itemize}
+                \item \textit{reified} -- completely represented as data structures, or                
+                \item \textit{latent} -- possibly-infinite, or gigantic -- needing to be explored incrementally                
+                \begin{itemize}
+                   \item For example \textit{game trees} 
+                \end{itemize}
+        \end{itemize}        
+\end{itemize}
+\begin{note}[Iterators and ``for'' iterations]
+In many modern languages, including Scala, there is a connection between 
+iterators and looping or ``collection comprehension'' constructs.
+
+Recall that in Haskell, the ``list comprehension'' notation
+\begin{scala}
+        [ E | x<-G, P]
+\end{scala}
+means the same as
+\begin{scala}
+        map (\ x -> E) (filter (\x -> P) G)
+\end{scala}
+(Here $E, G, P$ are expressions that (can) contain $x$; and $P$ need not be present at all)
+ 
+There are corresponding notational equivalence(s) in Scala under some circumstances.
+For example, if $G$ has an $iterator$ method that yields an $Iterator[T]$,\footnote{such an expression
+has type $Iterable[T]$.} then the command (\textit{i.e.} $Unit$-valued expression)
+\begin{scala}
+        for { x <- G if P } { E }
+\end{scala}
+has the same meaning as the loop
+\begin{scala}
+        val it = G.iterator()
+        while (it.hasNext) {
+          val x = it.next()
+          if (P) { E }
+        }               
+\end{scala}
+The \sc/if P/ clause can be omitted if \sc/P/ is identically \sc/true/, and such loops can be nested, for example:
+\begin{scala}
+        for { x <- G_1 if P_1; y<-G_2 if P_2 } { E }
+\end{scala}
+
+
+The \textbf{collection comprehension expression} 
+\begin{scala}
+        for { x <- G if P } yield E
+\end{scala}
+yields an iterable collection (of a kind that depends on the type of $G$) whose
+elements are 
+\begin{scala}
+
+        G.iterator.filter { x => P } . map { x => E }
+\end{scala}
+
+Just as in Haskell, the ``guard clause'' \sc/if P/ can be omitted if \sc/P/ is identically \sc/true/. 
+Comprehension expressions can also be nested, and the result is ``flattened'' analogously to a nested 
+Haskell comprehension. 
+
+For example, the expression:
+\begin{scala}
+
+        for { x<-0 to 7 if x%3==0; y<-100 to 107 if y-x==100} yield (x,y)
+\end{scala}
+yields a collection of type \sc/IndexedSeq[(Int, Int)]/ with value
+\begin{scala}
+
+        Vector((0,100), (3,103), (6,106))
+\end{scala}
+
+Notice that this is different from the ``unflattened'' 
+\begin{scala}
+
+        for { x<-0 to 7 if x%3==0 } yield for { y<-100 to 107 if y-x==100} yield (x,y)
+\end{scala}
+that yields the \sc/IndexedSeq[IndexedSeq[(Int, Int)]]/
+\begin{scala}
+
+        Vector(Vector((0,100)), Vector((3,103)), Vector((6,106)))
+\end{scala}
+
+\end{note}
+\end{foil}
+
+\begin{foil}[Covariance]
+\begin{itemize}
+\item[\textbf{Q}:] Should \sc/Iter/ be declared covariant in its type parameter?
+\item[] \textit{i.e.} if \sc/S/ is a subtype of \sc/T/, then should  \sc/Iter[S]/ be a subtype of \sc/Iter[T]/?
+
+\vitem[\textbf{A}:] Yes! 
+\item[] Because an \sc/Iter[T]/ is no more than a source for values of type $T$ 
+\item[] Recall that  $S\subtype T$ means that ``anywhere you need a $T$ you can provide an $S$''
+\begin{itemize}
+        \item[] $\therefore$ ``anywhere you need a source of $T$ you can provide a source of $S$''
+\end{itemize}
+
+\vitem So our \textit{actual} declaration for \sc/Iter/ decorates its parameter type with a \sc/+/
+\begin{scala}
+                trait Iter[+T] {         // $\state seq: [T]$
+                 def hasNext: Boolean    // $\post seq=\old{seq}; \returns seq\not=[]$
+                 def next():  T          // $\pre seq\not=[]; \post seq=tail\:\old{seq}; \returns hd\:\old{seq}$
+                }
+\end{scala}
+\end{itemize}
+\end{foil}
+%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{code*}[Patterns.scala]
+object Patterns {
+\end{code*}
+%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{foil}
+\begin{itemize}
+        \item \textbf{Laziness principle:} 
+        \begin{itemize}
+            \item Iterators should be \textit{as lazy as possible}. 
+        \end{itemize}
+        \vitem For example, consider an object of this derived iterator class:        
+\begin{scala}
+
+        class DropUntil[T](p: T => Boolean, iter: Iter[T]) extends Iter[T] 
+              // $\state seq: [T] = \mathsf{dropUntil}~p~iter.seq$
+\end{scala}
+        \item Until its $hasNext$ is invoked for the first time, the methods of $iter$ should not be called, else 
+        \begin{itemize}
+                \item an arbitrary amount of un-needed computation may take place (in $iter$), or
+                \item an arbitrary amount of storage may have to be committed
+        \end{itemize}
+        
+\vitem \textbf{Non-interference principle:} 
+        \begin{itemize}
+        \item An iterator's methods must not be invoked after incorporation in a derived iterator.
+        \end{itemize}
+\end{itemize} 
+\end{foil}
+
+%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{foil}
+\begin{itemize}
+\item Implementation:
+\end{itemize}
+\begin{-code}
+    class DropUntil[T](p: T => Boolean, iter: Iter[T]) extends Iter[T]
+          // $\initially seq = \mathsf{dropUntil}~p~iter.seq$
+    { private var head:   T        = _
+      private var atHead: Boolean  = false  // $atHead \Rightarrow (head=\mathsf{hd}~ seq)$
+      private var clean:  Boolean  = true   // $\[(clean &\Rightarrow \mbox{no methods have yet been called} \\ \lnot clean &\Rightarrow seq=iter.seq\].$
+      
+      def hasNext: Boolean = 
+      { if (clean) 
+        { clean = false
+          // drop the initial non-$p$ elements of $iter$
+          while (iter.hasNext && { head=iter.next(); atHead=p(head); !atHead} ) {}
+          // !iter.hasNext || atHead
+          atHead
+        } 
+        else 
+          atHead || iter.hasNext
+      }
+      
+      def next(): T = {
+          if (!hasNext) scala.sys.error("dropUntil.next() when !hasNext")
+          if (atHead) { atHead = false; head } else iter.next()
+      }
+    
+    }
+\end{-code} 
+\begin{itemize}
+        \item Notice that we cannot state the ``clean'' invariant in the ``ordinary'' assertion language 
+\end{itemize}
+\begin{exercise}[Derived iterator classes]
+\newanswerpage
+
+\begin{enumerate}
+\item Define a class with constructor 
+\begin{scala}
+        class Cons[T](head: T, tail: Iter[T]) extends Iter[T]
+        // $\initially seq = [head]\cat tail.seq$
+\end{scala}
+
+\item Define a class with constructor 
+\begin{scala}
+        class Cat[T](t: Iter[T], u: Iter[T]) extends Iter[T]
+        // $\initially seq = t.seq \cat u.seq$
+\end{scala}
+Estimate how many times $t.hasNext$ has to be invoked when such an iterator
+is delivering a \textit{finite} sequence, and if your estimate is 
+more than about $\#t.seq$ suggest a way of reducing it to that.
+
+\item Define a class with constructor
+\begin{scala}
+        class Empty[T] extends Iter[T]
+        // $\initially seq = []$
+\end{scala}
+and one with constructor
+\begin{scala}
+        class Singleton[T](t: T) extends Iter[T]
+        // $\initially seq = [t]$
+\end{scala}
+\end{enumerate}
+\begin{answer}
+\begin{enumerate}
+\item This is the straightforward answer. There's the overhead of an extra
+boolean test for each $hasNext$.
+\begin{-code}
+class Cons[T](head: T, tail: Iter[T]) extends Iter[T]
+{ var clean:   Boolean = true
+  def hasNext: Boolean = clean || tail.hasNext
+  def next():  T       =
+      { if (clean) { clean=false; head } else tail.next() }
+} 
+\end{-code}
+
+\item The following straightforward class invokes $t.hasNext$ at least 
+$(\#t.seq+\#u.seq)$ times, because it doesn't exploit the fact that
+once $t.hasNext$ has become false, it stays false.
+\begin{code}
+class CatSlow[T]  (t: Iter[T],   u: Iter[T]) extends Iter[T] {
+    def hasNext = t.hasNext || u.hasNext
+    def next()  = if (t.hasNext) t.next() else u.next()
+}
+\end{code}
+
+This class delegates its methods to $t$ first, and then to $u$. It
+switches the delegate, in $hasNext$, when $t.seq$ becomes $[]$. 
+\begin{-code}
+class Cat[T]  (t: Iter[T],   u: Iter[T]) extends Iter[T] {
+    var delegate = t
+    def hasNext  = delegate.hasNext || (delegate==t && { delegate=u; u.hasNext })
+    def next()   = 
+        if (hasNext) delegate.next() 
+        else 
+           scala.sys.error("Cat.next when !hasNext")
+}
+\end{-code}
+
+\item The empty and singleton iterators are
+\begin{-code}
+        class Empty[T] extends Iter[T] {
+           def hasNext: Boolean = false
+           def next():  T       = scala.sys.error("Empty.next()")
+        } 
+\end{-code}
+
+and (direct construction)
+\begin{-code}
+       class Singleton[T](t: T) extends Iter[T] {
+          var ready = true
+          def hasNext: Boolean = ready
+          def next():  T = 
+              if (ready) { 
+                 ready=false
+                 t 
+              } 
+              else 
+                 scala.sys.error("Singleton.next() when !hasNext")
+        }
+\end{-code}
+or (indirect construction, yielding a less useful error message when emptied)
+\begin{-code}
+       class Singleton_[T](t: T) extends Cons[T](t, new Empty[T])  
+\end{-code}
+        
+\end{enumerate} 
+\end{answer} 
+\end{exercise}
+%%%%%%%%%
+\end{foil}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{foil}[Rose Tree Iterators]
+\begin{itemize}
+\item A ``Rose Tree'' is a tree with a label at each node, and (unless
+it is a leaf) subtrees delivered, in succession, by its \sc/subtrees()/ iterator.
+This yields a fresh cursor whenever it is invoked. 
+
+\item The \sc/subtrees()/ iterator of a leaf yields an effectively-empty iterator.
+
+\begin{code}
+
+          trait RoseTree[T] {
+            // $\inv isLeaf \Rightarrow !subtrees().hasNext$
+            def label:      T
+            def subtrees(): Iter[RoseTree[T]]
+            def isLeaf:     Boolean 
+          } 
+\end{code}
+\end{itemize}
+\end{foil}
+
+%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{foil}
+\begin{itemize}
+\item The breadth-first traversal of a Rose tree 
+\begin{quote}\it
+        ``starts at the tree root and explores all nodes at the present depth
+        prior to moving on to the nodes at the next depth level. Extra memory,
+        usually a queue, is needed to keep track of the child nodes that were
+        encountered but not yet explored.'' (Wikipedia)
+\end{quote}
+
+\begin{center}
+\pdffig[width=4in]{breadthfirst}
+
+(nodes labelled in traversal order)
+\end{center}
+\end{itemize}
+ 
+\end{foil}
+
+%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{foil}
+\begin{itemize}
+\item Breadth-first traversal as iteration is particularly straightforward
+\begin{itemize}
+\item As each branch is yielded by $next()$, the roots of its subtrees are appended to the queue
+\item In effect this is a lazy traversal
+\end{itemize}
+\begin{code}
+
+      def breadthFirst[T](t: RoseTree[T]) = new Iter[RoseTree[T]] {
+          var queue: Iter[RoseTree[T]] = new Singleton(t)
+          
+          def hasNext:   Boolean = queue.hasNext
+          
+          def next():    RoseTree[T] = {
+            val out = queue.next()
+            if (!out.isLeaf) 
+               queue = new Cat(queue, out.subtrees())
+            out
+          }
+      }
+\end{code}
+\vitem The \sc/isLeaf/ test is a simple optimization
+\item The queue is the concatenation of iterators over the unexplored subtrees
+\end{itemize}
+\begin{exercise}[Depth first traversal]
+Define a depth-first iterator analogous to \sc/breadthFirst/.
+\begin{answer}
+Straightforward: the queue is now a stack.
+\begin{-code}
+      def depthFirst[T](t: RoseTree[T]) = new Iter[RoseTree[T]] {
+          var queue: Iter[RoseTree[T]] = new Singleton(t)
+          
+          def hasNext:   Boolean = queue.hasNext
+          
+          def next():    RoseTree[T] = {
+            val out = queue.next()
+            if (!out.isLeaf) 
+               queue = new Cat(out.subtrees(), queue)
+            out
+          }
+      } 
+\end{-code}
+\end{answer} 
+\end{exercise}
+\end{foil}
+
+%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{foil}
+\begin{itemize}
+\item The Rose tree formalization covers both reified trees (data structures) and
+trees generated ``on the fly''.
+
+\item For example: a binary Rose tree that generates its subtrees ``on demand''.\footnote{In
+fact its $subtrees()$ generates both subtree roots.}
+
+\begin{code}
+
+          type LongTree = RoseTree[Long]
+          
+          def balanced(n: Long): RoseTree[Long] = new RoseTree[Long] {
+            def label = n
+            def subtrees() = 
+                new Cat(new Singleton(balanced(2*n)), 
+                        new Singleton(balanced(2*n+1)))
+            def isLeaf = false
+            override def toString = s"balanced($n)"       
+          } 
+\end{code}
+
+\vitem The breadth-first traversal of \sc/balanced(1)/ yields ... (what?)
+\vitem The breadth-first traversal of \sc/balanced(3)/ yields ... (what?)
+\item The depth-first traversal of \sc/balanced(1)/ yields ... (what?)
+\end{itemize}
+\begin{code*}[Rose.sc]
+import Patterns._
+
+val b  = balanced(1)
+val bf = breadthFirst(b)
+val df = depthFirst(b)
+
+for { i<-0 to 50 } yield { bf.next().label }
+for { i<-0 to 50 } yield { df.next().label }
+\end{code*}
+\end{foil}
+
+
+
+\Section[3]{Adapter/Wrapper}
+%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{foil}[Adapter]
+\begin{itemize}
+\item Example
+\begin{itemize}
+        \item Iterators and Cursors both provide sequential access to successive objects in a sequence
+
+\begin{code*}[Patterns.scala]
+
+        trait Iter[+T] {          // $\state seq: [T]$
+         def hasNext: Boolean    // $\post seq=\old{seq}; \returns seq\not=[]$
+         def next():  T          // $\pre seq\not=[]; \post seq=tail\:\old{seq}; \returns hd\:\old{seq}$
+        }
+
+\end{code*}
+\begin{code*}
+        trait Cursor[+T] {        // $\state seq: [T]$
+         def hasCurrent: Boolean // $\post seq=\old{seq}; \returns seq\not=[]$
+         def next():     Unit    // $\pre seq\not=[]; \post seq=tail\:\old{seq}$
+         def current:    T       // $\post seq=\old{seq}; \returns hd\:\old{seq}$
+        } 
+\end{code*} 
+\begin{-scala}
+
+        trait Iter[T] {          // $\state seq: [T]$
+         def hasNext: Boolean    // $\post seq=\old{seq}; \returns seq\not=[]$
+         def next():  T          // $\pre seq\not=[]; \post seq=tail\:\old{seq}; \returns hd\:\old{seq}$
+        }
+
+        trait Cursor[T] {        // $\state seq: [T]$
+         def hasCurrent: Boolean // $\post seq=\old{seq}; \returns seq\not=[]$
+         def next():     Unit    // $\pre seq\not=[]; \post seq=tail\:\old{seq}$
+         def current:    T       // $\post seq=\old{seq}; \returns hd\:\old{seq}$
+        } 
+\end{-scala} 
+
+        \item The sequences may not be finite
+        \item The expected protocols for their use (on finite sequences) are, respectively
+\begin{-scala}
+
+        while (anIterator.hasNext) doSomethingWith(anIterator.next())
+        
+        while (aCursor.hasCurrent) { 
+           doSomethingWith(aCursor.current)
+           aCursor.next()
+        }
+\end{-scala}
+\end{itemize}
+\end{itemize} 
+\end{foil}
+
+%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{foil}
+\begin{itemize}
+\item Here is an \textbf{adapter} for use when a \sc/Cursor/ is required but you only have an
+\sc/Iterator/.
+
+\begin{-code}
+        
+        class Iter2Cursor[T](it: Iter[T]) extends Cursor[T] {
+          // $\inv \_valid \Rightarrow  seq\not=[] \land \_current=hd\:seq$
+          var _current: T = _
+          var _valid      = false
+          
+          def hasCurrent: Boolean = 
+          {   if (! _valid) {
+                 _valid   = it.hasNext
+                 if (_valid) _current = it.next()
+              }
+              _valid
+          }
+          
+          def current: T = if (hasCurrent)
+                              _current 
+                           else 
+                              scala.sys.error("current when !hasCurrent")
+          
+          def next(): Unit = if (hasCurrent) 
+                                _valid = false 
+                             else 
+                                scala.sys.error("next( when !hasCurrent")       
+        }
+\end{-code}
+\begin{-itemize}
+ \item Behaviours of \sc/it/ and \sc/new Iter2Cursor(it)/ are analogous: they explore the same $seq$
+ \item The cursor is no less lazy than the iterator
+ \item After the cursor is constructed, the iterator cannot be used: their states are ``entangled''.
+\end{-itemize}
+\end{itemize}
+\begin{exercise}[Construct an Iter from a Cursor]
+Define an ``adapter'' class for use when an \sc/Iterator/ is required but you only have a
+\sc/Cursor/. It should be no less lazy than the cursor that it is adapting.
+\begin{answer}
+The classes below both deliver iterators. The first
+yields one that only shifts the state when it can be shifted and
+when it needs to be shifted so that \sc/hasNext/ can return 
+the specified answer. The second delivers an iterator that
+invokes \sc/cur.next()/ ``one cycle too early'': which could 
+cause cause unnecessary (or erroneous) computation in \sc/cur/.
+\begin{--code}
+     class Cursor2Iter[T](cur: Cursor[T]) extends Iter[T] {
+         // $\_valid \Rightarrow seq\not=[] \land cur.current=hd\:seq$
+         var _valid = true
+
+         def hasNext: Boolean = {
+             if (! _valid) {
+                if (cur.hasCurrent) cur.next()
+                _valid = true
+             }
+             cur.hasCurrent
+         }
+          
+         def next(): T = {
+             val t  = cur.current
+             _valid = false
+             t
+         }
+       }   
+           
+       class Cursor2EagerIter[T](cur: Cursor[T]) extends Iter[T] 
+       { def hasNext: Boolean = cur.hasCurrent
+         def next(): T = {
+             val t = cur.current 
+             cur.next()
+             t
+         } 
+       }
+\end{--code} 
+\end{answer}
+\end{exercise}
+\end{foil}
+
+
+\Section[3]{Mixin/Plugin}
+\begin{foil}[Mixins and Plugins]
+\begin{itemize}
+        \item A \textit{Mixin}\footnote{AKA ``Plugin''} trait is designed to be combined with (a collection of) other classes
+        \item It provides additional functionality for those classes
+        \item The classes themselves are likely to have been specified as traits or abstract classes                
+\end{itemize}
+\end{foil}
+
+%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{foil}
+\begin{itemize}
+\item Example: suppose we have several efficient implementations of the (mutable) \sc/Sequence/ trait.
+\item[] {... but their source code is not under our control}
+\begin{-code}
+
+        trait Sequence[T] { // $\state seq: [T]$
+         def ins(pos: Int, t: T): Unit // $seq=\old{seq}[0..pos) \cat [t] \cat \old{seq}[pos..\#\old{seq})$ 
+         def del(pos: Int): T          // $\[(seq=\old{seq}[0..pos) \cat \old{seq}[pos+1..\#\old{seq}\\\returns \old{seq}(pos)\].$
+         def apply(pos: Int): T        // $\returns {seq}\:pos$
+         def length: Int               // $\returns \#seq$         
+        }       
+\end{-code}
+
+\item Now suppose we discover during development that we need to keep count of the number of sequence elements satisfying a predicate
+\item Three styles of implementation
+    \begin{itemize}
+       \item Inheritance + overriding
+       \item Composition + delegation
+       \item A Mixin
+    \end{itemize}
+\end{itemize}
+\end{foil}
+
+%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{foil}
+\begin{itemize}
+        \item  Inheritance + overriding 
+        \begin{-scala}
+        
+           class SomeCountingSeqImp[T](..., pred: T=>Boolean) extends SomeSeqImp[T](...) { 
+              // $\inv count = \# (\mathsf{filter}~pred~seq)$
+              var count: Long = 0
+              
+              override def ins(pos: Int, t: T): Unit =
+              { super.ins(pos, t)
+                if (pred(t)) count += 1
+              }
+              
+              override def del(pos: Int): T
+              { val t = super.del(pos)
+                if (pred(t)) count -= 1
+                t
+              }              
+           }         
+        \end{-scala}
+        
+        \item This is on an implementation-by-implementation basis 
+        \item Problems of scale...
+        \begin{itemize}
+                \item It has to be done separately for each implementation that we wish to ``enhance''
+                \item Wasted intellectual effort /  potential for trivial mistakes at each ``enhancement''        
+        \end{itemize}
+
+\end{itemize} 
+\end{foil}
+
+%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{foil}
+\begin{-itemize}
+        \item  Composition + Delegation
+        \begin{-scala}
+     
+        class SomeCountingSeqImp[T](..., pred: T=>Boolean) extends Sequence[T] { 
+           // $\inv seq = delegate.seq$
+           val delegate: Sequence[T] = new SomeSeqImp(...)
+           
+           // $\inv count = \# (\mathsf{filter}~pred~seq)$
+           var count: Long = 0
+           
+           def ins(pos: Int, t: T): Unit =
+           { delegate.ins(pos, t)
+             if (pred(t)) count += 1
+           }
+           
+           def del(pos: Int): T
+           { val t = delegate.del(pos)
+             if (pred(t)) count -= 1
+             t
+           }                        
+           
+           def apply(pos: Int): T = delegate.apply(pos)
+           def length: Int        = delegate.length       
+        }         
+        \end{-scala}
+        
+        \vitem  This still doesn't scale nicely for multiple implementation classes. 
+        \item[] Although we could make the delegate a parameter of the implementation.
+\begin{-scala}
+        
+class CountingSeqImp[T](..., delegate: Sequence[T], pred: T=>Boolean) extends Sequence[T] { 
+      // $\inv seq = delegate.seq$
+      ... as before ...
+\end{-scala}
+\end{-itemize}
+\end{foil}
+
+%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{foil}
+\begin{itemize}
+    \item \sc/Counting/: a universal extension that works for all \sc/Sequence/ implementation classes 
+    \begin{code}
+    
+    trait Counting[T] extends  Sequence[T] {
+        val pred: T => Boolean
+        
+        // $\inv count = \# (\mathsf{filter}~pred~seq)$
+        var count: Long = 0
+        abstract override def ins(pos: Int, t: T): Unit =
+        { super.ins(pos, t)
+          if (pred(t)) { count += 1 }
+        }
+        
+        abstract override def del(pos: Int): T =
+        { val t = super.del(pos)
+          if (pred(t)) { count -= 1 }
+          t
+        }                      
+      }
+    \end{code}
+    \vitem The \sc/abstract override/ definitions \textit{anticipate} 
+           implementation-provided \sc/ins/, \sc/del/ methods
+    
+    
+\end{itemize}
+\begin{exercise}[Sequence Mixins/Plugins] This question is designed to
+expose some of the potential complexities and limitations of the ``plugin''
+approach.
+
+We wish to add \sc/Iter/ functionality to \sc/Sequence/ by plugging-in a
+method \sc/iterator(): Iterator[T]/ that, when called,  yields a fresh
+iterator over the elements of the sequence.
+
+Specify and implement a ``plugin'' trait, \sc/IterPlugin/, that provides
+this functionality for \textit{any} \sc/Sequence/ implementation.
+
+Issues:
+\begin{itemize}
+\item You will have to decide how the iterators it yields behave when the
+sequence from which they were derived -- the ``host'' sequence -- changes
+while the iterator is ``live''.\footnote{That is, before its \sc/hasNext/
+yields \sc/false/}
+
+
+\item The most straightforward policy is to \textit{forbid} any sequence changes
+anywhere during such iterations. In short, make the iterator's $seq$ a
+constant, identical to the host's $seq$, at the point of construction. You
+will have to decide whether it is worthwhile building in dynamic checks on
+the sequence not having changed when the iterator's methods are invoked. A
+sufficient condition for this is that there are no mutations of the
+sequence while the iterator is live.
+
+\item A  more refined policy permits changes to be made to the host sequence in
+the lifetime of an iterator only if they are ahead of the end of the host
+sequence at the point the iterator was constructed. Before you try to
+implement this you may wish to consider carefully whether it is really
+worthwhile implementing.
+
+\item Another policy is to specify the iterator as yielding the exact elements of
+the sequence \textit{at the point it was created}. This can be implemented
+straightforwardly by taking a copy of the sequence when the iterator
+starts, but space efficiency could be dramatically reduced.
+\end{itemize}
+
+Hint: Whatever policy you choose, you will inevitably need to refer to the
+host sequence from the definition of the iterator that the plugin
+\sc/iterator()/ constructs. You cannot use \sc/this/, because this means
+``the iterator being defined''. But starting your definition with something
+like the following will suffice:
+
+\begin{scala}
+
+  trait IterPlugin[T] extends Sequence[T] {
+     val self: Sequence[T] = this // the hosting sequence implementation
+     ...  
+     // self means the ``host sequence'' within the scope of its definition
+     ...
+  }
+\end{scala}
+
+
+\answernewpage \begin{answer} The following straightforward plugin formally
+(by precondition) forbids sequence changes during iterations; but makes no
+attempt to enforce the preconditions. We need an additional named abstract
+constant to capture the value of the sequence at the point the iterator was
+made.
+
+More technically, we need to be able to reference the ``host sequence''
+implementation (whatever that implementation turns out to be) in order to
+access its length. Here we obey the convention of calling it \sc/self/.
+\begin{--code}
+  trait IterPlugin[T] extends Sequence[T] {
+     val self: Sequence[T] = this // the hosting sequence implementation
+
+     def iterator(): Iter[T] = new Iter[T] {
+         // $\val seq_{orig} = self.seq$ 
+         // $\inv seq = seq_{orig}$ Iterate over the original sequence elements
+
+         // length when this iterator was constructed 
+         val selfLength = self.length
+
+         // $\inv index \leq \#\;seq_{orig}$ 
+         var index  = 0
+
+         // $\pre self.seq = seq_{orig}$ forbid changes during iteration 
+         // -- not checked dynamically 
+         def hasNext: Boolean = index < selfLength
+
+         // $\pre this.seq = seq_{orig}$ forbid changes during iteration 
+         // -- not checked dynamically 
+         def next():T = {
+           assert(index < length, "Sequence iterator out of bounds") 
+            val t = apply(index) 
+            index += 1 
+            t
+         }
+
+         override def toString: String = 
+                  s"iterator(${self.toString}) @ [$index..$selfLength)"
+
+     }
+  }
+\end{--code} 
+\newpage 
+The following plugin enforces the no changes prohibition by checking the
+(sufficient) condition that the mutation operators of the sequence have not
+been invoked.  The plugin ``facet'' itself keeps track of the count of
+mutations.
+
+\begin{---code}
+
+  trait IterPlugin2[T] extends Sequence[T] {
+     val self: Sequence[T] = this // the hosting sequence implementation
+     var mutations: Long = 0      // count of mutations to the sequence
+
+     abstract override def ins(pos: Int, t: T): Unit =
+              { super.ins(pos, t); mutations += 1 }
+
+     abstract override def del(pos: Int): T =
+              { val t = super.del(pos); mutations += 1; t }
+\end{---code}
+
+The plugin facet of the eventual sequence class is referenced from
+\sc/Iterator/s built by \sc/iterator()/.  Its \sc/mutations/ count is part
+of that facet; not declared in the \sc/Sequence/ trait.
+
+\begin{---code}
+     def iterator(): Iter[T] = new Iter[T] {
+         // $\val seq_{orig} = self.seq$ 
+         // $\inv seq = seq_{orig}$ Iterat over the original sequence elements
+
+         val preMutations = mutations 
+         def checkPrecondition: Unit =
+             assert(preMutations==mutations, "Host sequence may have changed")
+
+         val selfLength = self.length
+
+         // $\inv index \leq \#\;seq_{orig}$ 
+         var index  = 0
+         // $\pre self.seq = seq_{orig}$ forbid changes during iteration
+         def hasNext: Boolean = { checkPrecondition; index < selfLength }
+
+         // $\pre this.seq = seq_{orig}$ forbid changes during iteration
+         def next():T = {
+           checkPrecondition 
+           assert(index < length, "Sequence iterator out  of bounds") 
+           val t = apply(index) 
+           index += 1 
+           t
+         }
+
+         override def toString: String = 
+                  s"iterator(${self.toString}) @ [$index..$selfLength)"
+     }
+  }
+\end{---code} 
+\end{answer} 
+\end{exercise}
+
+\end{foil}
+
+%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{foil}
+\begin{itemize}
+    \vitem Now \textit{any} \sc/Sequence/ implementation can acquire counting functionality, for example
+    \begin{scala}
+        class SomeCountingSeq[T](..., _pred: T => Boolean) 
+              extends SomeSeqImp[T](...) 
+              with    Counting[T] { val pred= _pred }
+    \end{scala}
+
+    \vitem The functionality can also be acquired at the very point of object construction        
+    \begin{scala}
+        val countPrimes: Counting[Long] = 
+            new  OtherSeqImp[Long](...) with Counting  { val pred = isPrime(_) }
+    \end{scala}
+    
+    \vitem ... and from inside a pseudo companion-object without needing to define 
+           a class       
+    \begin{-scala}
+           object AnotherCountingSeq {
+              def apply [T](..., _pred: T => Boolean): Counting =  
+                  new     AnotherSeqImp[T](...) 
+                  with    Counting[T] { val pred= _pred }
+           }
+    \end{-scala} 
+\end{itemize}
+
+
+\newexercisepage
+\begin{exercise}[Testing Sequence Plugins]
+Devise simple tests for the plugins and adapters we demonstrated for sequences. 
+If you find it convenient to do so, then base them on the following simple and inefficient
+character-sequence implementation, and try using this with the \sc/Counting/ trait to
+count the number of lower case letters in the (12-character) sequence 
+\sc/"abcdefghijkl"/. If you predict (or detect) an obvious problem either with the plugin or
+\sc/CharSeq/ then what is it?
+\begin{--code}
+    class CharSeq(initial: String) extends Sequence[Char] {
+     private var rep = initial.toList
+     
+     def ins(pos: Int, t: Char): Unit = 
+         { rep = rep.take(pos) ++ List(t) ++ rep.drop(pos) }
+         
+     def del(pos: Int): Char = {
+         val t = rep(pos)
+         rep = rep.take(pos) ++ rep.drop(pos+1)
+         t
+     } 
+     def apply(pos: Int): Char = rep(pos)
+     def length: Int           = rep.length
+     override def toString: String = rep.mkString("CharSeq(\"","", "\")")
+    } 
+\end{--code}
+\begin{answer}
+A very short Scala script demonstrates a problem: the ``counting'' invariant
+of  \sc/CharSeq(...) with Counting[Char]/ does not necessarily hold. 
+
+In fact the plugin's contribution to the aggregate class invariant can only
+be satisfied if the representation after initialization satisfies it. One
+way of guaranteeing this is that initialization is done using
+\sc/ins/. Something like:
+
+\begin{--scala}
+     private var rep = List()
+     locally { for { pos <- 0..initial.length } ins(pos, initial(pos)) 
+\end{--scala}
+
+Do I hear you thinking that the original independent \sc/Sequence/ specification should,
+surely, not have to \textit{anticipate} this, or any other, plugin?  
+
+In fact, we can propose a discipline for safe extension by plugin: namely
+that the implementation of a trait is \textit{safe to extend by any plugin}
+if its constructor \textit{uses only the methods of the trait in its
+initialization}. 
+\begin{--code}[Patterns.sc]
+import Patterns._
+val a2lc = new CharSeq("abcdefghijkl") with Counting[Char] {
+    val pred = { ch => 'a'<=ch && ch<='z'} // counting lowercase
+}
+// duplicate the sequence
+for { i<-0 until a2lc.length } a2lc.ins(a2lc.length, a2lc(i))
+// we expect 24
+println(s"$a2lc has ${a2lc.count} lowercase letters")
+\end{--code}
+
+Another short script very briefly tests the stricter of the iterator plugins.
+\begin{--code}
+val a2l = new CharSeq("abcdefghijkl") with IterPlugin2[Char]
+println(a2l.length)
+println(a2l)
+a2l.ins(a2l.length, 'z')
+a2l.del(0)
+
+val a2it = a2l.iterator()
+while (a2it.hasNext) {
+  val c = a2it.next()
+  if (c == 'k') a2l.ins(a2l.length, 'X') else print(c)
+}    
+\end{--code}
+\end{answer}
+\end{exercise}
+\newexercisepage
+\begin{exercise}[An efficient character sequence and its iterator]
+We have seen that is a straightforward matter to define a plugin that adds 
+iterator-style functionality to every \sc/Sequence/ implementation.
+%
+Now consider the following character sequence implementation, intended to deliver constant-time
+access and amortized constant time insertion and deletion into character sequences of 
+length at most \sc/max/.\footnote{under the reasonable  assumption that 
+sequences of insertions frequently take place at adjacent locations, as
+do sequences of deletions.}
+%
+The key to this efficiency is moving the GAP so that insertions take place at 
+its left, whilst deletions enlarge it at its right.
+\begin{---code}[Patterns.scala]
+   class GapSeq(val max: Int) extends Sequence[Char] {
+     val buffer: Array[Char] = new Array[Char](max)
+     protected var l: Int    = 0
+     protected var r: Int    = buffer.length
+     // $\inv  seq = buffer[0..l) \cat buffer[r..max) \land 0<=l<=r<=max $
+     // $\mathbf{Pictorially}$
+     //~~~ buffer: [xxxxxxxxxxxxx) GAP [xxxxxxxxxxxxx)
+     //~~~~~~~~~~~~~~~~~~~~~~~~~~~l~~~~~~r~~~~~~~~~~~~~max
+     def length: Int = l + max - r
+     
+     def ins(pos: Int, ch: Char): Unit = {      assert(r>l)                 // enough room
+         moveGapTo(pos)
+         buffer(l) = ch
+         l += 1
+     }
+     
+     def del(pos: Int): Char = {
+         moveGapTo(pos)
+         val ch = buffer(r)
+         r += 1
+         ch
+    } 
+                  
+     def apply(pos: Int): Char  = {             assert(0<=pos&&pos<length)  // in bounds
+         if (pos<l) buffer(pos) else buffer(pos-l+r)
+     }
+     
+     private def moveGapTo(pos: Int): Unit =  { assert(0<=pos&&pos<=length) 
+         while ( l < pos ) { buffer(l)=buffer(r); l+=1; r+=1 }
+         while ( l > pos ) { l-=1; r-=1; buffer(r)=buffer(l) }     
+     } 
+     
+     ... definitions of iterator() and toString
+    }    
+\end{---code}
+\newpage
+We are interested in constructing an iterator over the characters of the
+sequence that is as efficient as possible; but we note that the use of \sc/apply/
+requires 2 arithmetic operations and a comparison for positions to the right 
+of the gap, and that a sequence iterator plugin uses \sc/apply/ in
+the implementation of \sc/next/. 
+
+Define a method \sc/iterator(): Iter[Char]/ that could be added to \sc/GapSeq/ and,
+can deliver an iterator that is a little more efficient by using ``inside knowledge''
+of the implementation.
+\begin{answer}
+
+The key to the efficiency is that the index \sc/ix/ points to
+the current position in the buffer, not to the current position
+in the iterator's $seq$. It ``jumps the GAP'' after it reaches
+the end of the left part of the buffer.
+
+\begin{--code}[... definitions of iterator() and toString]
+    // ... definition of iterator() and toString()
+    def iterator(): Iter[Char] = new Iter[Char] {
+        var ix=0
+        
+        def hasNext: Boolean = {
+          if (ix==l) ix=r               // jump the GAP
+          ix<max
+        }
+        
+        def next(): Char = {
+            assert(hasNext)
+            val ch = buffer(ix)
+            ix += 1
+            ch
+        }
+    }
+           
+    override def toString: String = new String(buffer, 0, l)++new String(buffer, r, max-r) 
+            
+\end{--code} 
+
+This question was designed to show that an efficiency gain can sometimes be
+made by using knowledge of the details of a representation. It was also
+designed to allow a brief preliminary discussion of the very important ``moving gap''
+technique for implementing sequences that was adapted for use in the 
+editor practical.
+\end{answer} 
+\end{exercise}
+\end{foil}
+
+%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{foil}[Case Study: Enhancing the functionality of Iter and Cursor]
+\begin{itemize}
+ \item \sc/Iter/s and \sc/Cursor/s cry out for additional functionality: \sc/map/, \sc/filter/, ...
+ \item It is tempting to provide this with a mixin/plugin, \textit{e.g.}
+\begin{-code}[Patterns.scala]
+
+   trait FilterCursor[T] extends Cursor[T] {
+     // $\inv seq = \mathsf{filter}~pred~super.seq$
+     def pred(t: T): Boolean
+     
+     // $\inv \lnot needFind \land hasCurrent => pred(current) $
+     var needFind = true
+     
+     def find(): Unit = if (needFind) {
+         while (super.hasCurrent && !pred(super.current)) super.next()
+         needFind=false
+     }
+     
+     abstract override def current: T          = { find(); super.current }
+     
+     abstract override def hasCurrent: Boolean = { find(); super.hasCurrent }
+     
+     abstract override def next(): Unit        = 
+                       { find(); super.next(); needFind = true }
+     
+   } 
+\end{-code}
+\item But using this requires commitment to a specific $pred$ at ``cursor-composition time''.
+\end{itemize} 
+\end{foil}
+
+%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{foil}
+\begin{itemize}
+ \vitem An alternative: \textit{specify} an enriched form (call it \sc/RichCursor/).  
+\begin{code}
+
+   trait RichCursor[T] extends Cursor[T] { 
+     def map[U](fun: T=>U):        RichCursor[U] // $\returns c \st c.seq = \mathsf{map}~fun~super.seq$
+     def filter(pred: T=>Boolean): RichCursor[T] // $\returns c \st c.seq = \mathsf{filter}~pred~super.seq$
+   }   
+\end{code}
+
+\vitem Build a companion object (call it \sc/RichCursor/) to transform ordinary into rich cursors:
+\begin{scala}
+
+   val c: RichCursor[Int] = RichCursor(anOrdinaryCursor)
+   c . map { x => x*7 } . filter { x => x%3 == 0 }    
+\end{scala}
+
+\end{itemize} 
+\end{foil}
+
+%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{foil}
+\begin{itemize}
+\item The companion object: \sc/RichCursor/
+\begin{itemize}
+\item \sc/RichCursor(cursor)/ delegates its complete \sc/Cursor/ facet directly to \sc/cursor/
+\item \sc/RichCursor(cursor)/ builds \sc/filter/ and \sc/map/ implementations that \textit{employ} \sc/cursor/ \textit{methods} 
+\end{itemize}
+\begin{code}
+
+   object RichCursor {
+     
+     /** A factory for transforming Cursors into RichCursors */
+    
+      def apply[T](cursor: Cursor[T]): RichCursor[T] = new RichCursor[T] {
+         
+         def current    = cursor.current                // cursor facet 
+         def hasCurrent = cursor.hasCurrent
+         def next()     = cursor.next()
+         
+         def map[U](fun: T=>U): RichCursor[U] = {
+             val mapped = new Cursor[U] {               
+                 def current: U = fun(cursor.current)   // mapped facet
+                 def hasCurrent = cursor.hasCurrent
+                 def next()     = cursor.next()
+             }
+             RichCursor.apply(mapped)
+         }
+         
+     
+   
+\end{code}
+\end{itemize}
+\end{foil}
+
+
+\begin{foil}
+\begin{code}
+         def filter(pred: T=>Boolean): RichCursor[T] = {
+             
+             val filtered = new Cursor[T] {            // filtered facet
+                 var needFind = true
+                 def find(): Unit = 
+                     if (needFind) {
+                         while (cursor.hasCurrent && !pred(cursor.current)) cursor.next()
+                         needFind=false
+                     }                 
+                 
+                 def current: T          = { find(); cursor.current }
+                 def hasCurrent: Boolean = { find(); cursor.hasCurrent }
+                 def next(): Unit = { 
+                     find()
+                     cursor.next()
+                     needFind = true 
+                 }
+             }
+             
+             RichCursor.apply(filtered)
+         }
+   
+     } // apply    
+   
+   } // RichCursor         
+\end{code}
+\begin{exercise}[Playing with RichCursor]
+Use the following definition of a range cursor
+to explore some of the features of \sc/RichCursor/s.
+\begin{code}[RichCursor.sc]
+import Patterns._
+def range(lo: Int, hi: Int): Cursor[Int] = 
+  new Cursor[Int] {
+    var current = lo
+    def hasCurrent = current<hi
+    def next = current += 1
+}
+\end{code}
+\begin{answer}
+Almost anything will do here, but it's a good idea to interleave map and
+filter. I am embarrassed to say that my original test of filter was
+profoundly incomplete (I tested it on ranges for multiples of 2, 3, ...).
+Having preached that it's a good idea to test extremal cases I should have
+tested filter { x => true }, and noticed that my original buggy
+implementation of filter's next method yielded even elements of the
+underlying cursor.
+
+\begin{code}[RichCursor.sc]
+def toList[T](cursor: Cursor[T]): List[T] = {
+  var r: List[T] = List()
+  while (cursor.hasCurrent) { r = cursor.current :: r; cursor.next() }
+  r.reverse
+}
+toList(RichCursor(range(0,50)))
+toList(RichCursor(range(0,50)).filter { x => true })
+toList(RichCursor(range(0,50)).filter { x => false })
+toList(RichCursor(range(0,50)).filter { x => x%2==0 })
+toList(RichCursor(range(0,50)).filter { x => x%4==0 })
+\end{code}
+\end{answer}
+\end{exercise}
+\begin{note}[Other uses of Mixins/Plugins]
+In the Solitaire game case study, mixins are used to define different rules
+of play for a variety of differently-configured game boards. Towards the
+end of that case study we construct a mapping that names four
+different games, each constructed by composing a board of some kind with
+a rules plugin. The construction looks something like this:
+\begin{--scala}
+      ...
+      games += "Classic"          -> new SimpleBoard(classicLayout) with ClassicRules
+                                                                    
+      games += "Large+Classic"    -> new SimpleBoard(largeLayout)   with ClassicRules
+      
+      games += "Large+Weird"      -> new SimpleBoard(largeLayout)   with WeirdRules
+      
+      games += "Weird"            -> new SimpleBoard(weirdLayout)   with WeirdRules
+                                         { override 
+                                             def initiallyEmpty = List(topLeft, botRight) }
+\end{--scala}
+The mapping will eventually be used as part of a GUI that supports the
+selection by name of a game to play.
+\end{note}
+\end{foil}
+
+%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%
+\input{SubjectObserver}
+
+%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%
+\input{Command}
+
+%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%
+\Section[3]{Antipatterns}
+\begin{foil}[Antipattern: spurious mutability of (mathematical) objects]
+\begin{itemize}
+\item Example: it was the mid-80s; you were building the Java Library 
+\begin{itemize}
+\item You needed representations for 2D positions, dimensions, displacements, etc 
+\item You made them all mutable, with rationale: ``...efficient ... less copying ... ''
+\item In Scala this (bad) decision would have been expressed something like this (extract):
+\begin{-scala}
+
+ class Point2D(var x: Double, var y: Double) 
+ { def setLocation(x: Double, y: Double): Unit = { this.x=x; this.y=y }
+   ...
+ }
+ 
+ class Rectangle2D(var x: Double, var y: Double, var height: Double, var width: Double)
+ { def add(r: Rectangle2D): Unit = 
+       { x = x min r.x; y = y min r.y; height = height max r.height; width = width max r.width }          
+       
+   def setRect(x: Double, y: Double, height: Double, width: Double): Unit =
+       { this.x=x; this.y=y; this.height=height; this.width=width }   
+              
+   ...        
+ }
+\end{-scala} 
+\end{itemize}
+\end{itemize}
+\end{foil}
+
+%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{foil}
+\begin{itemize}
+\item The consequences: a perfect storm
+\begin{itemize}
+      \item Pervasive cryptoaliasing: inability to predict or prevent (by using appropriate types) code that
+      side-effects geometric parameters or results. 
+      \item ``Safety copies'' must be made even when  objectively unecessary. 
+      \item In short: less efficient and/or less safe code.
+\end{itemize}
+\end{itemize} 
+\end{foil}
+
+%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{foil}[Getting it right: think mathematically]
+\begin{itemize}
+\item Design an immutable interface with apt algebraic operators, \textit{e.g:}
+\begin{-code}[Patterns.scala]
+
+  trait Vec2D {
+    def x:   Double
+    def y:   Double
+    
+    def unary_- : Vec2D         = Vec2D(-x, -y)
+    def +(that: Vec2D):   Vec2D = Vec2D(this.x + that.x, this.y + that.y)
+    def *(scale: Double): Vec2D = Vec2D(this.x * scale, this.y * scale)
+    def *(that: Vec2D):   Vec2D = Vec2D.polar(this.length*that.length, this.rot+that.rot)
+    def /(that: Vec2D):   Vec2D = Vec2D.polar(this.length/that.length, this.rot-that.rot)
+    ...     
+    def lengthSq: Double = x*x + y*y
+    def length:   Double = Math.sqrt(lengthSq)
+    def rot:      Double = Math.atan2(y, x)
+    def dir:      Vec2D  = this * (1.0/length)
+    def variable: VecVar = VecVar(x, y)
+  }
+   
+  case class Vec(x: Double, y: Double) extends Vec2D
+\end{-code}
+\begin{-code}    
+  object Vec2D {
+    val zero:                               Vec2D = Vec (0, 0)
+    def polar(length: Double, rot: Double): Vec2D = Vec(length*Math.cos(rot), length*Math.sin(rot))
+    def apply(x: Double, y: Double):        Vec2D = Vec(x, y)
+  }      
+\end{-code}
+\end{itemize}
+\end{foil}
+
+%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{foil}
+\begin{itemize}
+\item ... extend the design with mutable representations that incorporate the interface
+\begin{-code}  
+
+  case class VecVar(var x: Double, var y: Double) extends Vec2D  { 
+  
+       def add(that:  Vec2D):  Unit   = { x += that.x; y += that.y }              
+       def mul(scale: Double): Unit   = { x *= scale; y *= scale }
+       def mul(that:  Vec2D):  Unit   = { val v = this*that; x=v.x; y=v.y }
+       ...
+  }
+\end{-code} 
+\vitem Methods of an object that mutate its features advertise that by using the \sc/Unit/ return type
+\begin{code*}[Vec2D.sc]
+import Patterns._
+val v1 = Vec2D(1, 0)
+val v2 = Vec2D(0, 1)
+val v3 = v1*v2
+val v4 = v3.variable
+val v5 = v4.variable    
+\end{code*}
+\end{itemize}
+\begin{exercise}[Equality of Vec / VecVar]
+\begin{enumerate}
+\item Because they are declared as case classes, both \sc/Vec/ and \sc/VecVar/ have equality
+defined as the natural structural equality. In short, two \sc/Vec/s are equal if they have
+the same $x, y$, and two \sc/VecVar/s are equal if they have
+the same $x, y$. But for no $Vec(x,y)$ is there an equal $VecVar(x,y)$. Show how to
+change \sc/Vec2D/ so that (for all $(x,y)$) $Vec(x,y)==VecVar(x,y)$. Would this be a 
+good idea? 
+
+\item Would the Scala type system prevent you from writing code such as the following?
+\end{enumerate}
+\begin{-scala}
+  val set = new scala.collecton.mutable.HashSet[Vec2D]()
+  ...
+  set.add(Vec(1, 2)) 
+  set.add(VecVar(1, 2)) 
+\end{-scala}
+
+What about if the declaration of set were:
+\begin{-scala}
+  val set = new scala.collecton.mutable.HashSet[Vec2D]()
+\end{-scala}
+\begin{answer}
+\begin{enumerate}
+\item The simplest way of doing this is to define a trait-specific \sc/==/ in \sc/Vec2D/.
+\begin{-scala}
+     def ==(that: Vec2D): Boolean = this.x==that.x && this.y==that.y
+\end{-scala}
+The resulting \sc/==/ is (appropriately) a equivalence relation on subtypes of \sc/Vec2D/.
+But it is no more than an overloading of the default \sc/==(that: Any)/;
+so no Scala 2 compiler will prevent you making the bad-but-almost-invisible mistake of comparing 
+a \sc/Vec2D/ with \textit{something of a different type altogether} and getting the answer \sc/false/.
+In Scala  $x\mathtt{==}y$ is defined as the disjunction: $x, y$ are both null, or $x, y$ have the same same identity, or
+$x\mathtt{.equals}(y)$.
+\begin{scala}
+        if (x eq null) (y eq null) else (x eq y) || x.equals(y)
+\end{scala}
+
+Recall, also, that the default ``universal'' \sc/equals(that: Any)/ method of every
+(non-case class) object behaves as if it were defined as ``same identity''; \textit{i.e.}
+\begin{scala}
+        def equals(that: Any): Boolean = this eq that
+\end{scala}
+and that each case class \sc/K/$(field_1: T_1, field_2: T_2, ...)$ defines its own default equality -- structural equality
+\begin{scala}
+        def equals(that: Any): Boolean = this eq that || that match {
+           case _that: K => // $this.field_1==\_that.field_1 ~\&\&~ this.field_2==\_that.field_2 ~\&\&~$ ...
+           case _        => false
+        
+\end{scala}
+So the best you can hope for in Scala 2 is to get a runtime error, and you need to
+do the programming yourself.   
+\begin{-scala}
+        def equals(_that: Any): Boolean = that match {
+          case that: Vec2D => this.x==that.x && this.y==that.y
+          case _           => scala.sys.error(s"$this == $that is badly-typed")
+        } 
+\end{-scala}
+
+\newpage
+Recall (IP2) that if you are going to redefine an equals method for a type that is expected to be
+used in collections -- in particular hashed collections, then it is essential to define it so that 
+objects of the type that are equals, also have the same hashCode. The following re-definition
+of Vec2D and the two suggested implementation types takes the above considerations into account
+
+\begin{-scala}
+   trait Vec2D {
+     def x: Double
+     def y: Double
+     override def equals(that:Any):Boolean={
+             that match{
+                     case v: Vec2D => x==v.x && y==v.y 
+                     case _=> scala.sys.error(s"$this == $that is badly-typed")
+             }
+     }
+     override def hashCode: Int = x.hashCode+y.hashCode
+   }
+
+   case class Vec(x: Double, y: Double) extends Vec2D 
+   case class VecVar(var x: Double, var y: Double) extends Vec2D 
+\end{-scala}
+
+
+\item It would not, because both values added are of types consistent with \sc/Vec2D/.\footnote{I
+am grateful to Varun Kanade (LMH) for reminding me of this after seeing an earlier model answer. }
+
+But if the declaration of set is 
+\begin{-scala}
+val set = new scala.collecton.mutable.HashSet[Vec]()
+\end{-scala}
+then the second \sc/add/ fails the type check, because \sc/HashSet/
+is \textit{non-variant} in its type parameter, and \sc/VecVar/$\subtype$\sc/Vec/ 
+You can build a
+\begin{-scala}
+  val vecset = new scala.collecton.mutable.HashSet[Vec]()
+\end{-scala}
+and add \sc/Vec/s to it; or you can  build a
+\begin{-scala}
+  val varset = new scala.collecton.mutable.HashSet[VecVar]()
+\end{-scala}
+and add \sc/VecVar/s to it.\footnote{You would be ill-advised to
+do the latter! Why? Ask yourself what it would mean to add a \sc/VecVar/ to \sc/varset/ and 
+then change its \sc/x/ or \sc/y/. Experiment if you need to!}
+\end{enumerate}
+\end{answer}
+\end{exercise}
+\begin{exercise}[Mutable Shapes]
+You are constructing a simple diagram editor, which supports working with
+collections of shapes. Shapes may be rectangles (with vertical and
+horizontal sides), ellipses (with vertical and horizontal axes), and
+isosceles triangles (with horizontal base). The position and dimensions of
+the shapes in the diagram are mutable. Each shape has a rectangular
+bounding box, an area, and a circumference, and its location and
+dimensions are initially specified by the position of one corner
+of their bounding box, and a vector to its opposite corner. 
+
+
+
+
+\begin{enumerate}
+\item Rectangles with sides parallel to one of the x/y axes, characterised 
+      by the mutable position of a corner, and a mutable vector to the opposite corner
+
+and 
+
+\item Ellipses, with axes parallel to one of the x/y axes, characterised by the (mutable) end points of a diagonal of
+their bounding box and features that yield  their area, height, and width. 
+\end{enumerate}
+You may use the \sc/Vec.../ classes to represent points.
+
+Now define a class to represent a different kind of shape: 
+\begin{itemize}
+\item Isosceles triangles, with base parallel to the x axis, characterised by  (mutable)
+height and width, and the (mutable) centre point of their base.
+\end{itemize}
+
+
+\begin{answer}
+This is a straightforward answer to what is supposed to be a straightforward question. Except, possibly,
+for the Isosceles answer, in which the necessary invariant relations between the various dimensions and
+positions are maintained by the assignment methods -- I mentioned these only
+briefly in the lectures, though they are mentioned and explained in one or both of
+the practicals. 
+\begin{--code}
+  abstract class Shape (var corner: Vec2D, var diag: Vec2D) {
+    def height:   Double = diag.y
+    def width:    Double = diag.x
+    def area:     Double 
+  }   
+  
+  class Rectangle(p1: VecVar, val p2: VecVar) extends Shape(p1, p2) {
+        def area: Double = height * width
+  }
+  
+  class Ellipse(p1: VecVar, p2: VecVar) extends Shape(p1, p2) {
+        def area: Double = Math.PI * height * width
+  }  
+  
+  class   Isosceles(private var _width: Double, private var _height: Double, private var _centre: Vec2D)
+  extends Shape(Vec2D(_centre.x - 0.5*_width, _centre.y), Vec2D(_height, _width)) {
+        def area: Double = 0.5 * height * width
+        def height_=(h: Double): Unit = 
+        { _height = h; diag = Vec2D(_height, _width) } 
+        def width_=(w: Double):  Unit = 
+        { _width = w;  corner = Vec2D(_centre.x - 0.5*_width, _centre.y); diag = Vec2D(_width, _height) }
+        def centre: Vec2D = _centre
+        def centre_=(c: Vec2D):  Unit = 
+        { _centre = c;  corner = Vec2D(_centre.x - 0.5*width, _centre.y) }
+        override def toString: String =
+          s"Iso($corner/$diag : $width x $height : $centre)"
+  }
+\end{--code}
+\end{answer}
+\end{exercise}
+\end{foil}
+
+%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{foil}[Antipattern: Fragile Base Classes]
+\begin{itemize}
+\item The ``fragile base class'' phenomenon is widely lamented\footnote{And celebrated! 
+Academics love to compose exam questions about it.}
+\item When an ancestor class is ``improved'' it can break assumptions made in descendants,
+      
+      Even when the improvements respect its original specification!
+      
+\item Example:\footnote{Highly artificial} suppose a class is based on a library class \sc/Bag/, and counts its members
+\begin{-scala}
+
+        class CountingBag[T] extends Bag[T] {
+          // $\inv count$ is the number of members of \sc/T/ in this bag
+          private var _count: Int = 0
+                  def count:  Int = _count
+          
+          override def add(t: T): Unit          = { super.add(t);     _count += 1 }
+          override def addAll(ts: Seq[T]): Unit = { super.addAll(ts); _count += ts.size }          
+        }
+\end{-scala}
+\item   Correctness depends on the \sc/Bag.addAll/ implementation not using \sc/Bag.add/
+\item   But there is no direct way for the original \sc/Bag/-implementer to specify that non-dependence
+\vitem  And neither the original implementer nor a subsequent ``improver'' of \sc/Bag/ can 
+        foresee all its potential subclasses
+\begin{note}
+The point of the encapsulation provided by a class is to ensure that
+its \textit{clients} do not depend on its implementation details --
+so that a class and its clients can be evolved independently, subject to
+the client's evolution respecting its published contract.
+
+But the same does not hold for the relationship between a class and its
+subclasses. The very openness provided by inheritance: \textit{i.e.} the
+fact that calls by an object on its own public and protected methods
+(``this-calls'') can be ``intercepted'' by subclass code seems useful, but
+when a this-call is made as an implementation convenience there is
+potential for the encapsulation to be broken by inheritance.
+
+
+\end{note}
+\end{itemize} 
+\end{foil}
+
+%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{foil}[Getting it right: forbid unconstrained inheritance]
+\begin{itemize}
+        \item Program to an interface and forbid inheritance ...
+        \begin{-scala}
+        
+           final class Bag[T] extends BagInterface[T] {
+             ...
+             def add(t: T): Unit          = ...
+             def addAll(ts: Seq[T]): Unit = ...
+             def apply(t: T): Int         = ...       // number of occurences of $t$
+           }
+        \end{-scala}
+       \begin{itemize}
+                \item[] (\sc/final class .../ forbids extensions of \sc/.../)
+        \end{itemize}
+         
+        \vitem ... and implement (what would have been) subclasses by composition and delegation  
+        \begin{-scala}
+
+           class CountingBag[T] extends BagInterface[T] {
+             private val embedded: Bag = new Bag
+             private var _count: Int = 0
+                     def count:  Int = _count
+             ...
+             def add(t: T): Unit          = { embedded.add(t);     _count += 1 }
+             def addAll(ts: Seq[T]): Unit = { embedded.addAll(ts); _count += ts.size } 
+             ...
+             def apply(t: T): Int         = embedded.apply(t)      
+           }
+        \end{-scala} 
+\end{itemize}
+\begin{note}[Individual features can be final]
+The choice in Scala is not between allowing and forbidding inheritance/extension.
+There is also a way of preventing individual features of a class being overridden in a subclass,
+namely by making their definitions \sc/final/. The following definition does not
+prevent an extension of \sc/Bag/, but it does prevent overriding  \sc/add/ or \sc/addAll/.
+        \begin{-scala}
+        
+           class Bag[T] extends BagInterface[T] {
+             ...
+             final def add(t: T): Unit          = ...
+             final def addAll(ts: Seq[T]): Unit = ...
+             
+             def apply(t: T): Int               =  ...       
+           }
+        \end{-scala}
+
+So we still couldn't define our counting bag by subclassing, but could  still
+define an extension that intercepts \sc/apply/
+        \begin{-scala}
+        
+           class ApplyCountBag[T] extends Bag[T] {
+             private var _count: Int = 0
+                     def count:  Int = _count
+             
+             def apply(t: T): Int =  { _count += 1; super.apply(t) }       
+           }
+        \end{-scala}
+        
+The implementer (of \sc/Bag/) still needed to think ahead 
+about what parts of their implementation were necessary to
+``freeze'' across extensions. 
+\end{note}
+\end{foil}
+
+\begin{foil}
+\begin{itemize}
+\item There is an important distinction between features used for
+communication between 
+\begin{itemize}
+\item a class and its clients     -- these are the public features
+\item a class and its extensions (subclasses)  -- these are the \sc/protected/ features
+\end{itemize}
+
+\item Protected features are \textit{expected} to be overridden: 
+      \begin{itemize}\item[]
+            \textit{so extensions can  define customized behavior}
+      \end{itemize}
+
+\item Public features are \textit{primarily} for use by clients:
+
+     \begin{itemize}\item[]
+           \textit{and if they happen to be used internally by the implementation of a class
+           this is as a convenience, not because extensions are expected, or allowed, to
+           define customized behaviour.}
+      \end{itemize}
+          
+\end{itemize}
+\end{foil}
+\begin{note}[Supplementary Note: on adapting a regular expression matcher]
+\let\overbar=\overline
+Consider how one might implement ``backward/upwards regular-expression search'' in 
+(for example) a text editor, where pressing the ``backward find'' key should select
+the last sequence of text before the cursor in the document being edited that matches the ``find'' 
+pattern.
+
+Though it is very efficient, the Scala/Java \sc/Regex/ library does not implement backward search at all: the best we can do
+is to simulate a backward search for the pattern $p$ by doing a forward search for
+\sc/(?s:.*)(/$p$\sc/)/ -- a non-capturing match for ``any number of characters'' immediately followed
+by a capturing match for $p$. The result of the match/search has to be adjusted
+
+But it is possible (and worthwhile) to implement backward search another way. Our
+implementation is, in effect, an adapter for the forward \sc/Regex/ library. 
+\begin{enumerate}
+        \item To every regular expression, $p$, there corresponds a dual regular expression $\overbar{p}$
+        that generates/matches the reverse-image of the language matched by $p$. The dual expression
+        can be defined inductively:\footnote{The Scala/Java matcher uses a richer notation that can be boiled
+        down to these constructs: catenation, alternation, repetition, constant, group.}
+        $$\[. \overbar{AB}   & = & \overbar{B}\overbar{A}
+          \\  \overbar{A|B}  & = & \overbar{A}|\overbar{B}
+          \\  \overbar{A*}   & = & \overbar{A}*
+          \\  \overbar{c}    & = & c ~~~~~~~\mathrm{For~an~individual~character~or~character-class,~ } c
+          \\  \overbar{(A)}  & = &(\overbar{A})
+        \].$$
+        
+        \item The Scala/Java matchers operate on implementations of \sc/CharSequence/, and a
+        ``reverse view'' of a charsequence can be implemented at no cost in space,
+        and with only a small constant time factor for access time.
+        
+\begin{--scala}
+        def reverseView(s: CharSequence): CharSequence = new CharSequence {
+            def length(): Int = s.length()
+            def get(i: Int)   = s.get(s.length()-i-1)
+            ...
+        } 
+\end{--scala}
+
+        \item It is straightforward to parse the string representing $p$, and 
+        transform it into a string representing $\overbar{p}$. Assume we have
+        a function: 
+        
+        \sc/def reverseRE(s: String): String/ that does this.
+        
+        \item It is straightforward to transform the \sc/MatchResult/ resulting
+        from running a Java/Scala matcher on a $reverseView$ of a string \sc/s/
+        into its ``reversed result''. Assume we have a function: 
+        
+        \sc/def reverseResult(length: Int, m: MatchResult): MatchResult/         
+        that does this.           
+\end{enumerate}
+
+A reverse search from \sc/cursor/ for a given \sc/pattern/ in \sc/doc: CharSequence/ 
+can now be implemented as:
+\begin{--scala}
+        val pattern: Pattern = Pattern.compile(reverseRE(pattern))
+        val length           = doc.length()
+        val matcher: Matcher = pattern.matcher(reverseView(doc))
+        val result = if (matcher.find(length-cursor)) 
+                        Some(reverseResult(length, matcher.toMatchResult()))
+                     else 
+                        None         
+\end{--scala}
+
+A similar, but not identical, question is: ``is there an instance of this
+pattern immediately to the left of the cursor?'' It is answered by code almost identical
+to the above save for its result:
+\begin{--scala}
+        val result = if (matcher.region(0, length-cursor).lookingAt()) 
+                        Some(reverseResult(length, matcher.toMatchResult()))
+                     else 
+                        None         
+ 
+\end{--scala}
+
+This can obviously be packaged into an appropriate adapter class. We leave the 
+details as an exercise.
+\end{note}
+
+\begin{code*}[Patterns.scala]
+ } // Patterns
+\end{code*}
+
+%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%
+\end{document}
