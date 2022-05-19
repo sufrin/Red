@@ -15,14 +15,56 @@ object EditSessionCommands extends Logging.Loggable {
   type SessionCommand    = Command[EditSession]
   type StateChangeOption = Option[StateChange]
 
-  def insert(ch: Char): SessionCommand = new SessionCommand {
+  val autoIndentNL: SessionCommand = new SessionCommand {
     def DO(session: EditSession): StateChangeOption = Some {
-      session.insert(ch)
+      val indent = session.currentIndent
       new StateChange {
-        def undo(): Unit = session.delete()
-        def redo(): Unit = session.insert(ch)
-        override val kind: String =
-          if (ch == '\n') "InsEol" else "Ins" // break insertion merges
+        def undo(): Unit = {
+          session.deleteFor(-(indent+1), record=false)
+        }
+
+        def redo(): Unit = {
+            session.insert('\n')
+            for { i<-0 until indent } session.insert(' ')
+        }
+
+        override val kind: String = "InsEol"
+        locally { redo() }
+      }
+    }
+  }
+
+  val autoTab: SessionCommand = new SessionCommand {
+    def DO(session: EditSession): StateChangeOption = Some {
+      val indent = session.nextTabStop
+      new StateChange {
+        def undo(): Unit = {
+          session.deleteFor(-indent, record=false)
+        }
+
+        def redo(): Unit =
+          for { i<-0 until indent } session.insert(' ')
+
+        override val kind: String = "InsTab"
+        locally { redo() }
+      }
+    }
+  }
+
+  def insert(ch: Char): SessionCommand = {
+    if (ch == '\n') autoIndentNL else new SessionCommand {
+      def DO(session: EditSession): StateChangeOption = {
+        Some {
+          session.insert(ch)
+          new StateChange {
+            def undo(): Unit = session.delete()
+
+            def redo(): Unit = session.insert(ch)
+
+            override val kind: String =
+              if (ch == '\n') "InsEol" else "Ins" // break insertion merges
+          }
+        }
       }
     }
   }

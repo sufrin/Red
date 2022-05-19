@@ -35,6 +35,8 @@ class EditSessionHandlers(val DO: Commands.Command[EditSession]=>Unit) {
       val keyboard: UserInputHandler =  {
         case Character(char, _, NoModifier)            => DO(commands.insert(char))
         case Character(char, _, Shift)                 => DO(commands.insert(char))
+        case Instruction(Key.Tab, _, _)                => DO(commands.autoTab)
+
         case Instruction(Key.BackSpace, _, NoModifier) => DO(commands.delete)
         case Instruction(Key.BackSpace, _, Control)    => DO(commands.flip)
 
@@ -91,12 +93,14 @@ class EditSessionHandlers(val DO: Commands.Command[EditSession]=>Unit) {
       }
 
       /**
-       *   A handler that does nothing in response to `Key.Up`, `Key.Down`, and `'\n'`.
+       *   A handler that does nothing in response to `Key.Up`, `Key.Down`, and `'\n'`;
+       *   and treats tab as space
        */
       private val ignoreMultiLineKeys: UserInputHandler = {
         case Character('\n', _, _)       => ()
         case Instruction(Key.Down, _, _) => ()
         case Instruction(Key.Up, _, _)   => ()
+        case Instruction(Key.Tab, _, _)  => DO(commands.insert(' '))
       }
 
       /**

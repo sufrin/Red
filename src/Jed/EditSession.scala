@@ -114,6 +114,20 @@ class EditSession(val document: DocumentInterface, var path: String)
     setMark(newPosition)
   }
 
+  def currentIndent: Int = {
+    val (row, col) = document.positionToCoordinates(cursor)
+    var startLine  = document.coordinatesToPosition(row, 0)
+    var indent     = 0
+    while (indent<col && document.character(startLine+indent)==' ') indent += 1
+    indent
+  }
+
+  def nextTabStop: Int = {
+    var (row, col) = document.positionToCoordinates(cursor)
+    var indent     = col + 1
+    while (indent%8!=0) indent += 1
+    indent-col
+  }
 
   /** Set the mark and change the selection. */
   def setMark(newPosition: Int, indicative: Boolean=false): Unit = {
@@ -211,12 +225,14 @@ class EditSession(val document: DocumentInterface, var path: String)
 
   /**
    *  Delete between cursor and cursor+extent (extent can be negative),
-   *  and record the deletion as a cut.
+   *  and record the deletion as a cut, if `record`.
    */
-  def deleteFor(extent: Int): Unit = {
+  def deleteFor(extent: Int, record: Boolean=true): Unit = {
     val (l, r) = if (extent>0) (cursor, cursor+extent) else (cursor+extent, cursor)
-    val text   = document.getString(l, r)
-    recordCut(Cut(text, extent, cursor, document.generation))
+    if (record) {
+      val text = document.getString(l, r)
+      recordCut(Cut(text, extent, cursor, document.generation))
+    }
     document.delete(l, r-l)
     cursor = l
   }
@@ -294,14 +310,14 @@ class EditSession(val document: DocumentInterface, var path: String)
   import gnieh.regex._
 
   object Boundaries {
-    val leftWord  = Regex("""\W\w""") // perhaps this should be user-decideable 
+    val leftWord  = Regex("""\W\w""") // perhaps this should be user-decideable
     val rightWord = Regex("""\w\W""") // perhaps this should be user-decideable
     val leftLine  = Regex("\n")
     val rightLine = Regex("\n")
     val leftPara  = Regex("\n\\s*?\n")
     val rightPara = Regex("\n\\s*?\n")
-    val leftEnv  = Regex("""\\begin{([^}]+)}""")
-    val rightEnv = Regex("""\\end{([^}]+)}""")
+    val leftEnv   = Regex("""\\begin{([^}]+)}""")
+    val rightEnv  = Regex("""\\end{([^}]+)}""")
   }
 
   /** 2<=clicks<=5 */
