@@ -74,8 +74,9 @@ class EditSessionHandlers(val DO: Commands.Command[EditSession]=>Unit) {
        *
        */
       val mouse: UserInputHandler =  {
-        case MousePressed(row, col, 1, Button1)         => DO(commands.setCursorAndMark(row, col))
-        case MouseDragged(row, col,    Button1)         => DO(commands.dragCursor(row, col))
+        case MousePressed(row, col, 1, Button1)           => DO(commands.setCursorAndMark(row, col))
+        case MousePressed(row, col, n, Button1)  if 2<=n  => DO(commands.selectChunk(row, col, n))
+        case MouseDragged(row, col,    Button1)           => DO(commands.dragCursor(row, col))
 
         case MousePressed(row, col, 1, ControlButton1)  => DO(commands.setCursor(row, col))
         case MouseDragged(row, col,    ControlButton1)  => DO(commands.setCursor(row, col))

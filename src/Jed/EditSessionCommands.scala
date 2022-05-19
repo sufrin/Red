@@ -289,6 +289,26 @@ object EditSessionCommands extends Logging.Loggable {
     }
   }
 
+  /** Select the surrounding chunk of text depending on `clicks`: word/line/oara/latex-block  */
+  def selectChunk(row: Int, col: Int, clicks: Int): SessionCommand = new SessionCommand {
+    def DO(session: EditSession): StateChangeOption = {
+      val oldSelection = session.selection
+      val oldCursor    = session.cursor
+      session.selectChunk(row, col, clicks)
+      Some {
+        new StateChange {
+          def undo(): Unit = {
+            session.selection = oldSelection
+            session.cursor    = oldCursor
+          }
+          def redo(): Unit = session.selectChunk(row, col, clicks)
+          override val kind: String = "Chunk"
+        }
+      }
+    }
+  }
+
+
   val clearAll: SessionCommand = Command.andThen(selectAll, cut)
 
   def exchangeCut: SessionCommand = new SessionCommand {

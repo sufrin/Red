@@ -291,6 +291,51 @@ class EditSession(val document: DocumentInterface, var path: String)
     cursor    = 0
   }
 
+  import gnieh.regex._
+
+  object Boundaries {
+    val leftWord  = Regex("""\W\w""") // perhaps this should be user-decideable 
+    val rightWord = Regex("""\w\W""") // perhaps this should be user-decideable
+    val leftLine  = Regex("\n")
+    val rightLine = Regex("\n")
+    val leftPara  = Regex("\n\\s*?\n")
+    val rightPara = Regex("\n\\s*?\n")
+    val leftEnv  = Regex("""\\begin{([^}]+)}""")
+    val rightEnv = Regex("""\\end{([^}]+)}""")
+  }
+
+  /** 2<=clicks<=5 */
+  def selectChunk(row: Int, col: Int, clicks: Int): Unit = {
+    val startingCursor = document.coordinatesToPosition(row, col)
+    def selectChunkMatching(left: Regex, right: Regex, adj: Int): Unit =
+      left.findLastMatchIn(document.characters, Some(0), Some(startingCursor)) match {
+        case None =>
+        case Some(leftMatched) =>
+          right.findFirstMatchIn(document.characters, Some(leftMatched.end)) match {
+            case None =>
+            case Some(rightMatched) =>
+              val (start, end) = (leftMatched.start + adj, rightMatched.end - adj)
+              if (startingCursor-start > end-startingCursor) {
+                setMark(start)
+                cursor = end
+              }
+              else {
+                setMark(end)
+                cursor = start
+              }
+            }
+      }
+    import Boundaries._
+    clicks match
+    {
+      case 2 => selectChunkMatching(leftWord, rightWord, 1) // word
+      case 3 => selectChunkMatching(leftLine, rightLine, 1) // line
+      case 4 => selectChunkMatching(leftPara, rightPara, 1) // para
+      case 5 => selectChunkMatching(leftEnv, rightEnv, 0)   // \begin/end block (latex)
+      case _ =>
+    }
+  }
+
   def cutAll(): String = { selectAll(); cut() }
 
   /**
