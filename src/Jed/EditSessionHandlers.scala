@@ -30,12 +30,13 @@ class EditSessionHandlers(val DO: Commands.Command[EditSession]=>Unit) {
   private val commands = EditSessionCommands
   
   type UserInputHandler = Notifier.Handler[UserInput]
-
+      val indentOrTab = commands.autoIndentSelection ||| commands.autoTab
 
       val keyboard: UserInputHandler =  {
         case Character(char, _, NoModifier)            => DO(commands.insert(char))
         case Character(char, _, Shift)                 => DO(commands.insert(char))
-        case Instruction(Key.Tab, _, _)                => DO(commands.autoTab)
+        case Instruction(Key.Tab, _, NoModifier)       => DO(indentOrTab)
+        case Instruction(Key.Tab, _, Shift)            => DO(commands.undentSelection)
 
         case Instruction(Key.BackSpace, _, NoModifier) => DO(commands.delete)
         case Instruction(Key.BackSpace, _, Control)    => DO(commands.flip)
@@ -46,10 +47,11 @@ class EditSessionHandlers(val DO: Commands.Command[EditSession]=>Unit) {
         case Instruction(Key.B, _, Control)       => DO(commands.exchangeCut)
 
         // Sufrin's favourites
-        case Instruction(Key.F1, _, Control)       => DO(commands.cut)
-        case Instruction(Key.F3, _, Control)       => DO(commands.copy)
-        case Instruction(Key.F2, _, Control)       => DO(commands.paste)
-        case Instruction(Key.F4, _, Control)       => DO(commands.exchangeCut)
+        case Instruction(Key.F1, _, NoModifier)       => DO(commands.cut)
+        case Instruction(Key.F3, _, NoModifier)       => DO(commands.copy)
+        case Instruction(Key.F2, _, NoModifier)       => DO(commands.paste)
+        case Instruction(Key.F4, _, NoModifier)       => DO(commands.exchangeCut)
+        case Instruction(Key.F12, _, NoModifier)      => DO(commands.exchangeMark)
 
         case Instruction(Key.Home, _, NoModifier) => DO(commands.toHome)
         case Instruction(Key.End, _, NoModifier)  => DO(commands.toEnd)

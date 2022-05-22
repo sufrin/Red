@@ -145,6 +145,12 @@ package Commands
       }
     }
 
+    def guarded[T](condition: T => Boolean)(command: Command[T]): Command[T] = new Command[T] {
+      def DO(target: T): Option[StateChange] = {
+        if (condition(target)) command.DO(target) else None
+      }
+    }
+
 
     /**
      * This class provides facilities for executing, undoing, and

@@ -15,10 +15,15 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
   /**
    * `theSession` emits warnings about things like find/replace failures
    * that we wish to report via this user interface.
+   *
+   * Filters emit warnings about failure of external unix processes
    */
   locally {
     theSession.warnings.handleWith {
         case (from, message) => warning(from, message)
+    }
+    Filter.warnings.handleWith {
+      case (from, message) => warning(from, message)
     }
   }
   /** The source of handlers for user input events. */
@@ -116,9 +121,15 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
     case Instruction(Key.R, _, mods) => replace(findLine.text, replLine.text, backwards = mods.hasShift)
   }
 
+  private val argLine: TextLine = new TextLine(25) {
+    override def firstHandler: UserInputHandler = findreplHandler
+    tooltip = "Argument(s) for some commands"
+  }
+
   private val findLine: TextLine = new TextLine(25) {
     override def firstHandler: UserInputHandler = findreplHandler
   }
+
   private val replLine: TextLine = new TextLine(25) {
     override def firstHandler: UserInputHandler = findreplHandler
   }
@@ -132,6 +143,10 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
    *  linked to the undo history
    */
   private val theWidgets = new BoxPanel(Orientation.Horizontal) {
+    contents += Button(" \u24b6 ") {
+      argLine.text = ""
+    }
+    contents += argLine
     contents += regexCheck
     contents += Button("\u24bb") {
       find(findLine.text, false)
@@ -158,8 +173,8 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
         new Jedi(s"New@${Utils.dateString()}")
       }
 
-      contents += Item("Open \u24bb") {
-        val path = findLine.text
+      contents += Item("Open \u24b6") {
+        val path = argLine.text
         new Jedi(path)
       }
 
@@ -185,17 +200,33 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
     } // File Menu
 
     contents += new Menu("Edit") {
-        contents += Item("Replace \u24bb with \u24c7 in the entire selection") {
+        contents += Item("Replace \u24bb with \u24c7 in the selection") {
           val asRegex = regexCheck.selected
           UI_DO(EditSessionCommands.replaceAllInSelection(findLine.text, replLine.text, asRegex))
         }
 
+        contents += Separator()
+
+        contents += Item("fmt ...") {
+          UI_DO(EditSessionCommands.formatter(argLine.text))
+        }
+
+        contents += Item("LowerCase") {
+          UI_DO(EditSessionCommands.lowerCaseFilter)
+        }
+
+        contents += Item("UpperCase") {
+          UI_DO(EditSessionCommands.upperCaseFilter)
+        }
+
         if (theSession.hasCutRing) {
+          contents += Separator()
           contents += Item("Cut Ring") {
             CutRingUI.refreshIfVisible()
           }
         }
     } // Edit Menu
+
   } // theMenuBar
 
   private val thePanel = new BorderPanel {

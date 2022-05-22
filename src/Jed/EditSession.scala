@@ -54,6 +54,7 @@ class EditSession(val document: DocumentInterface, var path: String)
   }
 
   def hasNoSelection: Boolean = _selection eq NoSelection
+  def hasSelection: Boolean   = ! hasNoSelection && selectionText()!=""
 
   def selectionText(): String =
     document.getString(_selection.left, _selection.right)
@@ -314,13 +315,13 @@ class EditSession(val document: DocumentInterface, var path: String)
     val rightWord = Regex("""\w\W""") // perhaps this should be user-decideable
     val leftLine  = Regex("\n")
     val rightLine = Regex("\n")
-    val leftPara  = Regex("\n\\s*?\n")
+    val leftPara  = Regex("\n\\s*?\n") // TODO: add a regex that matches start/end of text
     val rightPara = Regex("\n\\s*?\n")
     val leftEnv   = Regex("""\\begin{([^}]+)}""")
     val rightEnv  = Regex("""\\end{([^}]+)}""")
   }
 
-  /** 2<=clicks<=5 */
+  /** `2 <= clicks <= 5` */
   def selectChunk(row: Int, col: Int, clicks: Int): Unit = {
     val startingCursor = document.coordinatesToPosition(row, col)
     def selectChunkMatching(left: Regex, right: Regex, adj: Int): Unit =
@@ -332,12 +333,12 @@ class EditSession(val document: DocumentInterface, var path: String)
             case Some(rightMatched) =>
               val (start, end) = (leftMatched.start + adj, rightMatched.end - adj)
               if (startingCursor-start > end-startingCursor) {
-                setMark(start)
                 cursor = end
+                setMark(start)
               }
               else {
-                setMark(end)
                 cursor = start
+                setMark(end)
               }
             }
       }
