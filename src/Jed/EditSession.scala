@@ -537,6 +537,10 @@ class EditSession(val document: DocumentInterface, var path: String)
       finer(s"setCursorAndMark($row, $col) with selection=$selection")
   }
 
+  var draggingFrom: Option[Int] = None
+
+  def stopDragging: Unit = { draggingFrom = None }
+
   /**
    * Set the cursor whilst preserving the current mark, if there is one.
    * Notify observers of changes in the selection/cursor.
@@ -545,6 +549,7 @@ class EditSession(val document: DocumentInterface, var path: String)
     if (logging)
       finer(s"DragCursor($row, $col) with selection=$selection")
     val newcursor = document.coordinatesToPosition(row, col)
+    if (draggingFrom.isEmpty) draggingFrom = Some(cursor)
     cursor=newcursor
     if (selection ne NoSelection) selectUntil(selection.mark)
   }

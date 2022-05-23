@@ -238,23 +238,40 @@ object EditSessionCommands extends Logging.Loggable {
   /**
    *  Dragging the cursor is unusual.
    *  There is no need for a history item, because a drag will always be
-   *  preceded by a `setCursorAndMark`, whose  undo method will suffice
-   *  to undo the whole press-drag sequence, but whose redo method does not
-   *  redo the whole press-drag sequence -- simply restoring the cursor
-   *  to where the drag started.
+   *  preceded by a `setCursorAndMark`, and followed by a `mouseUp`
+   *  whose undo method will suffice to undo the whole drag sequence, and
+   *  whose redo method simply restores the selection as it was at the point the mouse
+   *  was released.
    *
    *  '''TL;DR '''
    *  In any case, having a history item per drag event would be
    *  costly in terms of space and bandwidth: even if the drags were (as they
    *  should be) merged.
-   *
-   *  TODO: the end of a sequence of cursor drags amounts to a selection command.
-   *        this is not reflected in this code
    */
   def dragCursor(row: Int, col: Int): SessionCommand = new SessionCommand {
     def DO(session: EditSession): StateChangeOption = {
       session.dragCursor(row, col)
       None
+    }
+  }
+
+  /**
+   *  The end of a sequence of cursor drags is recorded
+   *  in the history as if it were a single selection
+   *  event.
+   *
+   */
+  val mouseUp: SessionCommand = new SessionCommand {
+    def DO(session: EditSession): StateChangeOption = {
+      if (session.draggingFrom.isEmpty)
+         None
+      else Some (new StateChange {
+          val oldCursor    = session.draggingFrom.get
+          val oldSelection = session.selection
+          session.stopDragging
+          def undo(): Unit = { session.cursor = oldCursor; session.selection = NoSelection }
+          def redo(): Unit = { session.cursor = oldSelection.cursor; session.setMark(oldSelection.mark) }
+      })
     }
   }
 

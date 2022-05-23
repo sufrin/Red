@@ -81,17 +81,20 @@ class EditSessionHandlers(val DO: Commands.Command[EditSession]=>Unit) {
         case MousePressed(row, col, 1, Button1)           => DO(commands.setCursorAndMark(row, col))
         case MousePressed(row, col, n, Button1)  if 2<=n  => DO(commands.selectChunk(row, col, n))
         case MouseDragged(row, col,    Button1)           => DO(commands.dragCursor(row, col))
+        case MouseReleased(_, _,       Button1)           => DO(commands.mouseUp)
 
-        case MousePressed(row, col, 1, ControlButton1)  => DO(commands.setCursor(row, col))
+        case MousePressed(row, col, n, ControlButton1)  => DO(commands.setCursor(row, col))
         case MouseDragged(row, col,    ControlButton1)  => DO(commands.setCursor(row, col))
+        case MouseReleased(_, _,       ControlButton1)  => DO(commands.mouseUp)
 
-        case MousePressed(row, col, 1, Button3)         => DO(commands.setMark(row, col))
+        case MousePressed(row, col, n, detail) if detail.hasButton3 => DO(commands.setMark(row, col))
 
         // Multiple presses
         case MousePressed(_, _, _, Button1)  => ()
         case MousePressed(_, _, _, Button3)  => ()
 
-        case MouseReleased(_, _, _)              => ()
+        case MouseReleased(_, _, _)          => ()
+        case MouseDragged(_, _, _)           => ()
       }
 
       /**
