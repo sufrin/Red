@@ -1,8 +1,8 @@
 package Red
 
 import java.awt.Cursor
-import java.awt.event.{ComponentAdapter, ComponentEvent, FocusEvent, FocusListener, KeyAdapter, MouseWheelEvent}
 import java.awt.event.KeyEvent._
+import java.awt.event._
 import scala.collection.mutable
 import scala.swing.{Component, Container}
 
@@ -472,8 +472,14 @@ abstract class InputPanel(val numPadAsCommand: Boolean = true,
       override def mouseReleased(e: MouseEvent): Unit = {
         // The mouse was released
         val (row, col)  = viewToModel(e.getPoint)
-        val modifiers   = e.getModifiersEx
-        mouseInput.notify(MouseReleased(row, col, metaToControl(Detail(modifiers))))
+        val button      = e.getButton match {
+          case 1 => Modifiers.Button1
+          case 2 => Modifiers.Button2
+          case 3 => Modifiers.Button3
+          case _ => Modifiers.NoModifier // TODO: Log this
+        }
+        // TODO: need to be able to work with >3-button mice
+        mouseInput.notify(MouseReleased(row, col, button))
       }
 
       override def mouseEntered(e: MouseEvent): Unit =

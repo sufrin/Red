@@ -25,8 +25,8 @@ object UserInputDetail {
 
   /** Intelligibly-decodable modifier details  */
   class Detail(val mods: Int) extends AnyVal {
-    import Modifier._
     import Button._
+    import Modifier._
     def hasAlt: Boolean     = (mods & Alt) != 0
     def hasMeta: Boolean    = (mods & Meta) != 0
     def hasShift: Boolean   = (mods & Shift) != 0
@@ -43,8 +43,8 @@ object UserInputDetail {
     def mapMeta: Detail = if ((mods&Meta) == 0) this else new Detail((mods ^ Meta) | Control)
 
     def asText: String = {
-      import Modifier._
       import Button._
+      import Modifier._
       val b = new StringBuilder
       if (hasAny(Control)) b.append("ctrl+")
       if (hasAny(Shift)) b.append("shift+")
@@ -55,6 +55,8 @@ object UserInputDetail {
       if (hasAny(Button3)) b.append("Button3+")
       b.toString
     }
+
+    override def toString: String = s"Detail($asText)"
   }
 
   object Detail {
@@ -100,8 +102,8 @@ object UserInputDetail {
     val Button1: Detail          = Detail(Button.Button1)
     val Button2: Detail          = Detail(Button.Button2)
     val Button3: Detail          = Detail(Button.Button3)
-    val ControlButton1: Detail   = Detail(Modifier.Control|Button.Button3)
-    val ControlButton2: Detail   = Detail(Modifier.Control|Button.Button3)
+    val ControlButton1: Detail   = Detail(Modifier.Control|Button.Button1)
+    val ControlButton2: Detail   = Detail(Modifier.Control|Button.Button2)
     val ControlButton3: Detail   = Detail(Modifier.Control|Button.Button3)
   }
 
