@@ -311,27 +311,29 @@ class EditSession(val document: DocumentInterface, var path: String)
   import gnieh.regex._
 
   object Boundaries {
-    val leftWord  = Regex("""\W\w""") // perhaps this should be user-decideable
-    val rightWord = Regex("""\w\W""") // perhaps this should be user-decideable
-    val leftLine  = Regex("\n")
-    val rightLine = Regex("\n")
-    val leftPara  = Regex("\n\\s*?\n") // TODO: add a regex that matches start/end of text
-    val rightPara = Regex("\n\\s*?\n")
-    val leftEnv   = Regex("""\\begin{([^}]+)}""")
-    val rightEnv  = Regex("""\\end{([^}]+)}""")
+    val leftWord  = Regex.composite("""\W\w""", """\w""") // perhaps this should be user-decideable
+    val rightWord = Regex.composite("""\w\W""", """\w""") // perhaps this should be user-decideable
+    val leftLine  = Regex.composite("\n", "\n?")
+    val rightLine = Regex.composite("\n", "\n?")
+    val leftPara  = Regex.composite("\n\\s*?\n", "\n?") // TODO: add a regex that matches start/end of text
+    val rightPara = Regex.composite("\n\\s*?\n", "\n?")
+    val leftEnv   = Regex.composite("""\\begin{([^}]+)}""")
+    val rightEnv  = Regex.composite("""\\end{([^}]+)}""")
   }
 
   /** `2 <= clicks <= 5` */
   def selectChunk(row: Int, col: Int, clicks: Int): Unit = {
     val startingCursor = document.coordinatesToPosition(row, col)
-    def selectChunkMatching(left: Regex, right: Regex, adj: Int): Unit =
-      left.findLastMatchIn(document.characters, Some(0), Some(startingCursor)) match {
-        case None =>
-        case Some(leftMatched) =>
-          right.findFirstMatchIn(document.characters, Some(leftMatched.end)) match {
-            case None =>
-            case Some(rightMatched) =>
-              val (start, end) = (leftMatched.start + adj, rightMatched.end - adj)
+
+    def selectChunkMatching(left: Regex.Composite, right: Regex.Composite, adj: Int): Unit =
+      left.findLastMatchIn(document.characters, 0, startingCursor) match {
+        case Regex.Failure =>
+        case ok: Regex.Success =>
+          val leftStart = ok.start
+          right.findFirstMatchIn(document.characters, ok.end, document.characters.length) match {
+            case Regex.Failure =>
+            case ok: Regex.Success =>
+              val (start, end) = (if (leftStart==0) leftStart else leftStart + adj, ok.end - adj)
               if (startingCursor-start > end-startingCursor) {
                 cursor = end
                 setMark(start)
@@ -373,7 +375,6 @@ class EditSession(val document: DocumentInterface, var path: String)
   val warnings: Notifier[(String,String)] = new Notifier[(String, String)]
 
 
-
   /**
    * Cache for most recent regex: avoids recompilation on
    * repeated find/repl.
@@ -390,56 +391,6 @@ class EditSession(val document: DocumentInterface, var path: String)
       lastRegex
     }
   }
-
- /* KEPT IN RESERVE FOR LITERAL FIND PERFORMANCE IF NEEDED
-  /** pre: document.textLength>=position+thePattern.length */
-  def matchesAt(pat: String, pos: Int): Boolean = {
-    var last  = pat.length
-    var lastc = pos+pat.length
-    while ({ last -= 1; lastc -= 1; last>=0})
-      if (document.character(lastc)!=pat(last))  return false
-    true
-  }
-  /**
-   *  Find the next (respectively: previous, when backwards is true) occurrence of `thePattern` after
-   *  (respectively: completely before) the cursor, and position the cursor
-   *  at the right (respectively left) end of the occurrence, and the mark
-   *  at its opposite end. Notify via `warnings` if this fails.
-   */
-    def find(thePattern: String, backwards: Boolean): Boolean = {
-    //  Expected time for Brute Force search is linear (in the size of the text), BUT IS NOT GUARANTEED
-    //  Knuth, Morris, Pratt (see Wikipedia) is better than this in the worst case
-    //
-    var searching    = true
-    backwards match {
-      case true =>
-        var position = cursor-thePattern.length
-        while (searching && position >= 0)
-          if (matchesAt(thePattern, position)) {
-            searching = false
-            // cursor at left end of selection
-            cursor = position
-            setMark(cursor + thePattern.length)
-          } else {
-            position -= 1
-          }
-        if (position>=0) true else { warnings.notify("Find", s"Cannot find backwards:\n  $thePattern");  false}
-      case false =>
-        var position = cursor
-        val lastPossible = document.textLength - thePattern.length
-        while (searching && position <= lastPossible)
-          if (matchesAt(thePattern, position)) {
-            searching = false
-            // cursor at right end of selection
-            cursor = position + thePattern.length
-            setMark(position)
-          } else {
-            position += 1
-          }
-        if (position<=lastPossible) true else { warnings.notify("Find", s"Cannot find\n  $thePattern");  false}
-    }
-  }
-  */
 
   def find(thePattern: String, backwards: Boolean, asRegex: Boolean): Boolean = {
     import gnieh.regex._
