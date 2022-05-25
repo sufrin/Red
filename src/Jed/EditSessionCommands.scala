@@ -289,6 +289,23 @@ object EditSessionCommands extends Logging.Loggable {
     }
   }
 
+  def selectMatching(select: EditSession=>Boolean): SessionCommand = new SessionCommand {
+    def DO(session: EditSession): StateChangeOption = {
+      val oldSelection = session.selection
+      val oldCursor = session.cursor
+      if (!select(session)) None else
+      Some {
+        new StateChange {
+          def undo(): Unit = session.selection = oldSelection
+          def redo(): Unit = select(session)
+        }
+      }
+    }
+  }
+
+  val selectMatchingUp: SessionCommand   = selectMatching(_.selectMatchingUp)
+  val selectMatchingDown: SessionCommand = selectMatching(_.selectMatchingDown)
+
   val copy: SessionCommand = new SessionCommand {
     def DO(session: EditSession): StateChangeOption = if (session.hasNoSelection) None
     else {

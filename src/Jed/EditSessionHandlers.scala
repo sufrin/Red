@@ -35,6 +35,7 @@ class EditSessionHandlers(val DO: Commands.Command[EditSession]=>Unit) {
       val keyboard: UserInputHandler =  {
         case Character(char, _, NoModifier)            => DO(commands.insert(char))
         case Character(char, _, Shift)                 => DO(commands.insert(char))
+        case Character(char, _, mods) if mods.hasAlt   => DO(commands.insert(char))
         case Instruction(Key.Tab, _, NoModifier)       => DO(indentOrTab)
         case Instruction(Key.Tab, _, Shift)            => DO(commands.undentSelection)
 
@@ -61,6 +62,9 @@ class EditSessionHandlers(val DO: Commands.Command[EditSession]=>Unit) {
         case Instruction(Key.Right, _, NoModifier) => DO(commands.nextChar)
         case Instruction(Key.Down, _, NoModifier)  => DO(commands.nextLine)
         case Instruction(Key.Up, _, NoModifier)    => DO(commands.prevLine)
+
+        case Instruction(Key.PageUp,   _, NoModifier) => DO(commands.selectMatchingUp)
+        case Instruction(Key.PageDown, _, NoModifier) => DO(commands.selectMatchingDown)
       }
 
 

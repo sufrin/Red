@@ -308,6 +308,54 @@ class EditSession(val document: DocumentInterface, var path: String)
     cursor    = 0
   }
 
+  object Bracketing {
+    import gnieh.regex._
+    val begin = Brackets("""\\begin""", """\\end{[^}]+}""")
+    val brace = Brackets("""{""", """}""")
+    val par   = Brackets("""\(""", """\)""")
+    val bra   = Brackets("""\[""", """]""")
+
+    def tryMatchUp(spec: Brackets.Specification): Boolean = {
+      Brackets.matchBackward(spec, 0, cursor, document.characters) match {
+        case None => false
+        case Some(start) => setMark(start); true
+      }
+    }
+
+    def tryMatchDown(spec: Brackets.Specification): Boolean = {
+      if (!spec.bra.isMatchedAtStart(document.characters, Some(cursor))) false else
+      Brackets.matchForward(spec, cursor, document.textLength, document.characters) match {
+        case None      => false
+        case Some(end) => setMark(end); true
+      }
+    }
+  }
+
+  def selectMatchingUp(): Boolean   = {
+    import Bracketing._
+    if (cursor==0) false else {
+      document.character(cursor-1) match {
+        case '}' => tryMatchUp(begin) || tryMatchUp(brace)
+        case ')' => tryMatchUp(par)
+        case ']' => tryMatchUp(bra)
+        case _ => false
+      }
+    }
+  }
+
+  def selectMatchingDown(): Boolean = {
+    import Bracketing._
+    if (cursor>=document.textLength) false else {
+      document.character(cursor) match {
+        case '\\' => tryMatchDown(begin)
+        case '{'  => tryMatchDown(brace)
+        case '('  => tryMatchDown(par)
+        case '['  => tryMatchDown(bra)
+        case _    => false
+      }
+    }
+  }
+
   import gnieh.regex._
 
   object Boundaries {
