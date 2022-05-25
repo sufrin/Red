@@ -470,7 +470,13 @@ abstract class InputPanel(val numPadAsCommand: Boolean = true,
       }
 
       override def mouseReleased(e: MouseEvent): Unit = {
-        // The mouse was released
+        // A mouse button was released
+        /* OS/X Java uses alt/ctrl/meta keys
+         * to encode the button, as well as reporting the
+         * released button -- so we must not use these
+         * modifiers-keys-proper when reporting from
+         * here.
+         */
         val (row, col)  = viewToModel(e.getPoint)
         val button      = e.getButton match {
           case 1 => Modifiers.Button1
@@ -478,6 +484,7 @@ abstract class InputPanel(val numPadAsCommand: Boolean = true,
           case 3 => Modifiers.Button3
           case _ => Modifiers.NoModifier // TODO: Log this
         }
+        if (logging) finest(s"REL($button) ${metaToControl(Detail(e.getModifiersEx))}")
         // TODO: need to be able to work with >3-button mice
         mouseInput.notify(MouseReleased(row, col, button))
       }
