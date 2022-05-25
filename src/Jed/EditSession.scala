@@ -311,11 +311,11 @@ class EditSession(val document: DocumentInterface, var path: String)
   import gnieh.regex._
 
   object Boundaries {
-    val leftWord  = Regex.composite("""\W\w""", """\w""") // perhaps this should be user-decideable
-    val rightWord = Regex.composite("""\w\W""", """\w""") // perhaps this should be user-decideable
+    val leftWord  = Regex.composite("""\W\w""", """\w""") // the composition (\w) should be user-decideable
+    val rightWord = Regex.composite("""\w\W""", """\w""") // the composition (\w) should be user-decideable
     val leftLine  = Regex.composite("\n", "\n?")
     val rightLine = Regex.composite("\n", "\n?")
-    val leftPara  = Regex.composite("\n\\s*?\n", "\n?") // TODO: add a regex that matches start/end of text
+    val leftPara  = Regex.composite("\n\\s*?\n", "\n?")
     val rightPara = Regex.composite("\n\\s*?\n", "\n?")
     val leftEnv   = Regex.composite("""\\begin{([^}]+)}""")
     val rightEnv  = Regex.composite("""\\end{([^}]+)}""")
@@ -328,12 +328,11 @@ class EditSession(val document: DocumentInterface, var path: String)
     def selectChunkMatching(left: Regex.Composite, right: Regex.Composite, adj: Int): Unit =
       left.findLastMatchIn(document.characters, 0, startingCursor) match {
         case Regex.Failure =>
-        case ok: Regex.Success =>
-          val leftStart = ok.start
-          right.findFirstMatchIn(document.characters, ok.end, document.characters.length) match {
+        case Regex.Success(leftStart, leftEnd) =>
+          right.findFirstMatchIn(document.characters, leftEnd, document.characters.length) match {
             case Regex.Failure =>
-            case ok: Regex.Success =>
-              val (start, end) = (if (leftStart==0) leftStart else leftStart + adj, ok.end - adj)
+            case Regex.Success(_, rightEnd) =>
+              val (start, end) = (if (leftStart==0) leftStart else leftStart + adj, rightEnd - adj)
               if (startingCursor-start > end-startingCursor) {
                 cursor = end
                 setMark(start)
@@ -350,7 +349,7 @@ class EditSession(val document: DocumentInterface, var path: String)
       case 2 => selectChunkMatching(leftWord, rightWord, 1) // word
       case 3 => selectChunkMatching(leftLine, rightLine, 1) // line
       case 4 => selectChunkMatching(leftPara, rightPara, 1) // para
-      case 5 => selectChunkMatching(leftEnv, rightEnv, 0)   // \begin/end block (latex)
+      case 5 => selectChunkMatching(leftEnv, rightEnv,   0)   // \begin/end block (latex)
       case _ =>
     }
   }
