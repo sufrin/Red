@@ -148,14 +148,19 @@ class EditSession(val document: DocumentInterface, var path: String)
   /////////////////////////// Editing Command implementations ///////////////////////
   //////////////////////////////////////////////////////////////////////////////////
 
+  var typeOverSelection: Boolean = false
+  var autoIndenting:     Boolean = true
+
   /** Remove the mark
    *  (OPTIONAL PRACTICAL: cut the selection if in typeover mode)
    */
   def deSelect(): Unit = selection = NoSelection
 
+  def typeOverMode: Boolean = typeOverSelection
+
   def insert(ch: Char): Unit = {
     deSelect()
-    cursor    = document.insert(cursor, ch)
+    cursor = document.insert(cursor, ch)
   }
 
   def insert(string: String): Unit = {
@@ -310,15 +315,39 @@ class EditSession(val document: DocumentInterface, var path: String)
 
   object Bracketing {
     import gnieh.regex._
-    val begin = Brackets("""\\begin""", """\\end{[^}]+}""")
-    val brace = Brackets("""{""", """}""")
-    val par   = Brackets("""\(""", """\)""")
-    val bra   = Brackets("""\[""", """]""")
+    val begin       = Brackets("""\\begin""", """\\end{[^}]+}""")
+    val brace       = Brackets("""{""", """}""")
+    val par         = Brackets("""\(""", """\)""")
+    val bra         = Brackets("""\[""", """]""")
+    val xmlblock    = Brackets("""<[A-Za-z0-9]+[^>]*>""", """</[A-Za-z0-9]+>""")
+    val xmlcomment  = Brackets("""<!--""", """-->""")
+    val others = List (
+      "«"    -> "»",
+      "⁅"    -> "⁆",
+      "/\\*" -> "\\*/",
+      // Adjacently coded matched pairs
+      "⟦" -> "⟧", // '\u27e7'
+      "⟨" -> "⟩", // '\u27e9'
+      "⟪" -> "⟫", // '\u27eb'
+      "⟬" -> "⟭", // '\u27ed'
+      "⟮" -> "⟯", // '\u27ef'
+      "⸨" -> "⸩" // '\u2e29'
+    )
+    val lefts, rights = collection.mutable.HashMap[Char,Brackets.Specification]()
+    locally {
+      for { (l, r) <- others } {
+        val spec = Brackets(l, r)
+        lefts.addOne((l.head, spec))
+        rights.addOne((r.last, spec))
+      }
+    }
+
 
     def tryMatchUp(spec: Brackets.Specification): Boolean = {
+      if (!spec.ket.isMatchedAtEnd(document.characters, Some(0), Some(cursor))) false else
       Brackets.matchBackward(spec, 0, cursor, document.characters) match {
         case None => false
-        case Some(start) => setMark(start); true
+        case Some(start) => setMark(start, true); true
       }
     }
 
@@ -326,7 +355,7 @@ class EditSession(val document: DocumentInterface, var path: String)
       if (!spec.bra.isMatchedAtStart(document.characters, Some(cursor))) false else
       Brackets.matchForward(spec, cursor, document.textLength, document.characters) match {
         case None      => false
-        case Some(end) => setMark(end); true
+        case Some(end) => setMark(end, true); true
       }
     }
   }
@@ -335,10 +364,14 @@ class EditSession(val document: DocumentInterface, var path: String)
     import Bracketing._
     if (cursor==0) false else {
       document.character(cursor-1) match {
-        case '}' => tryMatchUp(begin) || tryMatchUp(brace)
+        case '}' => tryMatchUp(begin)      || tryMatchUp(brace)
+        case '>' => tryMatchUp(xmlcomment) || tryMatchUp(xmlblock)
         case ')' => tryMatchUp(par)
         case ']' => tryMatchUp(bra)
-        case _ => false
+        case ch  => lefts.get(ch) match {
+          case Some(spec) => tryMatchUp(spec)
+          case None       => false
+        }
       }
     }
   }
@@ -349,9 +382,13 @@ class EditSession(val document: DocumentInterface, var path: String)
       document.character(cursor) match {
         case '\\' => tryMatchDown(begin)
         case '{'  => tryMatchDown(brace)
+        case '<'  => tryMatchDown(xmlcomment) || tryMatchDown(xmlblock)
         case '('  => tryMatchDown(par)
         case '['  => tryMatchDown(bra)
-        case _    => false
+        case ch  => rights.get(ch) match {
+          case Some(spec) => tryMatchDown(spec)
+          case None       => false
+        }
       }
     }
   }
