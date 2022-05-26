@@ -98,6 +98,7 @@ object UserInputDetail {
     val Meta: Detail             = Detail(Modifier.Meta)
     val NoModifier: Detail       = Detail(0)
     val ControlShift: Detail     = Detail(Modifier.Control|Modifier.Shift)
+    val AltShift: Detail         = Detail(Modifier.Alt|Modifier.Shift)
     val ControlMeta: Detail      = Detail(Modifier.Control|Modifier.Meta)
     val Button1: Detail          = Detail(Button.Button1)
     val Button2: Detail          = Detail(Button.Button2)
