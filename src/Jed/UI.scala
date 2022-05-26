@@ -133,6 +133,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
   private val replLine: TextLine = new TextLine(25) {
     override def firstHandler: UserInputHandler = findreplHandler
   }
+
   private val regexCheck: CheckBox = new CheckBox("") {
     tooltip  = "Match regular expression / Match literal"
   }
@@ -158,6 +159,13 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
     contents += replLine
     contents += undoButton
     contents += redoButton
+  }
+
+  // TODO: Eventually this should be a user-preference module
+  private object Settings {
+    var typeOverSelection: Boolean = false
+    var clickSelects:      Boolean = true
+    var autoIndenting:     Boolean = true
   }
 
   private val theMenuBar: MenuBar = new MenuBar {
@@ -197,6 +205,45 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
         else
           sys.exit()
       }
+
+      contents += Separator()
+      contents += Separator()
+
+      contents += new CheckMenuItem("Type over selection") {
+        tooltip  = "When enabled, the selection is cut when material is typed"
+        font     = Utils.buttonFont
+        selected = Settings.typeOverSelection
+        listenTo(this)
+        reactions += {
+          case event.ButtonClicked(_) =>
+            theSession.typeOverSelection = selected
+        }
+      }
+
+
+      contents += new CheckMenuItem("Select adjacent bracket scope") {
+        tooltip  = "When enabled, a mouse-click adjacent to bracketed material selects that material"
+        font     = Utils.buttonFont
+        selected = Settings.clickSelects
+        listenTo(this)
+        reactions += {
+          case event.ButtonClicked(_) =>
+            Settings.clickSelects = selected
+        }
+      }
+
+      contents += new CheckMenuItem("Auto indent") {
+        tooltip  = "When enabled, a newline is followed by enough spaces to align the start of the current line"
+        font     = Utils.buttonFont
+        selected = Settings.autoIndenting
+        listenTo(this)
+        reactions += {
+          case event.ButtonClicked(_) =>
+            theSession.autoIndenting = selected
+        }
+      }
+
+
     } // File Menu
 
     contents += new Menu("Edit") {
@@ -251,7 +298,23 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
     contents = thePanel
     if (isFileEditor) menuBar = theMenuBar
 
+    /** Mouse down and (maybe) select an adjacent bracketed text */
+    val mouseDown: UserInputHandler = {
+      case MousePressed(row, col, 1, Button1) =>
+        UI_DO(EditSessionCommands.setCursorAndMark(row, col))
+        UI_DO(EditSessionCommands.selectMatching)
+    }
+
+    val indentKeys: UserInputHandler = {
+      case Instruction(Key.Tab, _, Alt)       =>
+           UI_DO(EditSessionCommands.indentSelectionBy(argLine.text))
+      case Instruction(Key.Tab, _, AltShift)  =>
+           UI_DO(EditSessionCommands.undentSelectionBy(argLine.text))
+    }
+
     theView.keystrokeInput.handleWith {
+        indentKeys        orElse
+        mouseDown         orElse
         handlers.mouse    orElse
         findreplHandler   orElse
         handlers.keyboard orElse {
