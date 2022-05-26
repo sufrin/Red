@@ -118,21 +118,21 @@ package Commands
         }
     }
 
+    object undoNothing extends StateChange {
+      def redo(): Unit = ()
+      def undo(): Unit = ()
+
+      override
+      def toString: String = s"()"
+    }
+
     /**
      * Execution of `doNothing` on a target has no effect on the
      * target, and yields a state change whose `undo` and `redo` have
      * no effect.
      */
     def doNothing[T]: Command[T] = new Command[T] {
-      object undoNothing extends StateChange {
-        def redo(): Unit = ()
-        def undo(): Unit = ()
-
-        override
-        def toString: String = s"()"
-      }
-
-      def DO(target: T): Option[StateChange] = Some(undoNothing)
+        def DO(target: T): Option[StateChange] = Some(undoNothing)
     }
 
     def transaction[T](cmds: Iterable[Command[T]]): Command[T] = {
@@ -145,7 +145,16 @@ package Commands
       }
     }
 
-    def guarded[T](condition: T => Boolean)(command: Command[T]): Command[T] = new Command[T] {
+    def when[T](condition: T => Boolean, command: Command[T]): Command[T] = new Command[T] {
+      def DO(target: T): Option[StateChange] = {
+        if (condition(target))
+           command.DO(target)
+        else
+           Some(undoNothing)
+      }
+    }
+
+    def guarded[T](condition: T => Boolean, command: Command[T]): Command[T] = new Command[T] {
       def DO(target: T): Option[StateChange] = {
         if (condition(target)) command.DO(target) else None
       }
