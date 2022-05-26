@@ -33,9 +33,9 @@ class EditSessionHandlers(val DO: Commands.Command[EditSession]=>Unit) {
       val indentOrTab = commands.autoIndentSelection ||| commands.autoTab
 
       val keyboard: UserInputHandler =  {
-        case Character(char, _, NoModifier)            => DO(commands.insert(char))
-        case Character(char, _, Shift)                 => DO(commands.insert(char))
-        case Character(char, _, mods) if mods.hasAlt   => DO(commands.insert(char))
+        case Character(char, _, NoModifier)            => DO(commands.insertCommand(char))
+        case Character(char, _, Shift)                 => DO(commands.insertCommand(char))
+        case Character(char, _, mods) if mods.hasAlt   => DO(commands.insertCommand(char))
         case Instruction(Key.Tab, _, NoModifier)       => DO(indentOrTab)
         case Instruction(Key.Tab, _, Shift)            => DO(commands.undentSelection)
 
@@ -109,7 +109,7 @@ class EditSessionHandlers(val DO: Commands.Command[EditSession]=>Unit) {
         case Character('\n', _, _)       => ()
         case Instruction(Key.Down, _, _) => ()
         case Instruction(Key.Up, _, _)   => ()
-        case Instruction(Key.Tab, _, _)  => DO(commands.insert(' '))
+        case Instruction(Key.Tab, _, _)  => DO(commands.insertCommand(' '))
       }
 
       /**

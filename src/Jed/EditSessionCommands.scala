@@ -14,16 +14,20 @@ import scala.sys.process.Process
  */
 object EditSessionCommands extends Logging.Loggable {
 
+  def  RegexQuote(s: String): String = {
+    gnieh.regex.compiler.Parser.quote(s)
+  }
   type SessionCommand    = Command[EditSession]
   type StateChangeOption = Option[StateChange]
 
-  /** Insert a newline and enough spaces to align the
-   *  left margin to the indentation of the current
-   *  line
+  /**
+   *  Insert a newline and (if the session is in `autoIndenting` mode)
+   *  enough spaces to align the left margin to the indentation of
+   *  the current line.
    */
   val autoIndentNL: SessionCommand = new SessionCommand {
     def DO(session: EditSession): StateChangeOption = Some {
-      val indent = session.currentIndent
+      val indent = if (session.autoIndenting) session.currentIndent else 0
       new StateChange {
         def undo(): Unit = session.deleteFor(-(indent+1), record=false)
         def redo(): Unit = {
@@ -44,10 +48,13 @@ object EditSessionCommands extends Logging.Loggable {
    *  Prefix each line of the current selection with
    *  `indentBy`.
    */
-  val indentSelection: SessionCommand = new Filter {
+  val indentSelection: SessionCommand = indentSelectionBy(indentBy)
+
+  def indentSelectionBy(indentBy: String): SessionCommand =
+    new Filter {
     import gnieh.regex._
     val line = Regex("(.+?\n)")
-    override def adjustNL: Boolean = false
+    override def adjustNL: Boolean = true
     override val kind: String = "indentSel"
     override def transform(input: String): Option[String] = {
       val (count, result) = line.substituteAll(input, indentBy+"$1", false)
@@ -59,10 +66,12 @@ object EditSessionCommands extends Logging.Loggable {
    *  Remove the prefix `undentBy` from each line of the
    *  current selection
    */
-  val undentSelection: SessionCommand = new Filter {
+  val undentSelection: SessionCommand = undentSelectionBy(undentBy)
+
+  def undentSelectionBy(undentBy: String): SessionCommand = new Filter {
     import gnieh.regex._
-    val line = Regex(s"$undentBy(.+?\n)")
-    override def adjustNL: Boolean = false
+    val line = Regex(s"${RegexQuote(undentBy)}(.+?\n)")
+    override def adjustNL: Boolean = true
     override val kind: String = "undentSel"
     override def transform(input: String): Option[String] = {
       val (count, result) = line.substituteAll(input, "$1", false)
@@ -71,7 +80,7 @@ object EditSessionCommands extends Logging.Loggable {
   }
 
   val autoIndentSelection: SessionCommand =
-      Command.guarded( (session: EditSession) => session.hasSelection ){ indentSelection }
+      Command.guarded( _.hasSelection, indentSelection )
 
   val autoTab: SessionCommand = new SessionCommand {
     def DO(session: EditSession): StateChangeOption = Some {
@@ -106,23 +115,51 @@ object EditSessionCommands extends Logging.Loggable {
     }
   }
 
-  def insert(ch: Char): SessionCommand = {
-    if (ch == '\n') autoIndentNL else new SessionCommand {
-      def DO(session: EditSession): StateChangeOption = {
-        Some {
-          session.insert(ch)
-          new StateChange {
-            def undo(): Unit = session.delete()
+  /**
+   *   A utility that whose result is a `SessionCommand` that is equivalent to `command`
+   *   if the session is in type-over-selection mode and there is a selection.
+   *   Otherwise the result simply succeeds having done nothing.
+   */
+  def whenInTypeoverMode(command: SessionCommand): SessionCommand =
+    Command.when((s: EditSession) => s.typeOverMode&&s.hasSelection, command)
 
-            def redo(): Unit = session.insert(ch)
+  /**  A utility command that always succeeds after notifying the
+   *   session's handlers that something in the session (may have) changed.
+   *   When sequentially composing a session command from two or more others,
+   *   it's usually necessary to synchronize the context (in particular
+   *   the document display) with the session after all but the last session
+   *   command.
+   */
+  def notifyNow: SessionCommand = new SessionCommand {
+       def DO(session: EditSession): StateChangeOption = {
+           session.notifyHandlers()
+           Some(Command.undoNothing)
+    }
+  }
 
-            override val kind: String =
-              if (ch == '\n') "InsEol" else "Ins" // break insertion merges
+  /**
+   * An insertion from the keyboard that cuts the selection first if
+   * the session is in type-over-selection mode.
+   */
+  def insertCommand(ch: Char): SessionCommand = whenInTypeoverMode(cut &&& notifyNow) &&& insert(ch)
+
+  def insert (ch: Char): SessionCommand = {
+      if (ch == '\n') autoIndentNL else new SessionCommand {
+        def DO(session: EditSession): StateChangeOption = {
+          Some {
+            session.insert(ch)
+            new StateChange {
+              def undo(): Unit = session.delete()
+
+              def redo(): Unit = session.insert(ch)
+
+              override val kind: String =
+                if (ch == '\n') "InsEol" else "Ins" // break insertion merges
+            }
           }
         }
       }
     }
-  }
 
   val delete: SessionCommand = new SessionCommand {
     def DO(session: EditSession): StateChangeOption =
@@ -225,11 +262,13 @@ object EditSessionCommands extends Logging.Loggable {
     def DO(session: EditSession): StateChangeOption = {
       val oldCursor = session.cursor
       val oldSelection = session.selection
-      session.setCursorAndMark(row, col)
       Some {
         new StateChange {
           def undo(): Unit = { session.selection = oldSelection; session.cursor = oldCursor }
-          def redo(): Unit = session.setCursorAndMark(row, col)
+          def redo(): Unit = {
+              session.setCursorAndMark(row, col)
+          }
+          locally { redo() }
         }
       }
     }
@@ -305,6 +344,7 @@ object EditSessionCommands extends Logging.Loggable {
 
   val selectMatchingUp: SessionCommand   = selectMatching(_.selectMatchingUp)
   val selectMatchingDown: SessionCommand = selectMatching(_.selectMatchingDown)
+  val selectMatching: SessionCommand     = (selectMatchingUp ||| selectMatchingDown ||| Command.doNothing)
 
   val copy: SessionCommand = new SessionCommand {
     def DO(session: EditSession): StateChangeOption = if (session.hasNoSelection) None
@@ -330,7 +370,7 @@ object EditSessionCommands extends Logging.Loggable {
       val oldSelection = session.selection
       val oldCursor    = session.cursor
       val oldClip      = SystemClipboard.getOrElse("")
-      val oldSelected  = session.cut()
+      val oldSelected  = session.selectionText()
       Some {
         new StateChange {
           def undo(): Unit = {
@@ -346,6 +386,7 @@ object EditSessionCommands extends Logging.Loggable {
             session.cursor    = oldCursor
             session.cut()
           }
+          locally { redo() }
         }
       }
     }
