@@ -45,14 +45,14 @@ abstract class Filter extends SessionCommand {
     Filter.warnings.notify("Transform", exn.toString)
 
   def DO(session: EditSession): StateChangeOption = {
-    val in  = session.selectionText()
-    val lnl = false // adjustNL && in!="" && in.last=='\n'
+    val in    = session.selectionText()
+    val addNL = adjustNL && (in!="" && in.last!='\n')
     val oldSelection           = session.selection             // get the polarity right on undo
     var out:     Option[String] = None
     var caught:  Boolean       = true
 
     try {
-      out = transform(if (lnl) in.init else in)
+      out = transform(if (addNL) in+"\n" else in)
     }
     catch {
       case exn: Exception => handle(exn)
@@ -63,10 +63,10 @@ abstract class Filter extends SessionCommand {
     else
     Some {
       val result       = out.get
-      val oldSelected  = session.exch(if (lnl) result+"\n" else result)
+      val oldSelected  = session.exch(if (addNL) result.init else result)
       new StateChange {
         def undo(): Unit = { session.exch(oldSelected); session.selection = oldSelection }
-        def redo(): Unit = session.exch(if (lnl) result+"\n" else result)
+        def redo(): Unit = session.exch(if (addNL) result.init else result)
         override val kind: String = thisTransform.kind
       }
     }
