@@ -1,7 +1,6 @@
 package Jed
 
 import Commands._
-import Red.SystemClipboard
 
 /**
  *   `Command`s derived from `EditSession` methods.
@@ -146,6 +145,25 @@ object EditSessionCommands extends Logging.Loggable {
     }
   }
 
+  /**
+   *  The end of a sequence of cursor drags is recorded
+   *  in the history as if it were a single selection
+   *  event.
+   *
+   */
+  val mouseUp: SessionCommand = new SessionCommand {
+    def DO(session: EditSession): StateChangeOption = {
+      if (session.draggingFrom.isEmpty)
+        None
+      else Some (new StateChange {
+        val oldCursor    = session.draggingFrom.get
+        val oldSelection = session.selection
+        session.stopDragging
+        def undo(): Unit = { session.cursor = oldCursor; session.selection = NoSelection }
+        def redo(): Unit = { session.cursor = oldSelection.cursor; session.setMark(oldSelection.mark) }
+      })
+    }
+  }
 
   def setMark(row: Int, col: Int): SessionCommand = new SessionCommand {
     def DO(session: EditSession): StateChangeOption = {
