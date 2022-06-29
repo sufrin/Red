@@ -419,7 +419,7 @@ class EditSession(val document: DocumentInterface, var path: String)
       left.findSuffix(document.characters, 0, startingCursor) match {
         case None =>
         case Some(leftp) =>
-          println(s"leftp=${(leftp.start, leftp.end)} (${leftp})")
+          // println(s"leftp=${(leftp.start, leftp.end)} (${leftp})")
           right.findPrefix(document.characters, leftp.end, document.characters.length) match {
             case None =>
               // println(s"NO RIGHT MATCH FOR $right ${leftp.end}..${document.characters.length}") // (**)
