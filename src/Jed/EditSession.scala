@@ -506,7 +506,8 @@ class EditSession(val document: DocumentInterface, var path: String)
         lastMatch match {
           case None => false
           case Some(instance) =>
-            cursor = instance.end
+            //TODO: remove min hack designed to avoid embarrassment if $ matched
+            cursor = instance.end min (document.characters.length-1)
             setMark(instance.start)
             true
         }
