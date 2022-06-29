@@ -14,9 +14,6 @@ import scala.sys.process.Process
  */
 object EditSessionCommands extends Logging.Loggable {
 
-  def  RegexQuote(s: String): String = {
-    gnieh.regex.compiler.Parser.quote(s)
-  }
   type SessionCommand    = Command[EditSession]
   type StateChangeOption = Option[StateChange]
 
@@ -52,30 +49,33 @@ object EditSessionCommands extends Logging.Loggable {
 
   def indentSelectionBy(indentBy: String): SessionCommand =
     new Filter {
-    import gnieh.regex._
-    val line = Regex("(.+?\n)")
     override def adjustNL: Boolean = true
     override val kind: String = "indentSel"
     override def transform(input: String): Option[String] = {
-      val (count, result) = line.substituteAll(input, indentBy+"$1", false)
-      Some(result)
+      val lines = input.split('\n')
+      val result= new StringBuilder()
+      for { line <- lines } { result.addAll(indentBy); result.addAll(line); result.addOne('\n') }
+      Some(result.toString())
     }
   }
 
   /**
    *  Remove the prefix `undentBy` from each line of the
-   *  current selection
+   *  current selection. Pragmatically implemented.
    */
   val undentSelection: SessionCommand = undentSelectionBy(undentBy)
 
   def undentSelectionBy(undentBy: String): SessionCommand = new Filter {
-    import gnieh.regex._
-    val line = Regex(s"${RegexQuote(undentBy)}(.+?\n)")
     override def adjustNL: Boolean = true
     override val kind: String = "undentSel"
     override def transform(input: String): Option[String] = {
-      val (count, result) = line.substituteAll(input, "$1", false)
-      Some(result)
+      val lines = input.split('\n')
+      val result= new StringBuilder()
+      for { line <- lines } {
+        result.addAll(if (line.startsWith(undentBy)) line.substring(undentBy.length) else line)
+        result.addOne('\n')
+      }
+      Some(result.toString())
     }
   }
 

@@ -17,6 +17,6 @@
         <SOURCES />
       </library>
     </orderEntry>
-    <orderEntry type="library" name="regex" level="project" />
+    <orderEntry type="library" name="regexkit" level="project" />
   </component>
 </module>

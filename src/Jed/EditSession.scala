@@ -313,19 +313,23 @@ class EditSession(val document: DocumentInterface, var path: String)
     cursor    = 0
   }
 
+  /**
+   *  Definitions related to bracket-matching. This will eventually be generalized and
+   *  become configurable by end users.
+   */
   object Bracketing {
-    import gnieh.regex._
+    import sufrin.regex.Brackets
     val begin       = Brackets("""\\begin""", """\\end{[^}]+}""")
     val brace       = Brackets("""{""", """}""")
     val par         = Brackets("""\(""", """\)""")
-    val bra         = Brackets("""\[""", """]""")
+    val bra         = Brackets("""\[""", """\]""")
     val xmlblock    = Brackets("""<[A-Za-z0-9]+[^>]*>""", """</[A-Za-z0-9]+>""")
     val xmlcomment  = Brackets("""<!--""", """-->""")
     val others = List (
       "«"    -> "»",
       "⁅"    -> "⁆",
       "/\\*" -> "\\*/",
-      // Adjacently coded matched pairs
+      // Matched pairs (they happen to be adjacently unicoded)
       "⟦" -> "⟧", // '\u27e7'
       "⟨" -> "⟩", // '\u27e9'
       "⟪" -> "⟫", // '\u27eb'
@@ -342,30 +346,30 @@ class EditSession(val document: DocumentInterface, var path: String)
       }
     }
 
-
     def tryMatchUp(spec: Brackets.Specification): Boolean = {
-      if (!spec.ket.isMatchedAtEnd(document.characters, Some(0), Some(cursor))) false else
-      Brackets.matchBackward(spec, 0, cursor, document.characters) match {
+      if (spec.ket.suffixes(document.characters, 0, cursor).isEmpty) false else
+      spec.matchBackward(document.characters, 0, cursor) match {
         case None => false
-        case Some(start) => setMark(start, true); true
+        case Some(start) => setMark(start, indicative=true); true
       }
     }
 
     def tryMatchDown(spec: Brackets.Specification): Boolean = {
-      if (!spec.bra.isMatchedAtStart(document.characters, Some(cursor))) false else
-      Brackets.matchForward(spec, cursor, document.textLength, document.characters) match {
+      if (spec.bra.prefixes(document.characters, cursor).isEmpty) false else
+      spec.matchForward(document.characters, cursor, document.characters.length) match {
         case None      => false
-        case Some(end) => setMark(end, true); true
+        case Some(end) => setMark(end, indicative=true); true
       }
     }
   }
 
+  // TODO: Generalize by removing specific trigger-characters
   def selectMatchingUp(): Boolean   = {
     import Bracketing._
     if (cursor==0) false else {
       document.character(cursor-1) match {
-        case '}' => tryMatchUp(begin)      || tryMatchUp(brace)
-        case '>' => tryMatchUp(xmlcomment) || tryMatchUp(xmlblock)
+        case '}' => tryMatchUp(begin)      || tryMatchUp(brace)     // not particularly inefficient (see tryMatchUp)
+        case '>' => tryMatchUp(xmlcomment) || tryMatchUp(xmlblock)  // not particularly inefficient (see tryMatchUp)
         case ')' => tryMatchUp(par)
         case ']' => tryMatchUp(bra)
         case ch  => lefts.get(ch) match {
@@ -376,6 +380,7 @@ class EditSession(val document: DocumentInterface, var path: String)
     }
   }
 
+  // TODO: Generalize by removing specific trigger-characters
   def selectMatchingDown(): Boolean = {
     import Bracketing._
     if (cursor>=document.textLength) false else {
@@ -393,31 +398,34 @@ class EditSession(val document: DocumentInterface, var path: String)
     }
   }
 
-  import gnieh.regex._
-
   object Boundaries {
-    val leftWord  = Regex.composite("""\W\w""", """\w""") // the composition (\w) should be user-decideable
-    val rightWord = Regex.composite("""\w\W""", """\w""") // the composition (\w) should be user-decideable
-    val leftLine  = Regex.composite("\n", "\n?")
-    val rightLine = Regex.composite("\n", "\n?")
-    val leftPara  = Regex.composite("\n\\s*?\n", "\n?")
-    val rightPara = Regex.composite("\n\\s*?\n", "\n?")
-    val leftEnv   = Regex.composite("""\\begin{([^}]+)}""")
-    val rightEnv  = Regex.composite("""\\end{([^}]+)}""")
+    import sufrin.regex.Regex
+    val leftWord  : Regex   = Regex("""([\W]|^)\w""")
+    val rightWord : Regex   = Regex("""\w([\W]|$)""")
+    val leftLine  : Regex   = Regex("\n")
+    val rightLine : Regex   = Regex("\n")
+    val leftPara  : Regex   = Regex("(\n|^)\\s*\n")
+    val rightPara : Regex   = Regex("\n\\s*(\n|$)")
+    val leftEnv   : Regex   = Regex("""\\begin{([^}]+)}""")
+    val rightEnv  : Regex   = Regex("""\\end{([^}]+)}""")
   }
 
   /** `2 <= clicks <= 5` */
   def selectChunk(row: Int, col: Int, clicks: Int): Unit = {
+    import sufrin.regex.Regex
     val startingCursor = document.coordinatesToPosition(row, col)
 
-    def selectChunkMatching(left: Regex.Composite, right: Regex.Composite, adj: Int): Unit =
-      left.findLastMatchIn(document.characters, 0, startingCursor) match {
-        case Regex.Failure =>
-        case Regex.Success(leftStart, leftEnd) =>
-          right.findFirstMatchIn(document.characters, leftEnd, document.characters.length) match {
-            case Regex.Failure =>
-            case Regex.Success(_, rightEnd) =>
-              val (start, end) = (if (leftStart==0) leftStart else leftStart + adj, rightEnd - adj)
+    def selectChunkMatching(left: Regex, right: Regex, adj: Int): Unit =
+      left.findSuffix(document.characters, 0, startingCursor) match {
+        case None =>
+        case Some(leftp) =>
+          println(s"leftp=${(leftp.start, leftp.end)} (${leftp})")
+        right.findPrefix(document.characters, leftp.end, document.characters.length) match {
+            case None =>
+            case Some(rightp) =>
+              println(s"rightp=${(rightp.start, rightp.end)} ($rightp)")
+              val (start, end) = (if (leftp.start==0) leftp.start else leftp.start + adj, rightp.end - adj)
+              println(s"(start, end)=${(start, end)}")
               if (startingCursor-start > end-startingCursor) {
                 cursor = end
                 setMark(start)
@@ -434,7 +442,7 @@ class EditSession(val document: DocumentInterface, var path: String)
       case 2 => selectChunkMatching(leftWord, rightWord, 1) // word
       case 3 => selectChunkMatching(leftLine, rightLine, 1) // line
       case 4 => selectChunkMatching(leftPara, rightPara, 1) // para
-      case 5 => selectChunkMatching(leftEnv, rightEnv,   0)   // \begin/end block (latex)
+      case 5 => selectChunkMatching(leftEnv, rightEnv,   0) // \begin/end block (latex)
       case _ =>
     }
   }
@@ -464,24 +472,28 @@ class EditSession(val document: DocumentInterface, var path: String)
    * repeated find/repl.
    */
   object RegexCache {
-    import gnieh.regex._
-    var lastExpr: String = ""
-    var lastRegex: Regex = Regex("")
-    def apply(expr: String): Regex = {
-      if (expr!=lastExpr) {
-        lastExpr  = expr
-        lastRegex = Regex(lastExpr)
+    import sufrin.regex._
+    var lastExpr: String  = _
+    var lastLit:  Boolean = _
+    var lastRegex: Regex  = _
+    var cacheValid = false
+
+    def apply(expr: String, lit: Boolean): Regex = {
+      if (!cacheValid || expr != lastExpr || lit != lastLit) {
+        lastExpr   = expr
+        lastLit    = lit
+        lastRegex  = if (lit) Regex.literal(lastExpr) else Regex(lastExpr)
+        cacheValid = true
       }
       lastRegex
     }
   }
 
   def find(thePattern: String, backwards: Boolean, asRegex: Boolean): Boolean = {
-    import gnieh.regex._
     try {
-      val regex = RegexCache(if (asRegex) thePattern else compiler.Parser.quote(thePattern))
+      val regex = RegexCache(thePattern, !asRegex)
       if (backwards) {
-        val lastMatch = regex.findLastMatchIn(document.characters, Some(0), Some(cursor))
+        val lastMatch = regex.findSuffix(document.characters, 0, cursor)
         lastMatch match {
           case None => false
           case Some(instance) =>
@@ -490,7 +502,7 @@ class EditSession(val document: DocumentInterface, var path: String)
             true
         }
       } else {
-        val lastMatch = regex.findFirstMatchIn(document.characters, Some(cursor))
+        val lastMatch = regex.findPrefix(document.characters, cursor)
         lastMatch match {
           case None => false
           case Some(instance) =>
@@ -500,7 +512,11 @@ class EditSession(val document: DocumentInterface, var path: String)
         }
       }
     } catch {
+      case exn: sufrin.regex.syntax.lexer.SyntaxError =>
+        warnings.notify("Find", s"Pattern:\n  $thePattern\n is not well-formed\n ${exn.getMessage}")
+        false
       case exn: java.lang.RuntimeException =>
+        //exn.printStackTrace()
         warnings.notify("Find", s"Pattern:\n  $thePattern\n is not well-formed\n ${exn.getMessage}")
         false
     }
@@ -514,26 +530,23 @@ class EditSession(val document: DocumentInterface, var path: String)
    *   Otherwise:
    *      return `None`
    */
-  def replace(thePattern: String, theReplacement: String, backwards: Boolean, asRegex: Boolean) : Option[String] = try {
-      import gnieh.regex._
-      val lastMatch = RegexCache(if (asRegex) thePattern else compiler.Parser.quote(thePattern)).findFirstMatchIn(selectionText())
-      lastMatch match {
-        case None =>
-             warnings.notify("Replace", s"Pattern:\n  $thePattern\n is not matched by the selection.")
-             None
-        case Some(instance) =>
-          if (selectionText() == instance.matched.get) {
-            val repl = if (asRegex) instance.substitute(theReplacement) else theReplacement
-            exch(repl)
-            if (backwards) {
-              val c = cursor; cursor -= repl.length; setMark(c)
-            }
-            instance.matched
-          } else {
-            warnings.notify("Replace", s"Pattern:\n  $thePattern\n is not matched by the selection.")
-            None
-          }
-      }
+  def replace(thePattern: String, theReplacement: String, backwards: Boolean, asRegex: Boolean): Option[String] = try {
+    val lastMatch = RegexCache(thePattern, !asRegex).matches(selectionText())
+    lastMatch match {
+      case None =>
+        warnings.notify("Replace", s"Pattern:\n  $thePattern\n is not matched by the selection.")
+        None
+      case Some(instance) =>
+        val repl = if (asRegex) instance.substitute(theReplacement) else theReplacement
+        exch(repl)
+        if (backwards) {
+          val c = cursor;
+          cursor -= repl.length;
+          setMark(c)
+        }
+        Some(instance.matched)
+    }
+
   } catch {
     case exn: java.lang.RuntimeException =>
       warnings.notify("Replace", s"Pattern:\n  $thePattern\n is not well-formed\n ${exn.getMessage}")
@@ -542,8 +555,7 @@ class EditSession(val document: DocumentInterface, var path: String)
 
   def replaceAllInSelection(thePattern: String, theReplacement: String, asRegex: Boolean): Option[String] =
     try {
-      import gnieh.regex._
-      val regex = RegexCache(if (asRegex) thePattern else compiler.Parser.quote(thePattern))
+      val regex = RegexCache(thePattern, !asRegex)
       val selected = selectionText()
       val (count, repl) = regex.substituteAll(selected, theReplacement, !asRegex)
       warnings.notify("Replace All", s"$count replacements")
