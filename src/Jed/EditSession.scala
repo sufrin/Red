@@ -402,8 +402,8 @@ class EditSession(val document: DocumentInterface, var path: String)
     import sufrin.regex.Regex
     val leftWord  : Regex   = Regex("""([\W]|^)\w""")
     val rightWord : Regex   = Regex("""\w([\W]|$)""")
-    val leftLine  : Regex   = Regex("""^|\n""")
-    val rightLine : Regex   = Regex("""\n|$"""")
+    val leftLine  : Regex   = Regex("""(\n|^)[^\n]*""")
+    val rightLine : Regex   = Regex.literal("\n") // TODO: why doesn't Regex("""\n""")  at (**)
     val leftPara  : Regex   = Regex("(\n|^)\\s*\n")
     val rightPara : Regex   = Regex("\n\\s*(\n|$)")
     val leftEnv   : Regex   = Regex("""\\begin{([^}]+)}""")
@@ -420,13 +420,14 @@ class EditSession(val document: DocumentInterface, var path: String)
         case None =>
         case Some(leftp) =>
           println(s"leftp=${(leftp.start, leftp.end)} (${leftp})")
-        right.findPrefix(document.characters, leftp.end, document.characters.length) match {
+          right.findPrefix(document.characters, leftp.end, document.characters.length) match {
             case None =>
+              // println(s"NO RIGHT MATCH FOR $right ${leftp.end}..${document.characters.length}") // (**)
             case Some(rightp) =>
-              println(s"rightp=${(rightp.start, rightp.end)} ($rightp)")
-              val (start, end) = (if (leftp.start==0) leftp.start else leftp.start + adj, rightp.end - adj)
-              println(s"(start, end)=${(start, end)}")
-              if (startingCursor-start > end-startingCursor) {
+              // println(s"rightp=${(rightp.start, rightp.end)} ($rightp)")
+              val (start, end) = (if (leftp.start == 0) leftp.start else leftp.start + adj, rightp.end - adj)
+              // println(s"(start, end)=${(start, end)}")
+              if (startingCursor - start > end - startingCursor) {
                 cursor = end
                 setMark(start)
               }
@@ -434,15 +435,14 @@ class EditSession(val document: DocumentInterface, var path: String)
                 cursor = start
                 setMark(end)
               }
-            }
+          }
       }
     import Boundaries._
-    clicks match
-    {
+    clicks match {
       case 2 => selectChunkMatching(leftWord, rightWord, 1) // word
       case 3 => selectChunkMatching(leftLine, rightLine, 1) // line
       case 4 => selectChunkMatching(leftPara, rightPara, 1) // para
-      case 5 => selectChunkMatching(leftEnv, rightEnv,   0) // \begin/end block (latex)
+      case 5 => selectChunkMatching(leftEnv, rightEnv, 0) // \begin/end block (latex)
       case _ =>
     }
   }
