@@ -346,6 +346,12 @@ class EditSession(val document: DocumentInterface, var path: String)
       }
     }
 
+    /**
+     *  If the `ket` of this bracketing specification appears at
+     *  the left of the cursor, then set the mark to the starting
+     *  `bra` of the properly-nested (wrt bra/ket) sequence to
+     *  the left.
+     */
     def tryMatchUp(spec: Brackets.Specification): Boolean = {
       if (spec.ket.suffixes(document.characters, 0, cursor).isEmpty) false else
       spec.matchBackward(document.characters, 0, cursor) match {
@@ -354,6 +360,12 @@ class EditSession(val document: DocumentInterface, var path: String)
       }
     }
 
+    /**
+     *  If the `bra` of this bracketing specification appears at
+     *  the right of the cursor, then set the mark to the closing
+     *  `ket` of the properly-nested (wrt bra/ket) sequence to
+     *  the right.
+     */
     def tryMatchDown(spec: Brackets.Specification): Boolean = {
       if (spec.bra.prefixes(document.characters, cursor).isEmpty) false else
       spec.matchForward(document.characters, cursor, document.characters.length) match {
@@ -364,6 +376,11 @@ class EditSession(val document: DocumentInterface, var path: String)
   }
 
   // TODO: Generalize by removing specific trigger-characters
+  /**
+   * If the character to the left of the cursor could end
+   * a properly-bracketed construction, then select from the start
+   * of that bracketed construction (if it exists), and yield `true`.
+   */
   def selectMatchingUp(): Boolean   = {
     import Bracketing._
     if (cursor==0) false else {
@@ -381,6 +398,12 @@ class EditSession(val document: DocumentInterface, var path: String)
   }
 
   // TODO: Generalize by removing specific trigger-characters
+  /**
+   * If the character to the right of the cursor could begin
+   * a properly-bracketed construction, then select to the end
+   * of that bracketed construction (if it exists), and
+   * yield `true`.
+   */
   def selectMatchingDown(): Boolean = {
     import Bracketing._
     if (cursor>=document.textLength) false else {
@@ -398,16 +421,18 @@ class EditSession(val document: DocumentInterface, var path: String)
     }
   }
 
+  /**
+   *  Patterns matching the left and right boundaries of
+   *  various granularities of text lump.
+   */
   object Boundaries {
     import sufrin.regex.Regex
-    val leftWord  : Regex   = Regex("""([\W]|^)\w""")
-    val rightWord : Regex   = Regex("""\w([\W]|$)""")
+    val leftWord  : Regex   = Regex("""\W\w""")
+    val rightWord : Regex   = Regex("""\w\W""")
     val leftLine  : Regex   = Regex("""(\n|^)[^\n]*""")
     val rightLine : Regex   = Regex.literal("\n") // TODO: why doesn't Regex("""\n""")  match at (**)
     val leftPara  : Regex   = Regex("(\n|^)\\s*\n")
     val rightPara : Regex   = Regex("\n\\s*(\n|$)")
-    val leftEnv   : Regex   = Regex("""\\begin{([^}]+)}""")
-    val rightEnv  : Regex   = Regex("""\\end{([^}]+)}""")
   }
 
   /** `2 <= clicks <= 5` */
@@ -442,7 +467,26 @@ class EditSession(val document: DocumentInterface, var path: String)
       case 2 => selectChunkMatching(leftWord, rightWord, 1) // word
       case 3 => selectChunkMatching(leftLine, rightLine, 1) // line
       case 4 => selectChunkMatching(leftPara, rightPara, 1) // para
-      case 5 => selectChunkMatching(leftEnv, rightEnv, 0) // \begin/end block (latex)
+      case 5 => // select the closest balanced \begin/\end block ending below the click position
+                // If the button was clicked nearer to the start of the block than to the end
+                // then the cursor and mark are placed at start/end of the selection
+                Bracketing.begin.ket.findPrefix(document.characters, startingCursor) match {
+                  case None =>
+                  case Some(ket) =>
+                    Bracketing.begin.matchBackward(document.characters, 0, ket.end) match {
+                      case None =>
+                      case Some(braPos) =>
+                        val (start, end) = (braPos, ket.end)
+                        if (startingCursor - start > end - startingCursor) {
+                          cursor = end
+                          setMark(start)
+                        }
+                        else {
+                          cursor = start
+                          setMark(end)
+                        }
+                    }
+                }
       case _ =>
     }
   }
