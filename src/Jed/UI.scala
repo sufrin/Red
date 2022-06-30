@@ -91,6 +91,8 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
     }
     undoButton.enabled = false
     redoButton.enabled = false
+    undoButton.font=Utils.feedbackFont
+    redoButton.font=Utils.feedbackFont
   }
 
   /**
@@ -157,8 +159,6 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
       replace(findLine.text, replLine.text, false)
     } // (R)
     contents += replLine
-    contents += undoButton
-    contents += redoButton
   }
 
   // TODO: Eventually this should be a user-preference module
@@ -273,6 +273,29 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
           }
         }
     } // Edit Menu
+
+
+    contents += new Menu("Pipe") {
+      // Pipe the selection through ...
+      contents += Button("\u24b6 « sel'n") {
+        UI_DO(EditSessionCommands.pipeThrough(argLine.text))
+      }
+
+      contents += Button("wc « sel'n") {
+        UI_DO(EditSessionCommands.pipeThrough("wc"))
+      }
+
+      contents += Button("ls \u24b6 « sel'n") {
+        UI_DO(EditSessionCommands.pipeThrough(s"ls ${argLine.text}"))
+      }
+
+
+    } // Pipe Menu
+
+
+    contents += Glue.horizontal()
+    contents += undoButton
+    contents += redoButton
 
   } // theMenuBar
 
