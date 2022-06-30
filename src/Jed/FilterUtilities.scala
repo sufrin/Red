@@ -129,5 +129,6 @@ object FilterUtilities {
   private val UTF8: String = java.nio.charset.StandardCharsets.UTF_8.name
 
   /** Construct an input stream from a UTF8 string (often for use by a filter) */
-  def inputStreamOf(input: String): InputStream = new ByteArrayInputStream(input.getBytes(UTF8))
+  def inputStreamOf(input: String): InputStream =
+    new ByteArrayInputStream((if (input=="")  " " else input).getBytes(UTF8))
 }
