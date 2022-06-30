@@ -23,8 +23,8 @@ object Utils {
   def dateString(time: Long): String = dateFormat.format(new Date(time))
   def dateString(): String = dateFormat.format(new Date())
 
-  private class ColoredIcon(h: Int, w: Int, color: java.awt.Color)
-      extends Icon {
+  class ColoredIcon(h: Int, w: Int, color: java.awt.Color)
+    extends Icon {
     def getIconHeight: Int = h
     def getIconWidth: Int = w
     override def paintIcon(c: Component, g: Graphics, x: Int, y: Int): Unit = {
