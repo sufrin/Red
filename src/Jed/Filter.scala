@@ -7,21 +7,25 @@ import Red.Notifier
 
 import scala.sys.process.{ProcessBuilder, ProcessLogger}
 
-/** A filter is a component that transforms the
-*  currently-selected text, copies the selection, then
-*  swaps the transformed text with the current selection.
-*
-*  Filters may be "intrinsic" or "external". The latter
-*  pipe the text through an external program, or in
-*  exceptional cases run external programs without
-*  passing the selected text to them.
-*
-*/
+/**
+ * ==Filter==
+ * A `Filter`` is a component that transforms the
+ *  currently-selected text, copies the selection, then
+ *  swaps the transformed text with the current selection.
+ *
+ *  Filters may be "intrinsic" or "external". The latter
+ *  pipe the text through an external program, or in
+ *  exceptional cases run external programs without
+ *  passing the selected text to them.
+ *
+ */
 
 abstract class Filter extends SessionCommand {
   thisTransform =>
 
-  /** Running a filter applies `transform` to the input to be transformed
+  /**
+   * ===Running a Filter===
+   * Running a filter applies `transform` to the input to be transformed
    * (the current selection), then if the transform "succeeds", it swaps
    * the result with the current selection.
    *
@@ -47,9 +51,9 @@ abstract class Filter extends SessionCommand {
   def DO(session: EditSession): StateChangeOption = {
     val in    = session.selectionText()
     val addNL = adjustNL && (in!="" && in.last!='\n')
-    val oldSelection           = session.selection             // get the polarity right on undo
+    val oldSelection            = session.selection             // get the polarity right on undo
     var out:     Option[String] = None
-    var caught:  Boolean       = true
+    var caught:  Boolean        = true
 
     try {
       out = transform(if (addNL) in+"\n" else in)
@@ -76,7 +80,9 @@ abstract class Filter extends SessionCommand {
 object Filter extends Logging.Loggable {
   val warnings: Notifier[(String, String)] = new Notifier[(String, String)] {}
 
-  /** Run a POSIX process on the supplied input and yield its saved output
+  /**
+   *  ===Running a POSIX Process===
+   *  Run a POSIX process on the supplied input and yield its saved output
    *  -- including its error output -- as a string. Notify handlers of
    *  an erroneous exit code, or an exception, via `warnings`.
    */
@@ -85,9 +91,9 @@ object Filter extends Logging.Loggable {
     def save(line: String): Unit = { saved append line; saved append '\n'}
     val logger = ProcessLogger(save, save)
     try {
-      val exit = (process #< inputStreamOf(input)).!(logger)
+      val exit = (process #< inputStreamOf(input)) ! logger
       if (exit!=0) {
-        Filter.warnings.notify("External Pipe", s"$process [exit $exit]\n(original input cut)")
+        Filter.warnings.notify("External Pipe", s"$process [exit $exit]\n Selection will be replaced by stderr output\n UNDO or EXCH to recover it")
       }
       saved.toString()
     }
