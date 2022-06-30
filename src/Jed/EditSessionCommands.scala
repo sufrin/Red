@@ -47,8 +47,7 @@ object EditSessionCommands extends Logging.Loggable {
    */
   val indentSelection: SessionCommand = indentSelectionBy(indentBy)
 
-  def indentSelectionBy(indentBy: String): SessionCommand =
-    new Filter {
+  def indentSelectionBy(indentBy: String): SessionCommand = new Filter {
     override def adjustNL: Boolean = true
     override val kind: String = "indentSel"
     override def transform(input: String): Option[String] = {
@@ -61,7 +60,7 @@ object EditSessionCommands extends Logging.Loggable {
 
   /**
    *  Remove the prefix `undentBy` from each line of the
-   *  current selection. Pragmatically implemented.
+   *  current selection.
    */
   val undentSelection: SessionCommand = undentSelectionBy(undentBy)
 
@@ -78,6 +77,8 @@ object EditSessionCommands extends Logging.Loggable {
       Some(result.toString())
     }
   }
+
+
 
   val autoIndentSelection: SessionCommand =
       Command.guarded( _.hasSelection, indentSelection )
@@ -99,19 +100,32 @@ object EditSessionCommands extends Logging.Loggable {
     }
   }
 
-  def formatter(arg: String): SessionCommand = new Filter {
+  def formatter(arg: String): SessionCommand = {
     def numOrSwitch(arg: String): Boolean = {
       arg.startsWith("-") || arg.matches("[0-9]+")
     }
+    def checkArgs(args: Seq[String]): Option[String] =
+      if (args forall numOrSwitch)
+         None
+      else
+         Some("fmt arguments in \u24b6 must be numbers or -switches")
+
+      pipeThrough(s"fmt $arg", checkArgs(_))
+  }
+
+
+  def pipeThrough(arg: String, errorCheck: Seq[String]=>Option[String] = { args => None }): SessionCommand = new Filter {
     override def transform(input: String): Option[String] = {
       val args = FilterUtilities.parseArguments(arg)
-      val cmd  = Process("fmt" :: args)//TODO: , new java.io.File(cwd))
-      if (args forall numOrSwitch)
-        Some(Filter.runProcess(cmd, input))
-      else {
-        Filter.warnings.notify("fmt", "fmt arguments in \u24b6 must be numbers or -switches")
-        None
+      errorCheck(args) match {
+        case None =>
+          val cmd  = Process(args) //TODO: , new java.io.File(cwd))
+          Some(Filter.runProcess(cmd, input))
+        case Some(error) =>
+          Filter.warnings.notify(arg, error)
+          None
       }
+
     }
   }
 
@@ -342,8 +356,8 @@ object EditSessionCommands extends Logging.Loggable {
     }
   }
 
-  val selectMatchingUp: SessionCommand   = selectMatching(_.selectMatchingUp)
-  val selectMatchingDown: SessionCommand = selectMatching(_.selectMatchingDown)
+  val selectMatchingUp: SessionCommand   = selectMatching(_.selectMatchingUp())
+  val selectMatchingDown: SessionCommand = selectMatching(_.selectMatchingDown())
   val selectMatching: SessionCommand     = (selectMatchingUp ||| selectMatchingDown ||| Command.doNothing)
 
   val copy: SessionCommand = new SessionCommand {
