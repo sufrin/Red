@@ -7,6 +7,7 @@ import Red.UserInputHandlers._
 import Red._
 
 import java.awt.Color
+import java.nio.file.{Files, Paths}
 import scala.swing.BorderPanel.Position._
 import scala.swing._
 
@@ -62,7 +63,30 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
     val (row, col) = theSession.getCursorPosition
     val changed = if (hasChanged) " (✖) " else " (✓) "
     theFeedback.text =
-      s"$message ${theSession.path}@$row:$col $changed [${theSession.cursor}/${theSession.document.textLength}]"
+      s"$message ${theSession.displayPath}@$row:$col $changed [${theSession.cursor}/${theSession.document.textLength}]"
+  }
+
+  def longFeedback(msg: String): Unit = {
+    val message      = new StringBuffer()
+    val path         = Paths.get(theSession.path)
+    val lastModified = try Files.getLastModifiedTime(path).toMillis catch { case _: Exception => 0L }
+    val exists       = Files.exists(path)
+    message append msg
+    message append " "
+    message append theSession.displayPath
+    message append (if (theSession.hasChanged) " (✖) " else " (✓) ")
+    message append (if (Files.isReadable(path)) "+R" else "-R")
+    message append (if (Files.isWritable(path)) "+W" else "-W")
+    message append " "
+    message.append(
+      if (lastModified == 0)
+        s"[NEW ${Utils.dateString()}]"
+      else
+        Utils.dateString(lastModified)
+    )
+    message.append(s" [${theSession.cursor}/${theSession.document.textLength}]")
+    theFeedback.text = message.toString
+    if (top != null) top.title = s"Red: ${theSession.displayPath} ${if (exists) "" else "[NEW]"}"
   }
 
   /** The component in which `theSession`'s document will be shown.
@@ -124,16 +148,27 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
   }
 
   private val argLine: TextLine = new TextLine(25) {
-    override def firstHandler: UserInputHandler = findreplHandler
+    override def firstHandler: UserInputHandler = {
+      case Instruction(Key.G, _, mods) if mods.hasControl =>
+        val loc = argLine.text.strip()
+        goTo(loc)
+    }
+    /** hand back focus to the main text */
+    override def mouseExited(): Unit = theView.requestFocusInWindow()
+
     tooltip = "Argument(s) for some commands"
   }
 
   private val findLine: TextLine = new TextLine(25) {
     override def firstHandler: UserInputHandler = findreplHandler
+    /** hand back focus to the main text */
+    override def mouseExited(): Unit = theView.requestFocusInWindow()
   }
 
   private val replLine: TextLine = new TextLine(25) {
     override def firstHandler: UserInputHandler = findreplHandler
+    /** hand back focus to the main text */
+    override def mouseExited(): Unit = theView.requestFocusInWindow()
   }
 
   private val regexCheck: CheckBox = new CheckBox("") {
@@ -183,27 +218,25 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
 
       contents += Item("Open \u24b6") {
         val path = argLine.text
-        new Jedi(path)
+        openFileRequests.notify(path)
       }
 
       contents += Item("Save") {
-        Retry.reset()
-        theSession.path = Utils.save(theSession.path, theSession.document)
-        feedback("Saved")
+        if (theSession.document.hasChanged) {
+          top.saveAs(theSession.path)
+        }
+        else
+          longFeedback("Not saved")
       }
 
-      contents += Item("Close") {
-        if (hasChanged && Retry.must)
-          warning("Jedi", "Document may need saving: repeat if you're sure")
-        else
-          closeUI()
+      contents += Item("Save as \u24b6") {
+        val theNewPath = argLine.text.strip()
+        top.saveAs(theNewPath)
       }
 
-      contents += Item("Quit") {
-        if (hasChanged && Retry.must)
-          warning("Jedi", "Document may need saving: repeat if you're sure")
-        else
-          sys.exit()
+      contents += Item("Close/Quit") {
+        tooltip = "Save the document if it needs saving; then close this session."
+        close()
       }
 
       contents += Separator()
@@ -315,7 +348,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
     UI_DO(EditSessionCommands.replace(thePattern, theReplacement, backwards, asRegex))
   }
 
-  val top: Frame = new MainFrame() {
+  val top: ControllingFrame = new ControllingFrame(theSession) {
     title = s"Jedi: ${theSession.path}"
     background = Color.lightGray
     contents = thePanel
@@ -348,20 +381,22 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
     }
 
     locally {
-      // Undocumented magic to place the window sensibly
-      peer.setLocationByPlatform(true)
-      // Undocumented magic to avoid window-closing shutting down the entire app
-      peer.setDefaultCloseOperation(javax.swing.WindowConstants.DO_NOTHING_ON_CLOSE)
-      // Initial feedback when the window opens
-      reactions += { case event.WindowOpened(_) => feedback("")
+      reactions += { case event.WindowOpened(_) => longFeedback("")
       }
     }
 
-    /**
-     * Invoked when the window closes.
-     */
-    override def closeOperation(): Unit = warning("Jedi", "Use File/Close or File/Quit")
-
+    def saveAs(aPath: String): Boolean = {
+      Utils.checkWriteable(aPath) match {
+        case None =>
+          theSession.path = Utils.save(aPath, theSession.document)
+          longFeedback("Saved")
+          true
+        case Some(errorMessage) =>
+          warning(s"Save as: $aPath", errorMessage)
+          longFeedback("Not saved")
+          false
+      }
+    }
   }
 
   /** Has the document being edited here changed? */
@@ -375,21 +410,68 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
   /** Close this UI (and only this) */
   def closeUI(): Unit = top.close()
 
-  /** Asking `Retry.must` yields true the first time, thereafter false,
-   * until `Retry.reset()` */
-  object Retry {
-    private var _must: Boolean = true
+  /**
+   *   Is the top-level window of this GUI visible?
+   *   If it isn't then there might be a
+   *   performance advantage in avoiding
+   *   updating it. (See the prototype Cut Ring GUI
+   *   for an example).
+   */
+  def isVisible: Boolean = top.visible
 
-    def reset(): Unit = {
-      _must = true
-    }
+  /**
+   * Force the top-level window of this GUI to
+   * become visible.
+   */
+  def makeVisible(): Unit = {
+    top.uniconify()
+    top.peer.toFront()
+  }
 
-    def must: Boolean = {
-      val reallyMust = _must; _must = false; reallyMust
+  /**
+   * Go to the location denoted by `location` as a `lineNumber x columnNumber` pair
+   * with separator `,` or `:`, or `.`. If the separator and column number
+   * are missing then take the column number as 0.
+   */
+  def goTo(location: String): Unit = {
+    if (location != "") {
+      val (r, c) =
+        location match {
+          case s"$ln,$cn" => (ln.toIntOption, cn.toIntOption)
+          case s"$ln:$cn" => (ln.toIntOption, cn.toIntOption)
+          case s"$ln.$cn" => (ln.toIntOption, cn.toIntOption)
+          case s"$ln"     => (ln.toIntOption, Some(0))
+        }
+      (r, c) match {
+        case (Some(ln), Some(cn)) =>
+          UI_DO(EditSessionCommands.setCursorAndMark(ln - 1, cn))
+        case (_, _) =>
+          warning("GoTo", s"Not a location: $location\nUse #.# or #,# or #:# or #")
+      }
     }
   }
 
-  def isVisible: Boolean = top.visible
+
+  /**  Notifies that this GUI and its associated
+   *   session have (already) been closed. Alias
+   *   for `top.sessionClosed`.
+   */
+  val sessionClosed: Notifier[String] = top.sessionClosed
+
+  /**  Notifies requests
+   *   (from the `File` menu) to open files.
+   */
+  val openFileRequests = new Notifier[String]
+
+  /**
+   *  Force the top-level window to behave as if its
+   *  close button has been clicked. This will not actually
+   *  close the window or the session if there are
+   *  editing changes and the user elects to carry
+   *  on editing.
+   */
+  def close(): Unit = top.closeOperation()
+
 
 
   def start(): Unit = main(Array())

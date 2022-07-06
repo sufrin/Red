@@ -1,7 +1,7 @@
 package Jed
 import Jed.EditSessionCommands.{SessionCommand, StateChangeOption}
+import Red.UserInputHandlers._
 import Red._
-import UserInputHandlers._
 
 import scala.swing._
 
@@ -35,7 +35,6 @@ import scala.swing._
  *
  */
 class TextLine(cols: Int) extends BoxPanel(Orientation.Horizontal) {
-  import TextLine._
 
   protected val (realLF, surrogateLF): (String, String) = ("\n", "(\u0274)")
 
@@ -54,7 +53,11 @@ class TextLine(cols: Int) extends BoxPanel(Orientation.Horizontal) {
 
   protected val doc:     DocumentInterface      = new Document()
   protected val session: EditSession            = new EditSession(doc, "") with LFPlugin
-  protected val view     = new DocumentView(session, 1, cols, font=Utils.widgetFont)
+  protected val view     = new DocumentView(session, 1, cols, font=Utils.widgetFont) {
+    override def mouseExited(): Unit = TextLine.this.mouseExited()
+  }
+
+  def mouseExited(): Unit = {}
 
   def DO(command: Commands.Command[EditSession]): Unit = { command.DO(session); session.notifyHandlers() }
 

@@ -73,6 +73,10 @@ object Utils {
     thePath
   }
 
+  import java.nio.file.{Path,Paths,Files}
+
+  def save(path: Path, document: DocumentInterface): String = save(path.toString, document)
+
   /** If a file exists in the filestore at `path`, then copy it to a new file at a path
    *  derived from `path` by adding a string derived from the time at which the existing
    *  file was written, and ending in a `"~"`.
@@ -99,6 +103,49 @@ object Utils {
     }
   }
 
+  def toPath(path: String): Path = Paths.get(expandHome(path)).toAbsolutePath()
 
+  def toParentPath(path: String): Path = toPath(path).getParent.toAbsolutePath()
+
+  def expandHome(path: String): String =
+    if (path.startsWith("~")) path.replaceFirst("^~", System.getProperty("user.home")) else path
+
+  def checkWriteable(path: String): Option[String] = {
+    val theParent = toParentPath(path)
+    val thePath   = toPath(path)
+    if (Files.exists(thePath) && !Files.isWritable(thePath))  Some(s"Exists, but not writable: $thePath") else
+    if (!Files.exists(theParent) || !Files.isDirectory(theParent)) Some(s"Not a folder: $theParent") else
+    if (Files.exists(theParent) && !Files.isWritable(theParent)) Some(s"Folder exists, but not writable: $theParent")
+    else None
+  }
+
+  lazy val homePath: Path = Paths.get(System.getProperty("user.home"))
+
+  /**
+   *  `thePath` as a string relative to the user's home directory, if possible.
+   *  This leads to shorter feedback messages, without information loss.
+   */
+  def relativeToHome(thePath: Path): String = {
+    if (thePath.isAbsolute && thePath.startsWith(homePath)) {
+      val rel = thePath.subpath(homePath.getNameCount, thePath.getNameCount)
+      s"~${System.getProperty("file.separator")}${rel.toString}"
+    }
+    else
+      thePath.toString
+  }
+
+  def relativeToHome(thePath: String): String = relativeToHome(toPath(thePath))
+
+  def relativeToGrandparent(thePath: String): String = {
+    val path = Paths.get(thePath)
+    val count = path.getNameCount
+    if (count>2) path.subpath(count-2, count).toString else path.toString
+  }
+
+  def displayablePath(thePath: String): String = {
+    val homeRel = relativeToHome(thePath)
+    val prefix  = if (homeRel.startsWith("~")) "~/..." else "..."
+    if (homeRel.length>60) s"$prefix/${relativeToGrandparent(thePath)}" else homeRel
+  }
 
 }

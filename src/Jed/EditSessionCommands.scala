@@ -190,6 +190,7 @@ object EditSessionCommands extends Logging.Loggable {
           }
         }
   }
+
   val flip: SessionCommand = new SessionCommand {
     def DO(session: EditSession): StateChangeOption =
       if (session.cursor < 2) None
