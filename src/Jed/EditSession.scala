@@ -2,6 +2,7 @@ package Jed
 import Red._
 
 /**
+ *
  * An edit session controlling the given `document`. Usually the `path`
  * is the name of the file in the filestore from which the
  * document was loaded, and to which it is intended to be
@@ -66,7 +67,7 @@ class EditSession(val document: DocumentInterface, private var _path: String)
    *
    *    NB: The selection-changed test is an identity test deliberately.
    *    There's a need to distinguish between `NoSelection` and a selection
-   *    with cursor and mark both at 0 in the document, which signifies a
+   *    with cursor and mark both at 0 in the document. The latter signifies a
    *    dragging state started at 0.
    */
   def notifyHandlers(): Unit = {
@@ -115,6 +116,10 @@ class EditSession(val document: DocumentInterface, private var _path: String)
     setMark(newPosition)
   }
 
+  /**
+   * Distance of the first non-space character from the start
+   * of the current line.
+   */
   def currentIndent: Int = {
     val (row, col) = document.positionToCoordinates(cursor)
     var startLine  = document.coordinatesToPosition(row, 0)
@@ -136,7 +141,8 @@ class EditSession(val document: DocumentInterface, private var _path: String)
     selectUntil(newPosition, indicative)
   }
 
-  /** Change the current selection so that it spans the current `cursor`
+  /**
+   * Change the current selection so that it spans the current `cursor`
    * position and the given `mark` position.
    */
   def selectUntil(mark: Int, indicative: Boolean = false): Unit = {
@@ -243,6 +249,7 @@ class EditSession(val document: DocumentInterface, private var _path: String)
     cursor = l
   }
 
+  /** Exchange the two characters just before the cursor. */
   def flip(): Unit = {
     if (cursor>=2) {
       val text = document.getString(cursor-2, cursor)
@@ -269,7 +276,8 @@ class EditSession(val document: DocumentInterface, private var _path: String)
     }
   }
 
-  /** Paste the system clipboard into the text at the
+  /**
+   *  Paste the system clipboard into the text at the
    *  cursor, and select it. Returns the previously-selected text.
    */
   def paste(): String = paste(SystemClipboard.getOrElse(""))
