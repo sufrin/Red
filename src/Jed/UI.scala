@@ -207,7 +207,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
   private val theWidgets = new BoxPanel(Orientation.Horizontal) {
     contents += Button(" \u24b6 ") {
       argLine.text = ""
-    }
+    } // (A)
     contents += argLine
     contents += regexCheck
     contents += Button("\u24bb") {
