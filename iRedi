@@ -1,2 +1,2 @@
 # Script synthesised by make
-REDPORT=22331 scala -cp /Users/sufrin/local/scalalib/scala-swing.jar:/Users/sufrin/GitHomes/RegexKit/out/artifacts/regexkit.jar:./out/production/Jed Jed.RedSessions "$@" &
+REDPORT=22331 scala -cp /Users/sufrin/local/scalalib/scala-swing.jar:/Users/sufrin/GitHomes/RegexKit/out/artifacts/regexkit.jar:./out/production/Jed Jed.Sessions "$@" &

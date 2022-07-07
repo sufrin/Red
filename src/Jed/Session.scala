@@ -19,10 +19,10 @@ import java.nio.file.Files
  *
  *  Handle session-closing, or file-opening requests
  *  from the GUI by informing the global session coordinator
- *  (`RedSessions`)
+ *  (`Sessions`)
  */
-class RedSession(_path: java.nio.file.Path, val identity: Int, location: String="") {
-  override def toString: String = s"RedSession($path, $identity)"
+class Session(_path: java.nio.file.Path, val identity: Int, location: String="") {
+  override def toString: String = s"Session($path, $identity)"
 
   val doc     = new Red.Document()
   val session = new EditSession(doc, _path.toString) with CutRing.Plugin
@@ -56,11 +56,11 @@ class RedSession(_path: java.nio.file.Path, val identity: Int, location: String=
 
     /**
      *  Declare intention to respond to a `sessionClosed` notification
-     *  from the `gui` by informing the coordinator (`RedSessions`)
+     *  from the `gui` by informing the coordinator (`Sessions`)
      */
     gui.sessionClosed.handleWithTagged("CLOSER") {
       case _ =>
-        RedSessions.closed(this)
+        Sessions.closed(this)
     }
 
     /** Declare intention to respond to  `openFile` requests from the GUI.
@@ -68,8 +68,8 @@ class RedSession(_path: java.nio.file.Path, val identity: Int, location: String=
      *  location, if any, given).
      */
     gui.openFileRequests.handleWithTagged("OPENER") {
-      case s"$fileName@$location" => RedSessions.startSession(fileName, location)
-      case fileName: String       => RedSessions.startSession(fileName)
+      case s"$fileName@$location" => Sessions.startSession(fileName, location)
+      case fileName: String       => Sessions.startSession(fileName)
     }
 
     /**
@@ -77,11 +77,11 @@ class RedSession(_path: java.nio.file.Path, val identity: Int, location: String=
      * invoking `SaveAs`) in the underlying `EditSession`.
      */
     session.pathChange.handleWith {
-      case (from, to) => RedSessions.rename(from, to)
+      case (from, to) => Sessions.rename(from, to)
     }
 
     /** Tell the coordinator that this is open. */
-    RedSessions.opened(this)
+    Sessions.opened(this)
   }
 }
 

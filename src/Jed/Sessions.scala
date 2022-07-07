@@ -34,7 +34,7 @@ import java.nio.file.Path
  *  editor.
  *
  */
-object RedSessions extends Logging.Loggable {
+object Sessions extends Logging.Loggable {
   // Log warnings and errors
   level = Logging.WARN
 
@@ -164,9 +164,9 @@ object RedSessions extends Logging.Loggable {
       case s"-$unknown" =>
         warn(s"$arg is an unknown switch")
       case s"$path@$location" =>
-        RedSessions.startSession(path, location)
+        Sessions.startSession(path, location)
       case path =>
-        RedSessions.startSession(path)
+        Sessions.startSession(path)
     }
 
 
@@ -184,13 +184,13 @@ object RedSessions extends Logging.Loggable {
    * (or destined to be saved in) the filestore at `fileName`.
    */
 
-  def startSession(fileName: String): RedSession =
+  def startSession(fileName: String): Session =
     findRed(fileName) match {
-      case None      => new RedSession(Utils.toPath(fileName), newRedIndex())
+      case None      => new Session(Utils.toPath(fileName), newRedIndex())
       case Some(red) => red
     }
 
-  def startSession(fileName: String, location: String): RedSession = {
+  def startSession(fileName: String, location: String): Session = {
     val red = startSession(fileName)
     red.goTo(location)
     red
@@ -200,29 +200,29 @@ object RedSessions extends Logging.Loggable {
   private def newRedIndex(): Int = { _redIndex += 1; _redIndex }
 
   /** Mapping from session identities to active `Red`s */
-  val activeReds: collection.mutable.HashMap[Int, RedSession] =
-    new collection.mutable.HashMap[Int, RedSession]
+  val activeReds: collection.mutable.HashMap[Int, Session] =
+    new collection.mutable.HashMap[Int, Session]
 
-  def forActiveReds(op: RedSession=>Unit): Unit =
+  def forActiveReds(op: Session=>Unit): Unit =
     for { (_, red) <- activeReds } op(red)
 
-  def closed(red: RedSession): Unit = {
+  def closed(red: Session): Unit = {
     activeReds -= red.identity
     info(s"Finished editing ${red.path} at ${Utils.dateString()}")
     forActiveReds {
       case red => info(s"Still editing ${red.path} (#${red.identity})")
     }
-    if (activeReds.isEmpty && !RedSessions.isApp) System.exit(1)
+    if (activeReds.isEmpty && !Sessions.isApp) System.exit(1)
   }
 
   var isApp: Boolean = false
 
-  def opened(red: RedSession): Unit = {
+  def opened(red: Session): Unit = {
     activeReds += red.identity -> red
   }
 
   /** Find an active `Red` for a file with the same name, if any. */
-  def findRed(fileName: String): Option[RedSession] = {
+  def findRed(fileName: String): Option[Session] = {
     val path = Utils.toPath(fileName)
     activeReds.collectFirst {
       case (_, red) if red.path == path => red
