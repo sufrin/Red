@@ -12,12 +12,11 @@ package Jed
  *  meaning beyond this; but (as it happens) signifies the order in which
  *  the currently-active sessions were started.
  *
- *  '''Editing Servers'''
- *
+ *  ===Editing Servers===
  *  The main program will use or will act as an "Editing Server" on
  *  the local host, at the port specified by the environment
  *  variable `REDPORT`. If such a variable exists, and
- *  its designates a port number, then when the program is
+ *  it designates a port number, then when the program is
  *  starting, it either locates an existing server on the designated port,
  *  or sets itself up  as a server reading arguments sent as datagrams
  *  to that port from its clients.

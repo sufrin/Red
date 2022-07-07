@@ -5,18 +5,21 @@ import java.nio.file.Files
 
 
 /**
- *  Start a GUI-managed editor session for the document with
- *  path `path` in the filestore, and associate it with
+ *  === Editing Session ===
+ *  Construct and start a GUI-managed editor session for
+ *  the document with path `path` in the filestore, and associate it with
  *  a fresh numeric identity to be used as a key to the
- *  `activeReds` table. If the given `location`  description
+ *  `activeReds` table.
+ *
+ *  If the given `location`  description
  *  is nonempty, then move the cursor to the position nearest
  *  to the one it describes. It should match the regular
  *  expression `[0-9]+([:.,][0-9]+])?`. The first group of digits is
  *  the line number; the second (if it appears) is the column number.
  *
  *  Handle session-closing, or file-opening requests
- *  from the GUI by informing the global coordinator
- *  (`Red`)
+ *  from the GUI by informing the global session coordinator
+ *  (`RedSessions`)
  */
 class RedSession(val path: java.nio.file.Path, val identity: Int, location: String="") {
   override def toString: String = s"RedSession($path, $identity)"
@@ -47,8 +50,9 @@ class RedSession(val path: java.nio.file.Path, val identity: Int, location: Stri
     gui.start()
     if (location!="") goTo(location)
 
-    /** Declare intention to respond to a `sessionClosed` notification
-     *  from the `gui` by informing the coordinator (`Red`)
+    /**
+     *  Declare intention to respond to a `sessionClosed` notification
+     *  from the `gui` by informing the coordinator (`RedSessions`)
      */
     gui.sessionClosed.handleWithTagged("CLOSER") {
       case _ =>
