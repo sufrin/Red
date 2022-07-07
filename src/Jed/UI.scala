@@ -16,17 +16,23 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
   /**
    * `theSession` emits warnings about things like find/replace failures
    * that we wish to report via this user interface.
-   *
-   * Filters emit warnings about failure of external unix processes
    */
   locally {
     theSession.warnings.handleWith {
         case (from, message) => warning(from, message)
     }
-    Filter.warnings.handleWith {
-      case (from, message) => warning(from, message)
-    }
   }
+
+  /**
+   * A warning from Filter during the execution of  `body` is reported
+   * only in the present UI.
+   */
+  def withFilterWarnings (title: String) (body: => Unit): Unit = {
+    Filter.warnings.handleOnce(title) {
+      case (source, message) => warning(title, message)
+    } { body }
+  }
+
   /** The source of handlers for user input events. */
   protected val handlers = new EditSessionHandlers(UI_DO)
 
@@ -176,6 +182,16 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
       case Instruction(Key.G, _, mods) if mods.hasControl =>
         val loc = argLine.text.strip()
         goTo(loc)
+
+      case Instruction(Key.Q, _, Control) =>
+        top.closeOperation()
+
+      case Instruction(Key.S, _, Control) =>
+        saveOperation()
+
+      case Instruction(Key.E, _, Control) =>
+        val path = argLine.text.strip()
+        openFileRequests.notify(path)
     }
     /** hand back focus to the main text */
     override def mouseExited(): Unit = theView.requestFocusInWindow()
@@ -246,11 +262,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
       }
 
       contents += Item("Save") {
-        if (theSession.document.hasChanged) {
-          top.saveAs(theSession.path)
-        }
-        else
-          longFeedback("Not saved")
+        saveOperation()
       }
 
       contents += Item("Save as \u24b6") {
@@ -258,7 +270,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
         top.saveAs(theNewPath)
       }
 
-      contents += Item("Close/Quit") {
+      contents += Item("Save & Quit") {
         tooltip = "Save the document if it needs saving; then close this session."
         close()
       }
@@ -312,7 +324,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
         contents += Separator()
 
         contents += Item("fmt ...") {
-          UI_DO(EditSessionCommands.formatter(argLine.text))
+          withFilterWarnings("fmt ") { UI_DO(EditSessionCommands.formatter(argLine.text)) }
         }
 
         contents += Item("LowerCase") {
@@ -335,15 +347,15 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
     contents += new Menu("Pipe") {
       // Pipe the selection through ...
       contents += Button("\u24b6 « sel'n") {
-        UI_DO(EditSessionCommands.pipeThrough(argLine.text))
+        withFilterWarnings("\u24b6 « sel'n") { UI_DO(EditSessionCommands.pipeThrough(argLine.text))}
       }
 
       contents += Button("wc « sel'n") {
-        UI_DO(EditSessionCommands.pipeThrough("wc"))
+        withFilterWarnings("wc « sel'n") { UI_DO(EditSessionCommands.pipeThrough("wc")) }
       }
 
       contents += Button("ls \u24b6 « sel'n") {
-        UI_DO(EditSessionCommands.pipeThrough(s"ls ${argLine.text}"))
+        withFilterWarnings("ls \u24b6 « sel'n") { UI_DO(EditSessionCommands.pipeThrough(s"ls ${argLine.text}")) }
       }
 
 
@@ -357,8 +369,8 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
   } // theMenuBar
 
   private val thePanel = new BorderPanel {
-    layout(theWidgets) = North
-    layout(theView) = Center
+    layout(theWidgets)  = North
+    layout(theView)     = Center
     layout(theFeedback) = South
   }
 
@@ -400,7 +412,12 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
         handlers.keyboard orElse {
         case Instruction(Key.Z, _, ControlShift) => UI_DO(history.REDO)
         case Instruction(Key.Z, _, Control) => UI_DO(history.UNDO)
-        case other: UserInput => Logging.Default.info(s"Unhandled user input [[$other]] ")
+        case Instruction(Key.Q, _, Control) =>
+          top.closeOperation()
+        case Instruction(Key.S, _, Control) =>
+          saveOperation()
+        case other: UserInput =>
+          Logging.Default.info(s"Unhandled user input [[$other]] ")
       }
     }
 
@@ -417,7 +434,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
           true
         case Some(errorMessage) =>
           warning(s"Saving as: $aPath", errorMessage)
-          longFeedback("Not saved")
+          longFeedback("Unsaved")
           false
       }
     }
@@ -496,9 +513,15 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
    */
   def close(): Unit = top.closeOperation()
 
-
+  /** Save the document if it has changed */
+  def saveOperation(): Unit =
+      if (theSession.document.hasChanged)
+        top.saveAs(theSession.path)
+      else
+        longFeedback("Unsaved")
 
   def start(): Unit = main(Array())
+
 }
 
 object UI extends Logging.Loggable
