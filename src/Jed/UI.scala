@@ -140,10 +140,25 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
    */
   val findreplHandler: UserInputHandler = {
     // Keypad bindings to find and replace
-    case Instruction(Key.Decimal, _, mods) => replace(findLine.text, replLine.text, backwards = mods.hasShift)
-    case Instruction(Key.Numpad0, _, mods) => find(findLine.text, backwards = mods.hasShift)
 
-    case Instruction(Key.F, _, mods) => find(findLine.text, backwards = mods.hasShift)
+    case Instruction(Key.Decimal, _, mods) if (mods.hasControl) =>
+      replLine.text=""
+      replLine.requestFocusInWindow()
+
+    case Instruction(Key.Decimal, _, mods) => replace(findLine.text, replLine.text, backwards = mods.hasShift)
+
+    case Instruction(Key.Numpad0, _, mods) if (mods.hasControl) =>
+      findLine.text = ""
+      findLine.requestFocusInWindow()
+
+    case Instruction(Key.Numpad0, _, mods)  =>
+      if (mods.hasAlt && theSession.hasSelection) findLine.text = theSession.selectionText()
+      find(findLine.text, backwards = mods.hasShift)
+
+    case Instruction(Key.F, _, mods)  =>
+      if (mods.hasAlt && theSession.hasSelection) findLine.text = theSession.selectionText()
+      find(findLine.text, backwards = mods.hasShift)
+
     case Instruction(Key.R, _, mods) => replace(findLine.text, replLine.text, backwards = mods.hasShift)
   }
 

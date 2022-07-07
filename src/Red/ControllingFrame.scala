@@ -16,6 +16,7 @@ import scala.swing.Dialog
 
 abstract class ControllingFrame(theSession: EditSession) extends swing.MainFrame {
   import ControllingFrame._
+
   /** Save the entity being edited */
   def saveAs(aPath: String): Boolean
 
