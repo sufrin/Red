@@ -98,14 +98,23 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
     focusable     = true
   }
 
+  def SmallButton(label: String)(act: => Unit): Button = new Button(new Action(label) { def apply(): Unit = act } ) {
+    font           = Utils.smallButtonFont
+    val metrics    = peer.getFontMetrics(font)
+    val charWidth  = metrics.stringWidth(label)
+    val charHeight = metrics.getHeight
+    maximumSize    = new Dimension(25,charHeight)
+    preferredSize  = maximumSize
+  }
+
   /** The history manager for `theSession`. It responds to DO/UNDO
    *  commands as described in its specification
    */
   private val history = new Command.StateChangeHistory(theSession)
   /** An undo button */
-  private val undoButton = Button("\u25c0") { UI_DO(history.UNDO) } // ◀
+  private val undoButton = SmallButton("\u2770") { UI_DO(history.UNDO) } // ◀
   /** A redo button */
-  private val redoButton = Button("\u25ba") { UI_DO(history.REDO) } // ►
+  private val redoButton = SmallButton("\u2771") { UI_DO(history.REDO) } // ►
 
   locally {
     history.handleWith {

@@ -13,6 +13,7 @@ import javax.swing.Icon
   */
 object Utils {
   var defaultFont: Font = new Font("Monospaced", Font.PLAIN, 18)
+  var smallButtonFont: Font = new Font("Monospaced", Font.BOLD, 24)
   var buttonFont: Font = new Font("Monospaced", Font.PLAIN, 18)
   var widgetFont: Font = new Font("Monospaced", Font.ITALIC, 18)
   var feedbackFont: Font = new Font("Monospaced", Font.PLAIN, 16)

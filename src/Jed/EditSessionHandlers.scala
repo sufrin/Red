@@ -36,6 +36,9 @@ class EditSessionHandlers(val DO: Commands.Command[EditSession]=>Unit) {
         case Character(char, _, NoModifier)            => DO(commands.insertCommand(char))
         case Character(char, _, Shift)                 => DO(commands.insertCommand(char))
         case Character(char, _, mods) if mods.hasAlt   => DO(commands.insertCommand(char))
+
+        case Instruction(Key.Q, _, Control)            =>
+
         case Instruction(Key.Tab, _, NoModifier)       => DO(indentOrTab)
         case Instruction(Key.Tab, _, Shift)            => DO(commands.undentSelection)
 
