@@ -1,5 +1,7 @@
 package Jed
 
+import java.nio.file.Path
+
 
 /**
  *  Main program and global coordinator of editing sessions. Exits when all
@@ -225,6 +227,33 @@ object RedSessions extends Logging.Loggable {
     activeReds.collectFirst {
       case (_, red) if red.path == path => red
     }
+  }
+
+  /**
+   * About to rename the session for `oldPath` to a session for `newPath`, because
+   * its document has changed path, having been subject to a "Save as...".
+   * The corresponding `EditSession`'s path itself has not yet been renamed:
+   * it will still be `fromPath`.
+   */
+  def rename(fromPath: Path, toPath: Path): Unit = {
+    if (logging) warn(s"Renaming session $fromPath to $toPath")
+    if (logging) forActiveReds {
+      case red => info(s"Before rename ${red.path} (#${red.identity})")
+    }
+      activeReds.collectFirst {
+        case (id, red) if red.path == fromPath => red
+      } match {
+        case None =>
+          warn(s"No session at path: $fromPath")
+        case Some(red) =>
+
+          if (logging) info(s"Renaming session $fromPath (#${red.identity}) to $toPath")
+          activeReds -= red.identity
+          activeReds += red.identity -> red
+          if (logging) forActiveReds {
+            case red => info(s"After rename ${red.path} (#${red.identity})")
+          }
+      }
   }
 
   /** Is the ''entire application'' in a state where

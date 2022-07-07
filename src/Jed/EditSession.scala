@@ -1,6 +1,8 @@
 package Jed
 import Red._
 
+import java.nio.file.Path
+
 /**
  *
  * An edit session controlling the given `document`. Usually the `path`
@@ -667,11 +669,17 @@ class EditSession(val document: DocumentInterface, private var _path: String)
    */
   var displayPath: String = Utils.displayablePath(this._path)
 
-  def path_=(newPath: String): Unit = {
-    this._path = newPath
+  def path_=(_newPath: String): Unit = {
+    val oldPath = Utils.toPath(_path)
+    val newPath = Utils.toPath(_newPath)
+    // tell everyone who might care: usually the session manager
+    if (oldPath != newPath) pathChange.notify(oldPath, newPath)
+    this._path = newPath.toString
     displayPath = Utils.displayablePath(this._path)
   }
   def path: String = _path
+
+  val pathChange: Notifier[(Path, Path)] = new Notifier("pathChange")
 
 } // EditSession
 

@@ -228,11 +228,11 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
     contents += new Menu("File") {
 
       contents += Item("New") {
-        new Jedi(s"New@${Utils.dateString()}")
+        openFileRequests.notify(s"New@${Utils.dateString()}")
       }
 
       contents += Item("Open \u24b6") {
-        val path = argLine.text
+        val path = argLine.text.strip()
         openFileRequests.notify(path)
       }
 
@@ -401,13 +401,13 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
     }
 
     def saveAs(aPath: String): Boolean = {
-      Utils.checkWriteable(aPath) match {
+      Utils.save(aPath, theSession.document) match {
         case None =>
-          theSession.path = Utils.save(aPath, theSession.document)
+          theSession.path = aPath
           longFeedback("Saved")
           true
         case Some(errorMessage) =>
-          warning(s"Save as: $aPath", errorMessage)
+          warning(s"Saving as: $aPath", errorMessage)
           longFeedback("Not saved")
           false
       }

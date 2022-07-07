@@ -51,31 +51,32 @@ object Utils {
 
   /** Save the given `document` in the filestore at the specified path.
     *
-    * @param path specification of a filestore path at which to save the document. This
-    *             is either this parameter itself, or the parameter stripped of the `NEWFILESUFFIX`.
+    * @param path specification of a filestore path at which to save the document.
     * @param document the document to be saved.
-    * @return the path at which the document was actually saved.
-    *
-    * NB: the use of the "«NEW»" suffix is a detail that would be replaced in a
-    * production-quality program.
+    * @return None if the save was successful; Some(reasonMessage) if it was not successful
     */
-  def save(path: String, document: DocumentInterface): String = {
-    val thePath = if (path.endsWith(NEWFILESUFFIX))
-                     path.substring(0, path.length-NEWFILESUFFIX.length)
-                  else path
-    backup(path)
-    val writer = java.nio.file.Files.newBufferedWriter(
-      new java.io.File(thePath).toPath,
-      java.nio.charset.Charset.forName("UTF-8")
-    )
-    document.writeTo(writer)
-    writer.close()
-    thePath
-  }
+  def save(path: String, document: DocumentInterface): Option[String] =
+    checkWriteable(path) match {
+      case None =>
+        try {
+          backup(path)
+          val writer = java.nio.file.Files.newBufferedWriter(
+            new java.io.File(path).toPath,
+            java.nio.charset.Charset.forName("UTF-8")
+          )
+          document.writeTo(writer)
+          writer.close()
+          None
+        } catch {
+          case exn: Exception => Some(exn.getMessage)
+        }
+
+      case reason => reason
+    }
 
   import java.nio.file.{Path,Paths,Files}
 
-  def save(path: Path, document: DocumentInterface): String = save(path.toString, document)
+  def save(path: Path, document: DocumentInterface): Option[String] = save(path.toString, document)
 
   /** If a file exists in the filestore at `path`, then copy it to a new file at a path
    *  derived from `path` by adding a string derived from the time at which the existing
@@ -110,12 +111,17 @@ object Utils {
   def expandHome(path: String): String =
     if (path.startsWith("~")) path.replaceFirst("^~", System.getProperty("user.home")) else path
 
+  /**
+   * Return `Some(reasonMessage)` if the given `path` does not denote a writable
+   * file in the filestore. Otherwise return `None`.
+   */
   def checkWriteable(path: String): Option[String] = {
     val theParent = toParentPath(path)
     val thePath   = toPath(path)
+    if (Files.exists(thePath) && Files.isDirectory(thePath))  Some(s"This path is a directory/folder: $thePath") else
     if (Files.exists(thePath) && !Files.isWritable(thePath))  Some(s"Exists, but not writable: $thePath") else
-    if (!Files.exists(theParent) || !Files.isDirectory(theParent)) Some(s"Not a folder: $theParent") else
-    if (Files.exists(theParent) && !Files.isWritable(theParent)) Some(s"Folder exists, but not writable: $theParent")
+    if (!Files.exists(theParent) || !Files.isDirectory(theParent)) Some(s"Not a directory/folder: $theParent") else
+    if (Files.exists(theParent) && !Files.isWritable(theParent)) Some(s"Directory/folder exists, but not writable: $theParent")
     else None
   }
 

@@ -21,10 +21,14 @@ import java.nio.file.Files
  *  from the GUI by informing the global session coordinator
  *  (`RedSessions`)
  */
-class RedSession(val path: java.nio.file.Path, val identity: Int, location: String="") {
+class RedSession(_path: java.nio.file.Path, val identity: Int, location: String="") {
   override def toString: String = s"RedSession($path, $identity)"
 
   val doc     = new Red.Document()
+  val session = new EditSession(doc, _path.toString) with CutRing.Plugin
+
+  // TODO: systematize the use of `Path` instead of `String` to denote filestore paths.
+  def path: java.nio.file.Path = java.nio.file.Paths.get(session.path)
 
   try {
     val fsPath = path.normalize.toAbsolutePath
@@ -35,7 +39,7 @@ class RedSession(val path: java.nio.file.Path, val identity: Int, location: Stri
     case exn: IOException =>
   }
 
-  val session = new EditSession(doc, path.toString) with CutRing.Plugin
+
   val gui     = new UI(session)
 
   /** Poll the gui to see if it can close */
@@ -66,6 +70,14 @@ class RedSession(val path: java.nio.file.Path, val identity: Int, location: Stri
     gui.openFileRequests.handleWithTagged("OPENER") {
       case s"$fileName@$location" => RedSessions.startSession(fileName, location)
       case fileName: String       => RedSessions.startSession(fileName)
+    }
+
+    /**
+     * Declare intention to respond to changes of path (caused by
+     * invoking `SaveAs`) in the underlying `EditSession`.
+     */
+    session.pathChange.handleWith {
+      case (from, to) => RedSessions.rename(from, to)
     }
 
     /** Tell the coordinator that this is open. */
