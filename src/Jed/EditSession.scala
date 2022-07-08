@@ -264,6 +264,13 @@ class EditSession(val document: DocumentInterface, private var _path: String)
     }
   }
 
+  def clear(): Unit = {
+    document.delete(0, document.textLength)
+    cursor = 0
+    insert("\n")
+    notifyHandlers()
+  }
+
   /** Cut the selection, if any, to the clipboard.
    *  Returns the selected text; empty if no selection.
    *  Record the deleted material as a cut.

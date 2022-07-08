@@ -6,7 +6,7 @@ import java.awt.{Color, Component, Font, Graphics}
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
-import javax.swing.Icon
+import javax.swing.{Icon, SwingUtilities}
 
 /** System wide default settings. These will eventually be treated as (dynamic)
   * preferences.
@@ -155,4 +155,9 @@ object Utils {
     if (homeRel.length>60) s"$prefix/${relativeToGrandparent(thePath)}" else homeRel
   }
 
+  def invokeLater(act: => Unit): Unit = {
+    SwingUtilities.invokeLater(new Runnable {
+      override def run(): Unit = act
+    })
+  }
 }

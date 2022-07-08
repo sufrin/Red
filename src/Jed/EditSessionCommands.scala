@@ -583,15 +583,21 @@ object EditSessionCommands extends Logging.Loggable {
       val (row, _)       = session.getCursorPosition
       val logSession     = Sessions.startSession(s"$driver.texlog")
       val logEditSession = logSession.session
-      locally { logEditSession.makeEphemeral(); logSession.gui.makeVisible() }
+      locally {
+        logEditSession.makeEphemeral()
+        logSession.gui.makeVisible()
+      }
       def log(out: String): Unit = {
-        logEditSession.insert(out)
-        logEditSession.insert('\n')
+        if (!out.contains("/fonts/")) { // hack to be generalized
+          logEditSession.insert(out)
+          logEditSession.insert('\n')
+        }
         ()
       }
       def logger =  ProcessLogger(log, log)
       try {
         val cmd     = List("redpdf", driver, (row+1).toString, source)
+        logEditSession.clear()
         val process = Process(cmd, cwd.toFile)
         val exit    = (process #< inputStreamOf("")) ! logger
         if (exit!=0) {

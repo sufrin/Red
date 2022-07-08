@@ -403,7 +403,9 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
 
     } // Pipe Menu
 
-    contents += Button("PDF", toolTip = "Run redpdf now") { UI_DO(EditSessionCommands.latexToPDF) }
+    contents += Button("PDF", toolTip = "Run redpdf now") {
+      UI_DO(EditSessionCommands.latexToPDF)
+    }
     contents += Glue.horizontal()
     contents += undoButton
     contents += redoButton
