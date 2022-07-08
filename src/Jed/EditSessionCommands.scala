@@ -1,9 +1,11 @@
 package Jed
 
 import Commands._
+import FilterUtilities.inputStreamOf
 import Red.SystemClipboard
 
-import scala.sys.process.Process
+import java.nio.file.Path
+import scala.sys.process.{Process, ProcessLogger}
 
 /**
  *   `Command`s derived from `EditSession` methods.
@@ -50,7 +52,7 @@ object EditSessionCommands extends Logging.Loggable {
   def indentSelectionBy(indentBy: String): SessionCommand = new Filter {
     override def adjustNL: Boolean = true
     override val kind: String = "indentSel"
-    override def transform(input: String): Option[String] = {
+    protected override def transform(input: String, cwd: Path): Option[String] = {
       val lines = input.split('\n')
       val result= new StringBuilder()
       for { line <- lines } { result.addAll(indentBy); result.addAll(line); result.addOne('\n') }
@@ -67,7 +69,7 @@ object EditSessionCommands extends Logging.Loggable {
   def undentSelectionBy(undentBy: String): SessionCommand = new Filter {
     override def adjustNL: Boolean = true
     override val kind: String = "undentSel"
-    override def transform(input: String): Option[String] = {
+    protected override def transform(input: String, cwd: Path): Option[String] = {
       val lines = input.split('\n')
       val result= new StringBuilder()
       for { line <- lines } {
@@ -115,11 +117,11 @@ object EditSessionCommands extends Logging.Loggable {
 
 
   def pipeThrough(arg: String, errorCheck: Seq[String]=>Option[String] = { args => None }): SessionCommand = new Filter {
-    override def transform(input: String): Option[String] = {
+    protected override def transform(input: String, cwd: Path): Option[String] = {
       val args = FilterUtilities.parseArguments(arg)
       errorCheck(args) match {
         case None =>
-          val cmd  = Process(args) //TODO: , new java.io.File(cwd))
+          val cmd  = Process(args, cwd.toFile)
           Some(Filter.runProcess(cmd, input))
         case Some(error) =>
           Filter.warnings.notify(arg, error)
@@ -554,11 +556,11 @@ object EditSessionCommands extends Logging.Loggable {
     }
 
   val lowerCaseFilter: SessionCommand = new Filter {
-    override def transform(input: String): Option[String] = Some(input.toLowerCase())
+    protected override def transform(input: String, cwd: Path): Option[String] = Some(input.toLowerCase())
   }
 
   val upperCaseFilter: SessionCommand = new Filter {
-    override def transform(input: String): Option[String] = Some(input.toUpperCase())
+    protected override def transform(input: String, cwd: Path): Option[String] = Some(input.toUpperCase())
   }
 
   val exchangeMark: SessionCommand = new SessionCommand {
@@ -570,6 +572,36 @@ object EditSessionCommands extends Logging.Loggable {
         def redo(): Unit = { session.cursor = oldSelection.mark; session.setMark(oldCursor)  }
         locally { redo() }
       }) else None
+    }
+  }
+
+  val latexToPDF: SessionCommand = new SessionCommand {
+    def DO(session: EditSession): StateChangeOption = {
+      val cwd            = session.CWD
+      val source         = session.path
+      val driver         = source // fix later
+      val (row, _)       = session.getCursorPosition
+      val logSession     = Sessions.startSession(s"$driver.texlog")
+      val logEditSession = logSession.session
+      locally { logEditSession.makeEphemeral(); logSession.gui.makeVisible() }
+      def log(out: String): Unit = {
+        logEditSession.insert(out)
+        logEditSession.insert('\n')
+        ()
+      }
+      def logger =  ProcessLogger(log, log)
+      try {
+        val cmd     = List("redpdf", driver, (row+1).toString, source)
+        val process = Process(cmd, cwd.toFile)
+        val exit    = (process #< inputStreamOf("")) ! logger
+        if (exit!=0) {
+          log(s"${cmd.mkString(" ")} [exit $exit]")
+        }
+      }
+      catch {
+        case exn: Exception => log(exn.toString)
+      }
+      None
     }
   }
 }

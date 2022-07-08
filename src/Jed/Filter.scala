@@ -5,6 +5,7 @@ import FilterUtilities.inputStreamOf
 import Jed.EditSessionCommands.{SessionCommand, StateChangeOption}
 import Red.Notifier
 
+import java.nio.file.Path
 import scala.sys.process.{ProcessBuilder, ProcessLogger}
 
 /**
@@ -38,8 +39,11 @@ abstract class Filter extends SessionCommand {
    * The `kind` of the filter (default `"Nothing"`) is inherited by the `StateChange` of
    * a successful transformation.
    *
+   * The current working directory of the session from which the filter is called is supplied as
+   * `cwd`.
+   *
    */
-  protected def transform(input: String): Option[String] = None
+  protected def transform(input: String, cwd: Path): Option[String] = None
 
   protected def adjustNL: Boolean = true
 
@@ -56,7 +60,7 @@ abstract class Filter extends SessionCommand {
     var caught:  Boolean        = true
 
     try {
-      out = transform(if (addNL) in+"\n" else in)
+      out = transform(if (addNL) in+"\n" else in, session.CWD)
     }
     catch {
       case exn: Exception => handle(exn)

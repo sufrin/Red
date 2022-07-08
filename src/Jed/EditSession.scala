@@ -21,10 +21,14 @@ class EditSession(val document: DocumentInterface, private var _path: String)
   extends Session {
   import EditSession._
 
+  /** the document being shown here is ephemeral, so doesn't need saving. */
+  private var _ephemeral: Boolean   = false
+  def makeEphemeral(): Unit = _ephemeral=true
+
   /** The document being edited here has changed since it was last
    *  loaded or written
    */
-  def hasChanged: Boolean = document.hasChanged
+  def hasChanged: Boolean = ! _ephemeral && document.hasChanged
 
   /** The current and previous cursor positions */
   private var _cursor, _lastCursor: Int     = 0

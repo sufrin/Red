@@ -70,7 +70,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
     val (row, col) = theSession.getCursorPosition
     val changed = if (hasChanged) " (✖) " else " (✓) "
     theFeedback.text =
-      s"$message ${theSession.displayPath}@$row:$col $changed [${theSession.cursor}/${theSession.document.textLength}]"
+      s"$message ${theSession.displayPath}@${row+1}:$col $changed [${theSession.cursor}/${theSession.document.textLength}]"
   }
 
   def feedbackTemporarily(message: String): Unit = {
@@ -324,7 +324,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
     contents += new Menu("File") {
 
       contents += Item("New") {
-        openFileRequests.notify(s"${theSession.CWD.toString}/New@${Utils.dateString()}")
+        openFileRequests.notify(s"${theSession.CWD.toString}/New=${Utils.dateString()}")
       }
 
       contents += Item("Open \u24b6") {
@@ -403,6 +403,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
 
     } // Pipe Menu
 
+    contents += Button("PDF", toolTip = "Run redpdf now") { UI_DO(EditSessionCommands.latexToPDF) }
     contents += Glue.horizontal()
     contents += undoButton
     contents += redoButton
