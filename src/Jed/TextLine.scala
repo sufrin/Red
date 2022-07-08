@@ -34,7 +34,7 @@ import scala.swing._
  * }}}
  *
  */
-class TextLine(cols: Int) extends BoxPanel(Orientation.Horizontal) {
+class TextLine(cols: Int, toolTip: String = "") extends BoxPanel(Orientation.Horizontal) {
 
   protected val (realLF, surrogateLF): (String, String) = ("\n", "(\u0274)")
 

@@ -7,8 +7,9 @@ import Red.UserInputHandlers._
 import Red._
 
 import java.awt.Color
-import java.nio.file.{Files, Paths}
+import java.nio.file.{Files, Path, Paths}
 import scala.swing.BorderPanel.Position._
+import scala.swing.FileChooser.Result.{Approve, Cancel}
 import scala.swing._
 
 class UI(val theSession: EditSession) extends SimpleSwingApplication {
@@ -72,6 +73,14 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
       s"$message ${theSession.displayPath}@$row:$col $changed [${theSession.cursor}/${theSession.document.textLength}]"
   }
 
+  def feedbackTemporarily(message: String): Unit = {
+    theFeedback.text = message
+  }
+
+  def feedbackWD(wd: String) = {
+    theFeedback.text = s"cwd: $wd"
+  }
+
   def longFeedback(msg: String): Unit = {
     val message      = new StringBuffer()
     val path         = Paths.get(theSession.path)
@@ -104,23 +113,37 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
     focusable     = true
   }
 
-  def SmallButton(label: String)(act: => Unit): Button = new Button(new Action(label) { def apply(): Unit = act } ) {
+  def SmallButton(label: String, toolTip: String="")(act: => Unit): Button = new Button(new Action(label) { def apply(): Unit = act } ) {
     font           = Utils.smallButtonFont
     val metrics    = peer.getFontMetrics(font)
-    val charWidth  = metrics.stringWidth(label)
+    val labWidth   = metrics.stringWidth(label)
     val charHeight = metrics.getHeight
-    maximumSize    = new Dimension(25,charHeight)
+    maximumSize    = new Dimension(labWidth, charHeight)
     preferredSize  = maximumSize
+    if (toolTip.nonEmpty) tooltip=toolTip
   }
+
+  def Button(label: String, toolTip: String="")(act: => Unit): Button = new Button(new Action(label) { def apply(): Unit = act } ) {
+    if (false) {
+      font = Utils.buttonFont
+      val metrics = peer.getFontMetrics(font)
+      val labWidth = metrics.stringWidth(label)
+      val charHeight = metrics.getHeight
+      maximumSize = new Dimension(labWidth, charHeight)
+      preferredSize = maximumSize
+    }
+    if (toolTip.nonEmpty) tooltip=toolTip
+  }
+
 
   /** The history manager for `theSession`. It responds to DO/UNDO
    *  commands as described in its specification
    */
   private val history = new Command.StateChangeHistory(theSession)
   /** An undo button */
-  private val undoButton = SmallButton("\u2770") { UI_DO(history.UNDO) } // ◀
+  private val undoButton = SmallButton("\u2770", toolTip="Undo") { UI_DO(history.UNDO) } //
   /** A redo button */
-  private val redoButton = SmallButton("\u2771") { UI_DO(history.REDO) } // ►
+  private val redoButton = SmallButton("\u2771", toolTip="Redo") { UI_DO(history.REDO) } //
 
   locally {
     history.handleWith {
@@ -190,8 +213,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
         saveOperation()
 
       case Instruction(Key.E, _, Control) =>
-        val path = argLine.text.strip()
-        openFileRequests.notify(path)
+        openArglinePath()
     }
     /** hand back focus to the main text */
     override def mouseExited(): Unit = theView.requestFocusInWindow()
@@ -212,7 +234,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
   }
 
   private val regexCheck: CheckBox = new CheckBox("") {
-    tooltip  = "Match regular expression / Match literal"
+    tooltip  = "Treat \u24bb pattern as regular expression (or literal)" // (F)
   }
 
   /**
@@ -221,16 +243,16 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
    *  linked to the undo history
    */
   private val theWidgets = new BoxPanel(Orientation.Horizontal) {
-    contents += Button(" \u24b6 ") {
+    contents += Button(" \u24b6 ", toolTip = "(Clear) the \u24b6 field \u2191") {
       argLine.text = ""
     } // (A)
     contents += argLine
     contents += regexCheck
-    contents += Button("\u24bb") {
+    contents += Button("\u24bb", toolTip = "Find the pattern \u2191") {
       find(findLine.text, false)
     } // (F)
     contents += findLine
-    contents += Button("\u24c7") {
+    contents += Button("\u24c7", toolTip = "Replace the matched pattern with the template (or literal text) \u2191") {
       replace(findLine.text, replLine.text, false)
     } // (R)
     contents += replLine
@@ -250,30 +272,11 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
       font = Utils.buttonFont
     }
 
-    contents += new Menu("File") {
+    contents += new Menu("Red") {
 
-      contents += Item("New") {
-        openFileRequests.notify(s"New@${Utils.dateString()}")
-      }
-
-      contents += Item("Open \u24b6") {
-        val path = argLine.text.strip()
-        openFileRequests.notify(path)
-      }
-
-      contents += Item("Save") {
-        saveOperation()
-      }
-
-      contents += Item("Save as \u24b6") {
-        val theNewPath = argLine.text.strip()
-        top.saveAs(theNewPath)
-      }
-
-      contents += Item("Save & Quit") {
-        tooltip = "Save the document if it needs saving; then close this session."
-        close()
-      }
+      contents += Item("cd \u24b6") { theSession.CWD=Utils.toPath(argLine.text.strip()); feedbackWD(theSession.CWD.toString) }
+      contents += Item("cd +")      { theSession.CWD=theSession.parentPath; feedbackWD(theSession.CWD.toString) }
+      contents += Item("cd ~")      { theSession.CWD=Utils.homePath; feedbackWD(theSession.CWD.toString) }
 
       contents += Separator()
       contents += Separator()
@@ -288,7 +291,6 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
             theSession.typeOverSelection = selected
         }
       }
-
 
       contents += new CheckMenuItem("Select adjacent bracket scope") {
         tooltip  = "When enabled, a mouse-click adjacent to bracketed material selects that material"
@@ -312,6 +314,47 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
         }
       }
 
+      contents += Separator()
+      contents += Separator()
+
+      contents += Item("Quit")  { top.closeOperation() }
+
+    }
+
+    contents += new Menu("File") {
+
+      contents += Item("New") {
+        openFileRequests.notify(s"${theSession.CWD.toString}/New@${Utils.dateString()}")
+      }
+
+      contents += Item("Open \u24b6") {
+        openArglinePath()
+      }
+
+      contents += Item("Save") {
+        saveOperation()
+      }
+
+      contents += Item("Save as \u24b6") {
+        val text = argLine.text.trim
+        if (text.isEmpty)
+          {
+            fileChooser.showSaveDialog(top) match {
+              case Cancel  =>
+                feedbackTemporarily("Save as: no path specified")
+              case Approve =>
+                val path = fileChooser.selectedFile.getAbsolutePath
+                top.saveAs(path.toString)
+            }
+          }
+        else
+        top.saveAs(text)
+      }
+
+      contents += Item("Save & Quit") {
+        tooltip = "Save the document if it needs saving; then close this session."
+        close()
+      }
 
     } // File Menu
 
@@ -343,7 +386,6 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
         }
     } // Edit Menu
 
-
     contents += new Menu("Pipe") {
       // Pipe the selection through ...
       contents += Button("\u24b6 « sel'n") {
@@ -360,7 +402,6 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
 
 
     } // Pipe Menu
-
 
     contents += Glue.horizontal()
     contents += undoButton
@@ -513,6 +554,28 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
    */
   def close(): Unit = top.closeOperation()
 
+  /**
+   *  Open the file designated by the text on the argument line.
+   *  Prefixes such as `~/` and `+/` are treated in the usual way:
+   *  the former means the home directory, the latter means the
+   *  parent directory of the file being edited from this UI.
+   */
+  def openArglinePath(): Unit = {
+  val text = argLine.text.trim
+  val path = text match {
+    case s"/$rest" => Paths.get(text).toString
+    case s"~/$rest" => Utils.homePath.resolve(rest).toString
+    case s"+/$rest" => theSession.parentPath.resolve(rest).toString
+    case "" =>
+      fileChooser.showOpenDialog(top) match {
+        case Cancel  => ""
+        case Approve => fileChooser.selectedFile.getAbsolutePath.toString
+      }
+    case _ => theSession.CWD.resolve(text).toString
+  }
+  if (path.nonEmpty) openFileRequests.notify(path) else feedbackTemporarily("Open: no path specified")
+}
+
   /** Save the document if it has changed */
   def saveOperation(): Unit =
       if (theSession.document.hasChanged)
@@ -520,7 +583,27 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
       else
         longFeedback("Unsaved")
 
-  def start(): Unit = main(Array())
+  /**
+   *  Cache for the file chooser: adapted to changing session path
+   */
+  object FileChooserCache {
+    var _ppath: Path              = _
+    var _fileChooser: FileChooser = _
+    def chooser(): FileChooser = {
+      if (_ppath!=theSession.parentPath) {
+        _ppath       = theSession.parentPath
+        _fileChooser = new FileChooser(_ppath.toFile) {
+          fileSelectionMode = swing.FileChooser.SelectionMode.FilesOnly
+          fileHidingEnabled = false
+        }
+      }
+      _fileChooser
+    }
+  }
+  /** A file chooser used by "Open" and "Save As" in the absence of parameter text */
+  def fileChooser: FileChooser = FileChooserCache.chooser()
+
+  def start(): Unit = { main(Array()); makeVisible() }
 
 }
 

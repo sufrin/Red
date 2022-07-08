@@ -333,8 +333,12 @@ class EditSession(val document: DocumentInterface, private var _path: String)
     val brace       = Brackets("""{""", """}""")
     val par         = Brackets("""\(""", """\)""")
     val bra         = Brackets("""\[""", """\]""")
-    val xmlblock    = Brackets("""<[A-Za-z0-9]+[^>]*>""", """</[A-Za-z0-9]+>""")
+
+    // XML block and single tag patterns -- determined by experiment
+    val xmlblock    = Brackets("""<([A-Za-z0-9:]+)(\s+([A-Za-z0-9:]+\s*=\s*"[^"]*"))*>""", """</[A-Za-z0-9]+>""")
+    val xmlsingle   = Brackets("""<([A-Za-z0-9:]+)(\s+([A-Za-z0-9:]+\s*=\s*"[^"]*"))*""", """/>""")
     val xmlcomment  = Brackets("""<!--""", """-->""")
+
     val others = List (
       "«"    -> "»",
       "⁅"    -> "⁆",
@@ -396,7 +400,7 @@ class EditSession(val document: DocumentInterface, private var _path: String)
     if (cursor==0) false else {
       document.character(cursor-1) match {
         case '}' => tryMatchUp(begin)      || tryMatchUp(brace)     // not particularly inefficient (see tryMatchUp)
-        case '>' => tryMatchUp(xmlcomment) || tryMatchUp(xmlblock)  // not particularly inefficient (see tryMatchUp)
+        case '>' => tryMatchUp(xmlcomment) || tryMatchUp(xmlblock) || tryMatchUp(xmlsingle)  // not particularly inefficient (see tryMatchUp)
         case ')' => tryMatchUp(par)
         case ']' => tryMatchUp(bra)
         case ch  => lefts.get(ch) match {
@@ -420,7 +424,7 @@ class EditSession(val document: DocumentInterface, private var _path: String)
       document.character(cursor) match {
         case '\\' => tryMatchDown(begin)
         case '{'  => tryMatchDown(brace)
-        case '<'  => tryMatchDown(xmlcomment) || tryMatchDown(xmlblock)
+        case '<'  => tryMatchDown(xmlcomment) || tryMatchDown(xmlblock) || tryMatchDown(xmlsingle)
         case '('  => tryMatchDown(par)
         case '['  => tryMatchDown(bra)
         case ch  => rights.get(ch) match {
@@ -656,6 +660,12 @@ class EditSession(val document: DocumentInterface, private var _path: String)
     if (selection ne NoSelection) selectUntil(selection.mark)
   }
 
+  //////////////////////////////////////////
+  //
+  // Name, path, working directory
+  //
+  /////////////////////////////////////////
+
   /**
    *  Sessions (may) have names: the default name
    *  is the moment the theSession starts
@@ -672,14 +682,26 @@ class EditSession(val document: DocumentInterface, private var _path: String)
   def path_=(_newPath: String): Unit = {
     val oldPath = Utils.toPath(_path)
     val newPath = Utils.toPath(_newPath)
-    // tell everyone who might care: usually the session manager
+    // tell everything that might care: in particular the session manager
     if (oldPath != newPath) pathChange.notify(oldPath, newPath)
     this._path = newPath.toString
     displayPath = Utils.displayablePath(this._path)
   }
+
   def path: String = _path
 
   val pathChange: Notifier[(Path, Path)] = new Notifier("pathChange")
+
+  def parentPath: Path = Utils.toPath(path).getParent
+
+  // Current working directory
+  private var _CWD: Path = Utils.homePath
+
+  def CWD_=(path: Path) = {
+    _CWD = path
+  }
+
+  def CWD: Path = _CWD
 
 } // EditSession
 
