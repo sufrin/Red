@@ -266,17 +266,30 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
   }
 
   private val theMenuBar: MenuBar = new MenuBar {
-    def Item(name: String)(act: => Unit): MenuItem = new MenuItem(Action(name) {
+    def Item(name: String, toolTip: String = "")(act: => Unit): MenuItem =
+      new MenuItem(Action(name) {
       act
     }) {
       font = Utils.buttonFont
+      if (toolTip.nonEmpty) tooltip = toolTip
     }
 
     contents += new Menu("Red") {
 
-      contents += Item("cd \u24b6") { theSession.CWD=Utils.toPath(argLine.text.strip()); feedbackWD(theSession.CWD.toString) }
-      contents += Item("cd +")      { theSession.CWD=theSession.parentPath; feedbackWD(theSession.CWD.toString) }
-      contents += Item("cd ~")      { theSession.CWD=Utils.homePath; feedbackWD(theSession.CWD.toString) }
+      contents += Item("cd \u24b6", toolTip = "Change working directory using dialogue or nonempty \u24b6 field") {
+        var text = argLine.text.trim
+        if (text.isEmpty) {
+          val chooser = dirChooser
+          chooser.showOpenDialog(top) match {
+            case Approve => text = chooser.selectedFile.toString
+            case Cancel  => text = ""
+          }
+        }
+        if (text.nonEmpty) theSession.CWD=Utils.toPath(text)
+        feedbackWD(theSession.CWD.toString)
+      }
+      contents += Item("cd +", toolTip = "Change working directory to parent of this file")      { theSession.CWD=theSession.parentPath; feedbackWD(theSession.CWD.toString) }
+      contents += Item("cd ~", toolTip = "Change working directory to user's home directory")    { theSession.CWD=Utils.homePath; feedbackWD(theSession.CWD.toString) }
 
       contents += Separator()
       contents += Separator()
@@ -338,12 +351,12 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
       contents += Item("Save as \u24b6") {
         val text = argLine.text.trim
         if (text.isEmpty)
-          {
-            fileChooser.showSaveDialog(top) match {
+          { val chooser = fileChooser
+            chooser.showSaveDialog(top) match {
               case Cancel  =>
                 feedbackTemporarily("Save as: no path specified")
               case Approve =>
-                val path = fileChooser.selectedFile.getAbsolutePath
+                val path = chooser.selectedFile.getAbsolutePath
                 top.saveAs(path.toString)
             }
           }
@@ -403,9 +416,14 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
 
     } // Pipe Menu
 
+    contents += Glue.horizontal()
+
+
     contents += Button("PDF", toolTip = "Run redpdf now") {
+      saveOperation()
       UI_DO(EditSessionCommands.latexToPDF)
     }
+
     contents += Glue.horizontal()
     contents += undoButton
     contents += redoButton
@@ -587,12 +605,13 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
         longFeedback("Unsaved")
 
   /**
-   *  Cache for the file chooser: adapted to changing session path
+   *  Cache for the file chooser: adapted to changing session path, and
+   *  modality of the selection.
    */
   object FileChooserCache {
     var _ppath: Path              = _
     var _fileChooser: FileChooser = _
-    def chooser(): FileChooser = {
+    def chooser(dirsOnly: Boolean = false): FileChooser = {
       if (_ppath!=theSession.parentPath) {
         _ppath       = theSession.parentPath
         _fileChooser = new FileChooser(_ppath.toFile) {
@@ -600,11 +619,18 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
           fileHidingEnabled = false
         }
       }
+      _fileChooser.fileSelectionMode =
+        if (dirsOnly)
+          swing.FileChooser.SelectionMode.DirectoriesOnly
+        else
+          swing.FileChooser.SelectionMode.FilesOnly
       _fileChooser
     }
   }
   /** A file chooser used by "Open" and "Save As" in the absence of parameter text */
-  def fileChooser: FileChooser = FileChooserCache.chooser()
+  def fileChooser: FileChooser = FileChooserCache.chooser(dirsOnly=false)
+  /** A directory chooser used by "Open" and "Save As" in the absence of parameter text */
+  def dirChooser: FileChooser = FileChooserCache.chooser(dirsOnly=true)
 
   def start(): Unit = { main(Array()); makeVisible() }
 
