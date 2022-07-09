@@ -13,15 +13,14 @@ import Red._
  */
 object CutRingUI extends Logging.Loggable {
     private lazy val doc     = new Document()
-
-    private lazy val session = new EditSession(doc, s"«CUTRING»")
-
+    private lazy val session = new EditSession(doc, s"«CUTRING:${Utils.dateString()}»")
     private lazy val gui     = new UI(session) {
       override def feedback(message: String): Unit = {
         super.feedback(s"$message Cut Ring: ✂ ${CutRing.length}/${CutRing.bound}")
       }
 
       locally {
+
         // React to the window opening, or the cut ring changing
         // by refreshing the view.
         CutRing.ringChanged.handleWith {
