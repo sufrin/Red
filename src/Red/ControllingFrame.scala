@@ -119,7 +119,7 @@ abstract class ControllingFrame(theSession: EditSession) extends swing.MainFrame
       // close the window
       this.close()
       // tell anyone else who wants to know
-      sessionClosed.notify(theSession.name)
+      sessionClosed.notify(theSession.path)
     }
   }
 
