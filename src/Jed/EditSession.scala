@@ -267,7 +267,7 @@ class EditSession(val document: DocumentInterface, private var _path: String)
   def clear(): Unit = {
     document.delete(0, document.textLength)
     cursor = 0
-    insert("\n")
+    //insert("\n")
     notifyHandlers()
   }
 
@@ -673,17 +673,10 @@ class EditSession(val document: DocumentInterface, private var _path: String)
 
   //////////////////////////////////////////
   //
-  // Name, path, working directory
+  //  Name, path, working directory
   //
   /////////////////////////////////////////
 
-  /**
-   *  Sessions (may) have names: the default name
-   *  is the moment the theSession starts
-   */
-  private var _name: String = Utils.dateString()
-  def name: String = _name
-  def name_=(name: String): Unit = _name = name
 
   /**
    * Displayable path: sometimes relative to the HOME directory, sometimes with ellipsis
