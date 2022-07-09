@@ -1,7 +1,7 @@
 package Jed
 
 import Commands._
-import FilterUtilities.inputStreamOf
+import Jed.FilterUtilities.inputStreamOf
 import Red.SystemClipboard
 
 import java.nio.file.Path
@@ -599,6 +599,7 @@ object EditSessionCommands extends Logging.Loggable {
       try {
         val cmd     = List("redpdf", driver, (row+1).toString, source)
         logEditSession.clear()
+        logEditSession.insert(s"Running redpdf ${Utils.dateString()}\n")
         val process = Process(cmd, cwd.toFile)
         val exit    = (process #< inputStreamOf("")) ! logger
         if (exit!=0) {
