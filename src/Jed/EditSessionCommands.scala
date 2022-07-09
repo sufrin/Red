@@ -1,7 +1,11 @@
 package Jed
 
 import Commands._
+import FilterUtilities.inputStreamOf
 import Red.SystemClipboard
+
+import java.nio.file.Path
+import scala.sys.process.{Process, ProcessLogger}
 
 /**
  *   `Command`s derived from `EditSession` methods.
@@ -15,17 +19,163 @@ object EditSessionCommands extends Logging.Loggable {
   type SessionCommand    = Command[EditSession]
   type StateChangeOption = Option[StateChange]
 
-  def insert(ch: Char): SessionCommand = new SessionCommand {
+  /**
+   *  Insert a newline and (if the session is in `autoIndenting` mode)
+   *  enough spaces to align the left margin to the indentation of
+   *  the current line.
+   */
+  val autoIndentNL: SessionCommand = new SessionCommand {
     def DO(session: EditSession): StateChangeOption = Some {
-      session.insert(ch)
+      val indent = if (session.autoIndenting) session.currentIndent else 0
       new StateChange {
-        def undo(): Unit = session.delete()
-        def redo(): Unit = session.insert(ch)
-        override val kind: String =
-          if (ch == '\n') "InsEol" else "Ins" // break insertion merges
+        def undo(): Unit = session.deleteFor(-(indent+1), record=false)
+        def redo(): Unit = {
+            session.insert('\n')
+            for { i<-0 until indent } session.insert(' ')
+        }
+        override val kind: String = "InsEol"
+        locally { redo() }
       }
     }
   }
+
+  // TODO: make these a user preference
+  private val indentBy = "    "
+  private val undentBy = "    "
+
+  /**
+   *  Prefix each line of the current selection with
+   *  `indentBy`.
+   */
+  val indentSelection: SessionCommand = indentSelectionBy(indentBy)
+
+  def indentSelectionBy(indentBy: String): SessionCommand = new Filter {
+    override def adjustNL: Boolean = true
+    override val kind: String = "indentSel"
+    protected override def transform(input: String, cwd: Path): Option[String] = {
+      val lines = input.split('\n')
+      val result= new StringBuilder()
+      for { line <- lines } { result.addAll(indentBy); result.addAll(line); result.addOne('\n') }
+      Some(result.toString())
+    }
+  }
+
+  /**
+   *  Remove the prefix `undentBy` from each line of the
+   *  current selection.
+   */
+  val undentSelection: SessionCommand = undentSelectionBy(undentBy)
+
+  def undentSelectionBy(undentBy: String): SessionCommand = new Filter {
+    override def adjustNL: Boolean = true
+    override val kind: String = "undentSel"
+    protected override def transform(input: String, cwd: Path): Option[String] = {
+      val lines = input.split('\n')
+      val result= new StringBuilder()
+      for { line <- lines } {
+        result.addAll(if (line.startsWith(undentBy)) line.substring(undentBy.length) else line)
+        result.addOne('\n')
+      }
+      Some(result.toString())
+    }
+  }
+
+
+
+  val autoIndentSelection: SessionCommand =
+      Command.guarded( _.hasSelection, indentSelection )
+
+  val autoTab: SessionCommand = new SessionCommand {
+    def DO(session: EditSession): StateChangeOption = Some {
+      val indent = session.nextTabStop
+      new StateChange {
+        def undo(): Unit = {
+          session.deleteFor(-indent, record=false)
+        }
+
+        def redo(): Unit =
+          for { i<-0 until indent } session.insert(' ')
+
+        override val kind: String = "InsTab"
+        locally { redo() }
+      }
+    }
+  }
+
+  def formatter(arg: String): SessionCommand = {
+    def numOrSwitch(arg: String): Boolean = {
+      arg.startsWith("-") || arg.matches("[0-9]+")
+    }
+    def checkArgs(args: Seq[String]): Option[String] =
+      if (args forall numOrSwitch)
+         None
+      else
+         Some("fmt arguments in \u24b6 must be numbers or -switches")
+
+      pipeThrough(s"fmt $arg", checkArgs(_))
+  }
+
+
+  def pipeThrough(arg: String, errorCheck: Seq[String]=>Option[String] = { args => None }): SessionCommand = new Filter {
+    protected override def transform(input: String, cwd: Path): Option[String] = {
+      val args = FilterUtilities.parseArguments(arg)
+      errorCheck(args) match {
+        case None =>
+          val cmd  = Process(args, cwd.toFile)
+          Some(Filter.runProcess(cmd, input))
+        case Some(error) =>
+          Filter.warnings.notify(arg, error)
+          None
+      }
+
+    }
+  }
+
+  /**
+   *   A utility that whose result is a `SessionCommand` that is equivalent to `command`
+   *   if the session is in type-over-selection mode and there is a selection.
+   *   Otherwise the result simply succeeds having done nothing.
+   */
+  def whenInTypeoverMode(command: SessionCommand): SessionCommand =
+    Command.when((s: EditSession) => s.typeOverMode&&s.hasSelection, command)
+
+  /**  A utility command that always succeeds after notifying the
+   *   session's handlers that something in the session (may have) changed.
+   *   When sequentially composing a session command from two or more others,
+   *   it's usually necessary to synchronize the context (in particular
+   *   the document display) with the session after all but the last session
+   *   command.
+   */
+  def notifyNow: SessionCommand = new SessionCommand {
+       def DO(session: EditSession): StateChangeOption = {
+           session.notifyHandlers()
+           Some(Command.undoNothing)
+    }
+  }
+
+  /**
+   * An insertion from the keyboard that cuts the selection first if
+   * the session is in type-over-selection mode.
+   */
+  def insertCommand(ch: Char): SessionCommand = whenInTypeoverMode(cut &&& notifyNow) &&& insert(ch)
+
+  def insert (ch: Char): SessionCommand = {
+      if (ch == '\n') autoIndentNL else new SessionCommand {
+        def DO(session: EditSession): StateChangeOption = {
+          Some {
+            session.insert(ch)
+            new StateChange {
+              def undo(): Unit = session.delete()
+
+              def redo(): Unit = session.insert(ch)
+
+              override val kind: String =
+                if (ch == '\n') "InsEol" else "Ins" // break insertion merges
+            }
+          }
+        }
+      }
+    }
 
   val delete: SessionCommand = new SessionCommand {
     def DO(session: EditSession): StateChangeOption =
@@ -42,6 +192,7 @@ object EditSessionCommands extends Logging.Loggable {
           }
         }
   }
+
   val flip: SessionCommand = new SessionCommand {
     def DO(session: EditSession): StateChangeOption =
       if (session.cursor < 2) None
@@ -128,11 +279,13 @@ object EditSessionCommands extends Logging.Loggable {
     def DO(session: EditSession): StateChangeOption = {
       val oldCursor = session.cursor
       val oldSelection = session.selection
-      session.setCursorAndMark(row, col)
       Some {
         new StateChange {
           def undo(): Unit = { session.selection = oldSelection; session.cursor = oldCursor }
-          def redo(): Unit = session.setCursorAndMark(row, col)
+          def redo(): Unit = {
+              session.setCursorAndMark(row, col)
+          }
+          locally { redo() }
         }
       }
     }
@@ -141,10 +294,10 @@ object EditSessionCommands extends Logging.Loggable {
   /**
    *  Dragging the cursor is unusual.
    *  There is no need for a history item, because a drag will always be
-   *  preceded by a `setCursorAndMark`, whose  undo method will suffice
-   *  to undo the whole press-drag sequence, but whose redo method does not
-   *  redo the whole press-drag sequence -- simply restoring the cursor
-   *  to where the drag started.
+   *  preceded by a `setCursorAndMark`, and followed by a `mouseUp`
+   *  whose undo method will suffice to undo the whole drag sequence, and
+   *  whose redo method simply restores the selection as it was at the point the mouse
+   *  was released.
    *
    *  '''TL;DR '''
    *  In any case, having a history item per drag event would be
@@ -177,6 +330,26 @@ object EditSessionCommands extends Logging.Loggable {
     }
   }
 
+  /**
+   *  The end of a sequence of cursor drags is recorded
+   *  in the history as if it were a single selection
+   *  event.
+   *
+   */
+  val mouseUp: SessionCommand = new SessionCommand {
+    def DO(session: EditSession): StateChangeOption = {
+      if (session.draggingFrom.isEmpty)
+         None
+      else Some (new StateChange {
+          val oldCursor    = session.draggingFrom.get
+          val oldSelection = session.selection
+          session.stopDragging
+          def undo(): Unit = { session.cursor = oldCursor; session.selection = NoSelection }
+          def redo(): Unit = { session.cursor = oldSelection.cursor; session.setMark(oldSelection.mark) }
+      })
+    }
+  }
+
 
   def setMark(row: Int, col: Int): SessionCommand = new SessionCommand {
     def DO(session: EditSession): StateChangeOption = {
@@ -190,6 +363,24 @@ object EditSessionCommands extends Logging.Loggable {
       }
     }
   }
+
+  def selectMatching(select: EditSession=>Boolean): SessionCommand = new SessionCommand {
+    def DO(session: EditSession): StateChangeOption = {
+      val oldSelection = session.selection
+      val oldCursor = session.cursor
+      if (!select(session)) None else
+      Some {
+        new StateChange {
+          def undo(): Unit = session.selection = oldSelection
+          def redo(): Unit = select(session)
+        }
+      }
+    }
+  }
+
+  val selectMatchingUp: SessionCommand   = selectMatching(_.selectMatchingUp())
+  val selectMatchingDown: SessionCommand = selectMatching(_.selectMatchingDown())
+  val selectMatching: SessionCommand     = (selectMatchingUp ||| selectMatchingDown ||| Command.doNothing)
 
   val copy: SessionCommand = new SessionCommand {
     def DO(session: EditSession): StateChangeOption = if (session.hasNoSelection) None
@@ -215,7 +406,7 @@ object EditSessionCommands extends Logging.Loggable {
       val oldSelection = session.selection
       val oldCursor    = session.cursor
       val oldClip      = SystemClipboard.getOrElse("")
-      val oldSelected  = session.cut()
+      val oldSelected  = session.selectionText()
       Some {
         new StateChange {
           def undo(): Unit = {
@@ -231,6 +422,7 @@ object EditSessionCommands extends Logging.Loggable {
             session.cursor    = oldCursor
             session.cut()
           }
+          locally { redo() }
         }
       }
     }
@@ -308,6 +500,31 @@ object EditSessionCommands extends Logging.Loggable {
     }
   }
 
+  /** Select the surrounding chunk of text depending on `clicks`: word/line/para/latex-block  */
+  def selectChunk(row: Int, col: Int, clicks: Int): SessionCommand = new SessionCommand {
+    def DO(session: EditSession): StateChangeOption = {
+      val oldSelection = session.selection
+      val oldCursor    = session.cursor
+      session.selectChunk(row, col, clicks)
+      Some {
+        val newCursor    = session.cursor
+        val newSelection = session.selection
+        new StateChange {
+          def undo(): Unit = {
+            session.selection = oldSelection
+            session.cursor    = oldCursor
+          }
+          def redo(): Unit = {
+            session.cursor = newCursor
+            session.setMark(newSelection.mark)
+          }
+          override val kind: String = "selectChunk"
+        }
+      }
+    }
+  }
+
+
   val clearAll: SessionCommand = Command.andThen(selectAll, cut)
 
   def exchangeCut: SessionCommand = new SessionCommand {
@@ -324,26 +541,92 @@ object EditSessionCommands extends Logging.Loggable {
     }
   }
 
-  def find(thePattern: String, backwards: Boolean): SessionCommand = new SessionCommand {
+  def find(thePattern: String, backwards: Boolean, asRegex: Boolean): SessionCommand = new SessionCommand {
     def DO(session: EditSession): StateChangeOption = {
         val oldSelection = session.selection
         val oldCursor = session.cursor
-        if (session.find(thePattern, backwards)) Some (new StateChange {
+        if (session.find(thePattern, backwards, asRegex)) Some (new StateChange {
            def undo(): Unit = { session.cursor=oldCursor; session.selection = oldSelection}
-           def redo(): Unit = session.find(thePattern, backwards)
+           def redo(): Unit = session.find(thePattern, backwards, asRegex)
         }) else None
     }
   }
 
-
-  def replace(thePattern: String, theReplacement: String, backwards: Boolean) : SessionCommand =
+  def replace(thePattern: String, theReplacement: String, backwards: Boolean, asRegex: Boolean) : SessionCommand =
       new SessionCommand {
         def DO(session: EditSession): StateChangeOption = {
-          if (session.replace(thePattern, theReplacement, backwards)) Some (new StateChange {
-            def undo(): Unit = { session.exch(thePattern)  }
-            def redo(): Unit = session.replace(thePattern, theReplacement, backwards)
+          val replaced = session.replace(thePattern, theReplacement, backwards, asRegex)
+          if (replaced.isDefined) Some (new StateChange {
+            def undo(): Unit = { session.exch(replaced.get)  }
+            def redo(): Unit = session.replace(thePattern, theReplacement, backwards, asRegex)
           }) else None
         }
       }
 
+  def replaceAllInSelection(thePattern: String, theReplacement: String, asRegex: Boolean): SessionCommand =
+    new SessionCommand {
+      def DO(session: EditSession): StateChangeOption = {
+        val replaced = session.replaceAllInSelection(thePattern, theReplacement, asRegex)
+        if (replaced.isDefined) Some (new StateChange {
+          def undo(): Unit = { session.exch(replaced.get)  }
+          def redo(): Unit = session.replaceAllInSelection(thePattern, theReplacement, asRegex)
+        }) else None
+      }
+    }
+
+  val lowerCaseFilter: SessionCommand = new Filter {
+    protected override def transform(input: String, cwd: Path): Option[String] = Some(input.toLowerCase())
+  }
+
+  val upperCaseFilter: SessionCommand = new Filter {
+    protected override def transform(input: String, cwd: Path): Option[String] = Some(input.toUpperCase())
+  }
+
+  val exchangeMark: SessionCommand = new SessionCommand {
+    def DO(session: EditSession): StateChangeOption = {
+      if (session.hasSelection) Some (new StateChange {
+        val oldCursor    = session.cursor
+        val oldSelection = session.selection
+        def undo(): Unit = { session.cursor = oldCursor; session.setMark(oldSelection.mark)  }
+        def redo(): Unit = { session.cursor = oldSelection.mark; session.setMark(oldCursor)  }
+        locally { redo() }
+      }) else None
+    }
+  }
+
+  val latexToPDF: SessionCommand = new SessionCommand {
+    def DO(session: EditSession): StateChangeOption = {
+      val cwd            = session.CWD
+      val source         = session.path
+      val driver         = source // fix later
+      val (row, _)       = session.getCursorPosition
+      val logSession     = Sessions.startSession(s"$driver.texlog")
+      val logEditSession = logSession.session
+      locally {
+        logEditSession.makeEphemeral()
+        logSession.gui.makeVisible()
+      }
+      def log(out: String): Unit = {
+        if (!out.contains("/fonts/")) { // hack to be generalized
+          logEditSession.insert(out)
+          logEditSession.insert('\n')
+        }
+        ()
+      }
+      def logger =  ProcessLogger(log, log)
+      try {
+        val cmd     = List("redpdf", driver, (row+1).toString, source)
+        logEditSession.clear()
+        val process = Process(cmd, cwd.toFile)
+        val exit    = (process #< inputStreamOf("")) ! logger
+        if (exit!=0) {
+          log(s"${cmd.mkString(" ")} [exit $exit]")
+        }
+      }
+      catch {
+        case exn: Exception => log(exn.toString)
+      }
+      None
+    }
+  }
 }

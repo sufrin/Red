@@ -1,8 +1,8 @@
 package Red
 
 import java.awt.Cursor
-import java.awt.event.{ComponentAdapter, ComponentEvent, FocusEvent, FocusListener, KeyAdapter, MouseWheelEvent}
 import java.awt.event.KeyEvent._
+import java.awt.event._
 import scala.collection.mutable
 import scala.swing.{Component, Container}
 

@@ -30,11 +30,16 @@ class EditSessionHandlers(val DO: Commands.Command[EditSession]=>Unit) {
   private val commands = EditSessionCommands
   
   type UserInputHandler = Notifier.Handler[UserInput]
-
+      val indentOrTab = commands.autoIndentSelection ||| commands.autoTab
 
       val keyboard: UserInputHandler =  {
-        case Character(char, _, NoModifier)            => DO(commands.insert(char))
-        case Character(char, _, Shift)                 => DO(commands.insert(char))
+        case Character(char, _, NoModifier)            => DO(commands.insertCommand(char))
+        case Character(char, _, Shift)                 => DO(commands.insertCommand(char))
+        case Character(char, _, mods) if mods.hasAlt   => DO(commands.insertCommand(char))
+
+        case Instruction(Key.Tab, _, NoModifier)       => DO(indentOrTab)
+        case Instruction(Key.Tab, _, Shift)            => DO(commands.undentSelection)
+
         case Instruction(Key.BackSpace, _, NoModifier) => DO(commands.delete)
         case Instruction(Key.BackSpace, _, Control)    => DO(commands.flip)
 
@@ -42,6 +47,14 @@ class EditSessionHandlers(val DO: Commands.Command[EditSession]=>Unit) {
         case Instruction(Key.C, _, Control)       => DO(commands.copy)
         case Instruction(Key.V, _, Control)       => DO(commands.paste)
         case Instruction(Key.B, _, Control)       => DO(commands.exchangeCut)
+
+        // Sufrin's favourites
+        case Instruction(Key.F1, _, NoModifier)       => DO(commands.cut)
+        case Instruction(Key.F3, _, NoModifier)       => DO(commands.copy)
+        case Instruction(Key.F2, _, NoModifier)       => DO(commands.paste)
+        case Instruction(Key.F4, _, NoModifier)       => DO(commands.exchangeCut)
+        case Instruction(Key.F12, _, NoModifier)      => DO(commands.exchangeMark)
+
         case Instruction(Key.Home, _, NoModifier) => DO(commands.toHome)
         case Instruction(Key.End, _, NoModifier)  => DO(commands.toEnd)
         case Instruction(Key.A, _, Control)       => DO(commands.selectAll)
@@ -50,6 +63,9 @@ class EditSessionHandlers(val DO: Commands.Command[EditSession]=>Unit) {
         case Instruction(Key.Right, _, NoModifier) => DO(commands.nextChar)
         case Instruction(Key.Down, _, NoModifier)  => DO(commands.nextLine)
         case Instruction(Key.Up, _, NoModifier)    => DO(commands.prevLine)
+
+        case Instruction(Key.PageUp,   _, NoModifier) => DO(commands.selectMatchingUp)
+        case Instruction(Key.PageDown, _, NoModifier) => DO(commands.selectMatchingDown)
       }
 
 
@@ -67,29 +83,36 @@ class EditSessionHandlers(val DO: Commands.Command[EditSession]=>Unit) {
        *
        */
       val mouse: UserInputHandler =  {
-        case MousePressed(row, col, 1, Button1)         => DO(commands.setCursorAndMark(row, col))
-        case MouseDragged(row, col,    Button1)         => DO(commands.dragCursor(row, col))
+        case MousePressed(row, col, 1, Button1)           => DO(commands.setCursorAndMark(row, col))
+        case MousePressed(row, col, n, Button1)  if 2<=n  => DO(commands.selectChunk(row, col, n))
+        case MouseDragged(row, col,    Button1)           => DO(commands.dragCursor(row, col))
+        case MouseReleased(_, _,       Button1)           => DO(commands.mouseUp)
 
-        case MousePressed(row, col, 1, ControlButton1)  => DO(commands.setCursor(row, col))
+        case MousePressed(row, col, n, ControlButton1)  => DO(commands.setCursor(row, col))
         case MouseDragged(row, col,    ControlButton1)  => DO(commands.setCursor(row, col))
+        case MouseReleased(_, _,       ControlButton1)  => DO(commands.mouseUp)
 
-        case MousePressed(row, col, 1, Button3)         => DO(commands.setMark(row, col))
+        case MousePressed(row, col, n, detail) if detail.hasButton3 => DO(commands.setMark(row, col))
 
         // Multiple presses
         case MousePressed(_, _, _, Button1)  => ()
         case MousePressed(_, _, _, Button3)  => ()
 
+
         case MouseReleased(_, _,       Button1)           => DO(commands.mouseUp)
         case MouseReleased(_, _, _)                       => ()
+
       }
 
       /**
-       *   A handler that does nothing in response to `Key.Up`, `Key.Down`, and `'\n'`.
+       *   A handler that does nothing in response to `Key.Up`, `Key.Down`, and `'\n'`;
+       *   and treats tab as space
        */
       private val ignoreMultiLineKeys: UserInputHandler = {
         case Character('\n', _, _)       => ()
         case Instruction(Key.Down, _, _) => ()
         case Instruction(Key.Up, _, _)   => ()
+        case Instruction(Key.Tab, _, _)  => DO(commands.insertCommand(' '))
       }
 
       /**

@@ -17,3 +17,7 @@ import scala.swing.{Component, Orientation, Oriented}
     def this() = this(Orientation.Horizontal)
   }
 
+  object Separator {
+    def apply(): Separator = new Separator()
+  }
+

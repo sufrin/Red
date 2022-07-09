@@ -72,7 +72,6 @@ package Commands
       def undo(): Unit = {
         u2.undo(); u1.undo()
       }
-
       def redo(): Unit = {
         u1.redo(); u2.redo()
       }
@@ -81,7 +80,7 @@ package Commands
       val kind: String = u2.kind
 
       override
-      def toString: String= s"$u1/$u2"
+      def toString: String= s"StateChange.compose($u1,  $u2)"
     }
   }
 
@@ -114,9 +113,17 @@ package Commands
     def orElse[T](c1: Command[T], c2: Command[T]): Command[T] = new Command[T] {
       def DO(target: T): Option[StateChange] =
         c1.DO(target) match {
-          case None    => c2.DO(target)
-          case Some(u) => u.undo(); None
+          case None     => c2.DO(target)
+          case c1Change => c1Change
         }
+    }
+
+    object undoNothing extends StateChange {
+      def redo(): Unit = ()
+      def undo(): Unit = ()
+
+      override
+      def toString: String = s"()"
     }
 
     /**
@@ -125,16 +132,7 @@ package Commands
      * no effect.
      */
     def doNothing[T]: Command[T] = new Command[T] {
-      object undoNothing extends StateChange {
-        def redo(): Unit = ()
-
-        def undo(): Unit = ()
-
-        override
-        def toString: String = s"()"
-      }
-
-      def DO(target: T): Option[StateChange] = Some(undoNothing)
+        def DO(target: T): Option[StateChange] = Some(undoNothing)
     }
 
     def transaction[T](cmds: Iterable[Command[T]]): Command[T] = {
@@ -144,6 +142,21 @@ package Commands
         var tx = cmds.head
         for (c <- cmds.tail) tx = tx &&& c
         tx
+      }
+    }
+
+    def when[T](condition: T => Boolean, command: Command[T]): Command[T] = new Command[T] {
+      def DO(target: T): Option[StateChange] = {
+        if (condition(target))
+           command.DO(target)
+        else
+           Some(undoNothing)
+      }
+    }
+
+    def guarded[T](condition: T => Boolean, command: Command[T]): Command[T] = new Command[T] {
+      def DO(target: T): Option[StateChange] = {
+        if (condition(target)) command.DO(target) else None
       }
     }
 

@@ -6,13 +6,14 @@ import java.awt.{Color, Component, Font, Graphics}
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
-import javax.swing.Icon
+import javax.swing.{Icon, SwingUtilities}
 
 /** System wide default settings. These will eventually be treated as (dynamic)
   * preferences.
   */
 object Utils {
   var defaultFont: Font = new Font("Monospaced", Font.PLAIN, 18)
+  var smallButtonFont: Font = new Font("Monospaced", Font.BOLD, 24)
   var buttonFont: Font = new Font("Monospaced", Font.PLAIN, 18)
   var widgetFont: Font = new Font("Monospaced", Font.ITALIC, 18)
   var feedbackFont: Font = new Font("Monospaced", Font.PLAIN, 16)
@@ -23,8 +24,8 @@ object Utils {
   def dateString(time: Long): String = dateFormat.format(new Date(time))
   def dateString(): String = dateFormat.format(new Date())
 
-  private class ColoredIcon(h: Int, w: Int, color: java.awt.Color)
-      extends Icon {
+  class ColoredIcon(h: Int, w: Int, color: java.awt.Color)
+    extends Icon {
     def getIconHeight: Int = h
     def getIconWidth: Int = w
     override def paintIcon(c: Component, g: Graphics, x: Int, y: Int): Unit = {
@@ -51,27 +52,32 @@ object Utils {
 
   /** Save the given `document` in the filestore at the specified path.
     *
-    * @param path specification of a filestore path at which to save the document. This
-    *             is either this parameter itself, or the parameter stripped of the `NEWFILESUFFIX`.
+    * @param path specification of a filestore path at which to save the document.
     * @param document the document to be saved.
-    * @return the path at which the document was actually saved.
-    *
-    * NB: the use of the "«NEW»" suffix is a detail that would be replaced in a
-    * production-quality program.
+    * @return None if the save was successful; Some(reasonMessage) if it was not successful
     */
-  def save(path: String, document: DocumentInterface): String = {
-    val thePath = if (path.endsWith(NEWFILESUFFIX))
-                     path.substring(0, path.length-NEWFILESUFFIX.length)
-                  else path
-    backup(path)
-    val writer = java.nio.file.Files.newBufferedWriter(
-      new java.io.File(thePath).toPath,
-      java.nio.charset.Charset.forName("UTF-8")
-    )
-    document.writeTo(writer)
-    writer.close()
-    thePath
-  }
+  def save(path: String, document: DocumentInterface): Option[String] =
+    checkWriteable(path) match {
+      case None =>
+        try {
+          backup(path)
+          val writer = java.nio.file.Files.newBufferedWriter(
+            new java.io.File(path).toPath,
+            java.nio.charset.Charset.forName("UTF-8")
+          )
+          document.writeTo(writer)
+          writer.close()
+          None
+        } catch {
+          case exn: Exception => Some(exn.getMessage)
+        }
+
+      case reason => reason
+    }
+
+  import java.nio.file.{Path,Paths,Files}
+
+  def save(path: Path, document: DocumentInterface): Option[String] = save(path.toString, document)
 
   /** If a file exists in the filestore at `path`, then copy it to a new file at a path
    *  derived from `path` by adding a string derived from the time at which the existing
@@ -99,4 +105,59 @@ object Utils {
     }
   }
 
+  def toPath(path: String): Path = Paths.get(expandHome(path)).toAbsolutePath()
+
+  def toParentPath(path: String): Path = toPath(path).getParent.toAbsolutePath()
+
+  def expandHome(path: String): String =
+    if (path.startsWith("~")) path.replaceFirst("^~", System.getProperty("user.home")) else path
+
+  /**
+   * Return `Some(reasonMessage)` if the given `path` does not denote a writable
+   * file in the filestore. Otherwise return `None`.
+   */
+  def checkWriteable(path: String): Option[String] = {
+    val theParent = toParentPath(path)
+    val thePath   = toPath(path)
+    if (Files.exists(thePath) && Files.isDirectory(thePath))  Some(s"This path is a directory/folder: $thePath") else
+    if (Files.exists(thePath) && !Files.isWritable(thePath))  Some(s"Exists, but not writable: $thePath") else
+    if (!Files.exists(theParent) || !Files.isDirectory(theParent)) Some(s"Not a directory/folder: $theParent") else
+    if (Files.exists(theParent) && !Files.isWritable(theParent)) Some(s"Directory/folder exists, but not writable: $theParent")
+    else None
+  }
+
+  lazy val homePath: Path = Paths.get(System.getProperty("user.home"))
+
+  /**
+   *  `thePath` as a string relative to the user's home directory, if possible.
+   *  This leads to shorter feedback messages, without information loss.
+   */
+  def relativeToHome(thePath: Path): String = {
+    if (thePath.isAbsolute && thePath.startsWith(homePath)) {
+      val rel = thePath.subpath(homePath.getNameCount, thePath.getNameCount)
+      s"~${System.getProperty("file.separator")}${rel.toString}"
+    }
+    else
+      thePath.toString
+  }
+
+  def relativeToHome(thePath: String): String = relativeToHome(toPath(thePath))
+
+  def relativeToGrandparent(thePath: String): String = {
+    val path = Paths.get(thePath)
+    val count = path.getNameCount
+    if (count>2) path.subpath(count-2, count).toString else path.toString
+  }
+
+  def displayablePath(thePath: String): String = {
+    val homeRel = relativeToHome(thePath)
+    val prefix  = if (homeRel.startsWith("~")) "~/..." else "..."
+    if (homeRel.length>60) s"$prefix/${relativeToGrandparent(thePath)}" else homeRel
+  }
+
+  def invokeLater(act: => Unit): Unit = {
+    SwingUtilities.invokeLater(new Runnable {
+      override def run(): Unit = act
+    })
+  }
 }

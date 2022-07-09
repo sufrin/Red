@@ -7,8 +7,9 @@
 
 FOILS  := $(wildcard [0-9x][0-9x]*.tex)
 SOURCE := $(wildcard */*/*/*.scala */*/*.scala */*.scala)
-LIB    := ~/local/scalalib
-CP     := $(LIB)/scala-swing.jar
+LIB    := $(HOME)/local/scalalib
+KIT    := $(HOME)/GitHomes/RegexKit/out/artifacts/regexkit.jar
+CP     := $(LIB)/scala-swing.jar:$(KIT)
 
 #       Parameters: where the outputs will go. 
 #       * RUN specifies the name of the (local) script that runs scala using the 
