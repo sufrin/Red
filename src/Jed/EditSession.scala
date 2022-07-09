@@ -707,6 +707,15 @@ class EditSession(val document: DocumentInterface, private var _path: String)
 
   def CWD: Path = _CWD
 
+  // Current tex master
+  private var _TEX: Path = null
+
+  def TEX_=(path: Path) = {
+    _TEX = path
+  }
+
+  def TEX: Path = if (_TEX == null) Utils.toPath(path) else _TEX
+
 } // EditSession
 
 object EditSession extends Logging.Loggable

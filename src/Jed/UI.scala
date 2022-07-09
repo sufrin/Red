@@ -276,6 +276,21 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
 
     contents += new Menu("Red") {
 
+      contents += Item("latex master: \u24b6", toolTip = "Change latex master using dialogue or nonempty \u24b6 field") {
+        var text = argLine.text.trim
+        if (text.isEmpty) {
+          val chooser = fileChooser
+          chooser.showOpenDialog(top) match {
+            case Approve => text = chooser.selectedFile.toString
+            case Cancel  => text = ""
+          }
+        }
+        if (text.nonEmpty) theSession.TEX=Utils.toPath(text)
+        feedbackTemporarily(s"Tex master manuscript: ${theSession.TEX.toString)}"
+      }
+      contents += Separator()
+      contents += Separator()
+
       contents += Item("cd \u24b6", toolTip = "Change working directory using dialogue or nonempty \u24b6 field") {
         var text = argLine.text.trim
         if (text.isEmpty) {
@@ -315,7 +330,6 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
             Settings.clickSelects = selected
         }
       }
-
       contents += new CheckMenuItem("Auto indent") {
         tooltip  = "When enabled, a newline is followed by enough spaces to align the start of the current line"
         font     = Utils.buttonFont

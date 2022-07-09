@@ -578,38 +578,80 @@ object EditSessionCommands extends Logging.Loggable {
 
   val latexToPDF: SessionCommand = new SessionCommand {
     def DO(session: EditSession): StateChangeOption = {
-      val cwd            = session.CWD
-      val source         = session.path
-      val driver         = source // fix later
-      val (row, _)       = session.getCursorPosition
-      val logSession     = Sessions.startSession(s"$driver.texlog")
-      val logEditSession = logSession.session
+      val CWD = session.CWD.toFile // the session's working directory
+      val source = session.path // the file being edited
+      val driver = session.TEX.toString // the driver file (to be latexed at the top level)
+      val (row, _) = session.getCursorPosition // the 0-origin row of the file being edited
+      val logWindow = Sessions.startSession(s"$driver.texlog")
+      val logSession = logWindow.session
+
       locally {
-        logEditSession.makeEphemeral()
-        logSession.gui.makeVisible()
+        logSession.makeEphemeral()
+        logSession.clear()
+        logSession.insert(s"Running redpdf ${Utils.dateString()}\n")
+        logWindow.gui.makeVisible()
       }
-      def log(out: String): Unit = {
+
+      /**
+       * Send `out` to the logging window, and make
+       * the latter visible immediately.
+       */
+      def toLogWindow(out: String): Unit = {
         if (!out.contains("/fonts/")) { // hack to be generalized
-          logEditSession.insert(out)
-          logEditSession.insert('\n')
+          logSession.insert(out)
+          logSession.insert('\n')
+          logSession.notifyHandlers()
         }
         ()
       }
-      def logger =  ProcessLogger(log, log)
-      try {
-        val cmd     = List("redpdf", driver, (row+1).toString, source)
-        logEditSession.clear()
-        logEditSession.insert(s"Running redpdf ${Utils.dateString()}\n")
-        val process = Process(cmd, cwd.toFile)
-        val exit    = (process #< inputStreamOf("")) ! logger
-        if (exit!=0) {
-          log(s"${cmd.mkString(" ")} [exit $exit]")
+
+      val offEdt = new OffEdtThread[Unit, String](toLogWindow(_), { logWindow.gui.makeVisible() }) {
+        /**
+         * The offEdt thread `publish`es output to its `stdout` and `stderr` streams.*
+         * This is buffered, and from time to time it is passed to `log`
+         */
+        def logger = ProcessLogger(publish(_), publish(_))
+
+        /**
+         * This method runs in an offEdt thread; ie not on the EDT.
+         * It invokes a Posix process that's run with the editing session's
+         * working directory.
+         */
+        def doOffEDT() = {
+          try {
+            val cmd = List("redpdf", driver, (row + 1).toString, source)
+            val process = Process(cmd, CWD)
+            val exit = (process #< inputStreamOf("")) ! logger
+            if (exit != 0) {
+              publish(s"${cmd.mkString(" ")} [exit $exit]")
+            }
+          }
+          catch {
+            case exn: Exception => publish(exn.toString)
+          }
         }
       }
-      catch {
-        case exn: Exception => log(exn.toString)
-      }
+      offEdt.execute() // Start the off edt thread; don't wait
       None
+    }
+  }
+
+  /**
+   *    A non-EDT workder that runs `doOffEDT()` off the event dispatch thread
+   *    and passes buffered `publish`ed `Report`s to `report`.
+   */
+  abstract class OffEdtThread[Result, Report](report: Report => Unit, finished: => Unit) extends javax.swing.SwingWorker[Result, Report] {
+
+    def doOffEDT(): Result
+
+    override def doInBackground(): Result = doOffEDT()
+
+    protected override def done(): Unit = finished
+
+    /** Pass buffered `Report`s one by one to `report`. */
+    protected override def process(buffer: java.util.List[Report]): Unit = {
+      val it = buffer.iterator()
+      while (it.hasNext) { report(it.next()) }
     }
   }
 }
