@@ -15,6 +15,8 @@ object Utils {
   var defaultFont: Font = new Font("Monospaced", Font.PLAIN, 18)
   var smallButtonFont: Font = new Font("Monospaced", Font.BOLD, 24)
   var buttonFont: Font = new Font("Monospaced", Font.PLAIN, 18)
+  var menuFont: Font = new Font("Monospaced", Font.PLAIN, 18)
+  var menuButtonFont: Font = new Font("Monospaced", Font.PLAIN, 18)
   var widgetFont: Font = new Font("Monospaced", Font.ITALIC, 18)
   var feedbackFont: Font = new Font("Monospaced", Font.PLAIN, 16)
   var feedbackColor: Color = Color.BLUE
@@ -36,6 +38,10 @@ object Utils {
 
   val closeIcon: Icon = new ColoredIcon(60, 60, Color.GREEN)
   val redIcon: Icon = new ColoredIcon(60, 60, Color.RED)
+
+  class Menu(title: String) extends scala.swing.Menu(title) {
+    font = menuFont
+  }
 
   private val fileSeparator: String = System.getProperty("file.separator")
 

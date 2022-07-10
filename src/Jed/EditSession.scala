@@ -414,7 +414,7 @@ class EditSession(val document: DocumentInterface, private var _path: String)
         case '>' => tryMatchUp(xmlcomment) || tryMatchUp(xmlblock) || tryMatchUp(xmlsingle)  // not particularly inefficient (see tryMatchUp)
         case ')' => tryMatchUp(par)
         case ']' => tryMatchUp(bra)
-        case ch  => lefts.get(ch) match {
+        case ch  => rights.get(ch) match {
           case Some(spec) => tryMatchUp(spec)
           case None       => false
         }
@@ -438,10 +438,11 @@ class EditSession(val document: DocumentInterface, private var _path: String)
         case '<'  => tryMatchDown(xmlcomment) || tryMatchDown(xmlblock) || tryMatchDown(xmlsingle)
         case '('  => tryMatchDown(par)
         case '['  => tryMatchDown(bra)
-        case ch  => rights.get(ch) match {
+        case ch  => lefts.get(ch) match {
           case Some(spec) => tryMatchDown(spec)
           case None       => false
         }
+
       }
     }
   }

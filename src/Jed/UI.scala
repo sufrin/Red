@@ -114,23 +114,23 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
   }
 
   def SmallButton(label: String, toolTip: String="")(act: => Unit): Button = new Button(new Action(label) { def apply(): Unit = act } ) {
-    font           = Utils.smallButtonFont
-    val metrics    = peer.getFontMetrics(font)
-    val labWidth   = metrics.stringWidth(label)
-    val charHeight = metrics.getHeight
-    maximumSize    = new Dimension(labWidth, charHeight)
-    preferredSize  = maximumSize
+    font = Utils.smallButtonFont
+    if (true) {
+      val metrics = peer.getFontMetrics(font)
+      val labWidth = metrics.stringWidth(label)
+      val charHeight = metrics.getHeight
+      preferredSize = new Dimension(labWidth, charHeight)
+    }
     if (toolTip.nonEmpty) tooltip=toolTip
   }
 
   def Button(label: String, toolTip: String="")(act: => Unit): Button = new Button(new Action(label) { def apply(): Unit = act } ) {
+    font = Utils.menuButtonFont
     if (false) {
-      font = Utils.buttonFont
       val metrics = peer.getFontMetrics(font)
       val labWidth = metrics.stringWidth(label)
       val charHeight = metrics.getHeight
-      maximumSize = new Dimension(labWidth, charHeight)
-      preferredSize = maximumSize
+      preferredSize = new Dimension(labWidth, charHeight)
     }
     if (toolTip.nonEmpty) tooltip=toolTip
   }
@@ -141,9 +141,9 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
    */
   private val history = new Command.StateChangeHistory(theSession)
   /** An undo button */
-  private val undoButton = SmallButton("\u2770", toolTip="Undo") { UI_DO(history.UNDO) } //
+  private val undoButton = SmallButton("\u2770", toolTip="Undo last edit") { UI_DO(history.UNDO) } //
   /** A redo button */
-  private val redoButton = SmallButton("\u2771", toolTip="Redo") { UI_DO(history.REDO) } //
+  private val redoButton = SmallButton("\u2771", toolTip="Redo last undone edit") { UI_DO(history.REDO) } //
 
   locally {
     history.handleWith {
@@ -243,7 +243,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
    *  linked to the undo history
    */
   private val theWidgets = new BoxPanel(Orientation.Horizontal) {
-    contents += Button(" \u24b6 ", toolTip = "(Clear) the \u24b6 field \u2191") {
+    contents += Button("\u24b6", toolTip = "(Clear) the \u24b6 field \u2191") {
       argLine.text = ""
     } // (A)
     contents += argLine
@@ -266,17 +266,19 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
   }
 
   private val theMenuBar: MenuBar = new MenuBar {
+    font = Utils.menuFont
+
     def Item(name: String, toolTip: String = "")(act: => Unit): MenuItem =
       new MenuItem(Action(name) {
       act
     }) {
-      font = Utils.buttonFont
+      font = Utils.menuButtonFont
       if (toolTip.nonEmpty) tooltip = toolTip
     }
 
-    contents += new Menu("Red") {
+    contents += new Utils.Menu("Red") {
 
-      contents += Item("latex master: \u24b6", toolTip = "Change latex master using dialogue or nonempty \u24b6 field") {
+      contents += Item("Default tex source := \u24b6", toolTip = "Change default tex source using dialogue or nonempty \u24b6 field") {
         var text = argLine.text.trim
         if (text.isEmpty) {
           val chooser = fileChooser
@@ -286,8 +288,14 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
           }
         }
         if (text.nonEmpty) theSession.TEX=Utils.toPath(text)
-        feedbackTemporarily(s"Tex master manuscript: ${theSession.TEX.toString)}"
+        feedbackTemporarily(s"Default tex source: ${theSession.TEX.toString}")
       }
+
+      contents += Item(s"Default tex source := ${theSession.path}", toolTip = "Change default latex source to current file") {
+        theSession.TEX=Utils.toPath(theSession.path)
+        feedbackTemporarily(s"Tex master manuscript: ${theSession.TEX.toString}")
+      }
+
       contents += Separator()
       contents += Separator()
 
@@ -348,7 +356,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
 
     }
 
-    contents += new Menu("File") {
+    contents += new Utils.Menu("File") {
 
       contents += Item("New") {
         openFileRequests.notify(s"${theSession.CWD.toString}/New=${Utils.dateString()}")
@@ -385,7 +393,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
 
     } // File Menu
 
-    contents += new Menu("Edit") {
+    contents += new Utils.Menu("Edit") {
         contents += Item("Replace \u24bb with \u24c7 in the selection") {
           val asRegex = regexCheck.selected
           UI_DO(EditSessionCommands.replaceAllInSelection(findLine.text, replLine.text, asRegex))
@@ -413,32 +421,102 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
         }
     } // Edit Menu
 
-    contents += new Menu("Pipe") {
+    contents += new Utils.Menu("Pipe") {
       // Pipe the selection through ...
-      contents += Button("\u24b6 « sel'n") {
-        withFilterWarnings("\u24b6 « sel'n") { UI_DO(EditSessionCommands.pipeThrough(argLine.text))}
+      contents += Item("\u24b6  < ...") {
+        withFilterWarnings("\u24b6  < ...") { UI_DO(EditSessionCommands.pipeThrough(argLine.text))}
       }
 
-      contents += Button("wc « sel'n") {
-        withFilterWarnings("wc « sel'n") { UI_DO(EditSessionCommands.pipeThrough("wc")) }
+      contents += Item("wc < ...") {
+        withFilterWarnings("wc < ...") { UI_DO(EditSessionCommands.pipeThrough("wc")) }
       }
 
-      contents += Button("ls \u24b6 « sel'n") {
-        withFilterWarnings("ls \u24b6 « sel'n") { UI_DO(EditSessionCommands.pipeThrough(s"ls ${argLine.text}")) }
+      contents += Item("ls \u24b6") {
+        withFilterWarnings("ls \u24b6") { UI_DO(EditSessionCommands.pipeThrough(s"ls ${argLine.text}")) }
       }
-
 
     } // Pipe Menu
 
-    contents += Glue.horizontal()
 
+    contents += new Utils.Menu("Tex") {
+
+      contents += Item("%%%%") {
+        val header =
+          """%%%%%%%%%%%%%%%%%%%%%%%%
+            |%%%%%%%%%%%%%%%%%%%%%%%%
+            |%%%%%%%%%%%%%%%%%%%%%%%%
+            |""".stripMargin
+        UI_DO(EditSessionCommands.latexInsert(header))
+      }
+
+      contents += Item("\\documentclass{article}") {
+        val up = "\\usepackage[]{}"
+        val header =
+          s"""\\documentclass[11pt,a4paper]{article}
+             |%%%%%%%%%%%%%%%%%%%%%
+             |$up
+             |%%%%%%%%%%%%%%%%%%%%%
+             |\\author{}
+             |\\title{}
+             |\\date{}
+             |%%%%%%%%%%%%%%%%%%%%%
+             |\\begin{document}
+             |\\maketitle
+             |
+             |\\end{document}
+             |""".stripMargin
+        UI_DO(EditSessionCommands.latexInsert(header))
+      }
+
+      contents += Item("\\documentclass{letter}") {
+        val header =
+          s"""\\documentclass[12pt,lab|wor|home|magd,bernard|sufrin]{letter} %
+             |\\To{lines\\\\of\\\\mailing address}
+             |\\Dear[Dear]{Victim}
+             |\\Re{subject matter}
+             |    This is the body
+             |\\Ps{ps paragraph}
+             |\\PostSig{post signature para}
+             |\\Cc{carrbon1, carbon2, ...}
+             |\\Sign[yours sincerely]{Bernard Sufrin}
+             |""".stripMargin
+        UI_DO(EditSessionCommands.latexInsert(header))
+      }
+
+      contents += Separator()
+      contents += Separator()
+
+      contents += Item("\\begin{\u24b6}") {
+        UI_DO(EditSessionCommands.latexBlock(argLine.text.trim))
+      }
+
+      contents += Item("""\begin{...}->...""") {
+        UI_DO(EditSessionCommands.latexUnblock)
+      }
+    }
+
+    contents += new Utils.Menu("\\begin{...}") {
+      locally {
+        val blockTypes = Red.Personalised.latexBlockTypes
+
+        for { block <- blockTypes} {
+          if (block == "-")
+            contents += Separator()
+          else
+            contents +=
+              Item(s"""\\begin{$block}""") {
+                UI_DO(EditSessionCommands.latexBlock(block))
+              }}
+      }
+    }
+
+    contents += Glue.horizontal()
 
     contents += Button("PDF", toolTip = "Run redpdf now") {
       saveOperation()
       UI_DO(EditSessionCommands.latexToPDF)
     }
 
-    contents += Glue.horizontal()
     contents += undoButton
     contents += redoButton
 

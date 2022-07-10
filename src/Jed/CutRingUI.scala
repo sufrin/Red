@@ -41,6 +41,10 @@ object CutRingUI extends Logging.Loggable {
     private var started = false
     private var visible = false
 
+    locally {
+      gui.sessionClosed.handleWith { _ => started=false }
+    }
+
     /** Create (or wake up the existing)
      *  UI for the cut ring. Refresh it
      *  if it is visible.

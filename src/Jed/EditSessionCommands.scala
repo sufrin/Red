@@ -127,7 +127,6 @@ object EditSessionCommands extends Logging.Loggable {
           Filter.warnings.notify(arg, error)
           None
       }
-
     }
   }
 
@@ -558,6 +557,32 @@ object EditSessionCommands extends Logging.Loggable {
 
   val lowerCaseFilter: SessionCommand = new Filter {
     protected override def transform(input: String, cwd: Path): Option[String] = Some(input.toLowerCase())
+  }
+
+  def latexBlock(block: String): SessionCommand = new Filter {
+    override def adjustNL: Boolean = false
+    protected override def transform(input: String, cwd: Path): Option[String] = {
+      println(s"latexBlock ($input)")
+      val nl = if (input != "" && input.last != '\n') "\n" else ""
+      Some(s"""\\begin{$block}\n$input$nl\\end{${block}}""")
+    }
+  }
+
+  def latexInsert(text: String): SessionCommand = new Filter {
+    protected override def transform(input: String, cwd: Path): Option[String] = {
+      println(s"latexInsert ($input)")
+      Some(s"$text\n$input")
+    }
+  }
+
+  // TODO: use sufrin.regex kit
+  val latexUnblock: SessionCommand = new Filter {
+    override def adjustNL: Boolean = false
+    protected override def transform(input: String, cwd: Path): Option[String] = {
+      import scala.util.matching.Regex
+      val pat = new Regex("""\\begin\{[^}]*\}((([^\n]*\n))*)\\end\{[^}]*\}\n?""")
+      Some(pat.replaceFirstIn(input, "$1"))
+    }
   }
 
   val upperCaseFilter: SessionCommand = new Filter {

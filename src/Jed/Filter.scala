@@ -81,6 +81,7 @@ abstract class Filter extends SessionCommand {
   }
 }
 
+
 object Filter extends Logging.Loggable {
   val warnings: Notifier[(String, String)] = new Notifier[(String, String)] {}
 
