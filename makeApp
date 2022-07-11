@@ -1,0 +1,53 @@
+#!/usr/bin/env make -f  
+#
+#          A monolithic executable Makefile that recompiles (see
+#          SCALAC) all discoverable sources, then makes a jar
+#          of them together with the scala library
+#
+
+FOILS  := $(wildcard [0-9x][0-9x]*.tex)
+SOURCE := $(wildcard */*/*/*.scala */*/*.scala */*.scala)
+LIB    := $(HOME)/local/scalalib
+CP     := $(LIB)/scala-swing.jar
+
+#       Parameters: where the outputs will go. 
+#       * RUN specifies the name of the (local) script that runs scala using the 
+#         compilation classpath augmented the compiler's destination folder
+#       * BIN specifies the compiler's destination folder
+#       * DOC specifies the folder into which the documentation is generated
+#       * $(DOC)/index.html is the root of the documentation tree.
+
+BIN      := bin
+JAR      := AppleRed.jar
+CP       := scala-swing.jar:regexkit.jar
+JARS     := scala-swing.jar regexkit.jar scala-library.jar scala-reflect.jar
+UNJAR    := unjar
+
+#       Parameters: compiler, flags, documentation program
+#
+#       SCALAC specifies the scala compiler
+#       SFLAGS specifies the flags given to the scala compiler
+#
+
+SCALAC   := scalac
+SFLAGS   := -deprecation -feature 
+SCALADOC := scaladoc -deprecation -groups -sourcepath src
+
+
+#       Targets. The default target is "all"
+
+all:        $(JAR)
+
+$(UNJAR):       scala-swing.jar regexkit.jar; rm -rf $(UNJAR); mkdir -p $(UNJAR);\
+                (cd $(UNJAR); for j in $(JARS); do jar xvf ../$$j ; done ) ; \
+                rm -rfv $(UNJAR)/META-INF
+                 
+$(BIN):         $(SOURCES);  mkdir -p $(BIN); $(SCALAC) $(SFLAGS) -cp $(CP) -d $(BIN) $(SOURCE); touch $@
+
+$(JAR):         $(BIN) $(UNJAR); \
+                jar cvf $(JAR) -C $(UNJAR) . ; \
+                jar uvf $(JAR) -C $(BIN)   . ; \
+                jar umf APPLEREDMANIFEST.MF $(JAR) 
+
+.PHONY:     clean
+clean:      ; rm -rf $(BIN) $(JAR) $(UNJAR)

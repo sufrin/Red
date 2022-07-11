@@ -1,0 +1,287 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+
+<!-- ===========================================================================================
+        
+        This builds an Apple Application bundle from the AppleRed.jar file in the parent folder.
+        AppleRed.jar should have been built there (or by IntelliJ) beforehand.
+
+============================================================================================ -->
+
+<project name="AppleRed" default="app" basedir=".">
+
+  <property name="copyright"    value="Copyright &#xa9;  2022 Bernard Sufrin, Oxford University"/>
+  
+  <propertyfile  file   ="applered.properties"
+                 comment="Build details for the About menu entry">
+     <entry key="builddate" type="date" value="now" pattern="dd MMM yyyy, HH:mm"/>
+  </propertyfile>
+  
+  <property file="build.number"/>
+  <property file="applered.properties"/>
+  <property file="revision.properties"/>
+  <property name="jarbundler.jar"       value="./jarbundler-3.3.0-forjape.jar"/>
+  <property name="stubFile"             value="universalJavaApplicationStub"/>
+  <property name="version"              value="Revision ${revision.number} (${builddate})"/>
+  
+  <!-- The main class to be invoked by the Apple Application launcher.
+       
+       This need not be the same as the main class to be invoked from a 
+       java -jar command; but it can be. 
+  -->
+
+  <property name="mainclass"   value="Red.AppleRed"/>
+  
+  <target name="new" 
+          description="Make the app: AppleRed-new (for testing)" >
+          <antcall target="makeapp">
+               <param name="AppleRed"  value="AppleRed-new"/>
+               <param name="stubFile"  value="newJavaApplicationStub"/>
+         </antcall>
+  </target>
+  
+  <target name="app" 
+          description="Make the app: AppleRed" >
+          <antcall target="makeapp">
+               <param name="AppleRed"  value="AppleRed"/>
+               <param name="stubFile"  value="newJavaApplicationStub"/>
+          </antcall>
+  </target>
+    
+
+  <target name="jar" description="Create JAR file">    
+    <jar jarfile="build/${ant.project.name}.jar" 
+         basedir="classes"
+         update="yes"
+         includes = "**/*.class **/*.bindings">
+         <manifest>
+             <attribute name="Main-Class" value="Red.AppleRed"/>
+         </manifest>         
+    </jar>
+  </target>
+
+  
+  <target name="makeapp" 
+          depends="jar" 
+          description="Build the application with name as specified by the parameter AppleRed">
+
+    <taskdef name=      "jarbundler"
+             classpath= "${jarbundler.jar}" 
+             classname= "com.ultramixer.jarbundler.JarBundler"/>
+    <buildnumber/>
+    <jarbundler dir=            "${basedir}" 
+                verbose=        "true"
+                name=           "${AppleRed}"
+                mainclass=      "${mainclass}"
+                jvmversion=     "9.1.3+"
+                shortname=      "${ant.project.name}"
+                icon=           "${ant.project.name}.icns"
+                copyright=      "${ant.project.name} ${builddate} ${copyright}"
+                stubfile=       "${stubFile}"
+                version=        "${version}">
+                <!-- WorkingDirectory= "/" (wtf knows?) -->
+                
+      
+                <javaproperty name="apple.laf.useScreenMenuBar" value="false"/>
+                <javaproperty name="applered.app"               value="true"/>
+                <javaproperty name="applered.port"              value="33445"/>
+                
+              
+                <jarfileset dir="build">
+                  <include name="**/*.jar" />
+                </jarfileset>
+          
+                
+                <documenttype name=       "red editable document"
+                              extensions= "txt java xml tex sty cls scala jt jp j" 
+                              ostypes=    "****" 
+                              iconFile=   "${ant.project.name}.icns"
+                              role=       "Editor"
+                />  
+                              
+    </jarbundler>
+    
+    <echo message="Made ${AppleRed}" />
+    
+  </target>
+   
+  
+  
+
+  <target name="prepare">
+    <mkdir dir="classes"/>
+    <mkdir dir="build"/>
+    <copy overwrite="true" file="../AppleRed.jar" tofile="build/${ant.project.name}.jar"/>
+   
+    <unzip src="build/${ant.project.name}.jar" dest="classes">
+           <patternset>
+               <include name="**/*.class"/>
+           </patternset>
+    </unzip>
+    
+
+  </target>
+  
+  <target name="clean" description="Clean up anything we can rebuild">
+    <delete dir="${ant.project.name}.app"  quiet="true"/>
+    <delete file="${ant.project.name}.dmg" quiet="true"/>
+    <delete dir="build"                    quiet="true"/> 
+    <delete dir="classes"                  quiet="true"/> 
+  </target>
+
+</project>
+
+
+<!--
+Notes written during an attempt to regularise the distribution(s)
+of OS/X variants of the Jape proof tool (late October 2014)
+
+I have been sitting at an OSX 10.7 machine (agonistes) with an OSX
+10.9 machine (mimi) to my left. Both machines have all java
+installations
+
+mimi 10.9
+> 616 $ /usr/libexec/java_home -V
+> Matching Java Virtual Machines (4):
+>     1.8.0_20, x86_64: "Java SE 8"     /Library/Java/JavaVirtualMachines/jdk1.8.0_20.jdk/Contents/Home
+>     1.7.0_67, x86_64: "Java SE 7"     /Library/Java/JavaVirtualMachines/jdk1.7.0_67.jdk/Contents/Home
+>     1.6.0_65-b14-462, x86_64: "Java SE 6"     /System/Library/Java/JavaVirtualMachines/1.6.0.jdk/Contents/Home
+>     1.6.0_65-b14-462, i386:   "Java SE 6"     /System/Library/Java/JavaVirtualMachines/1.6.0.jdk/Contents/Home
+
+agonistes 10.7
+> 523 $ /usr/libexec/java_home -V
+> Matching Java Virtual Machines (4):
+>     1.8.0_20, x86_64: "Java SE 8"     /Library/Java/JavaVirtualMachines/jdk1.8.0_20.jdk/Contents/Home
+>     1.7.0_17, x86_64: "Java SE 7"     /Library/Java/JavaVirtualMachines/jdk1.7.0_17.jdk/Contents/Home
+>     1.6.0_65-b14-466.1, x86_64:       "Java SE 6"     /System/Library/Java/JavaVirtualMachines/1.6.0.jdk/Contents/Home
+>     1.6.0_65-b14-466.1, i386: "Java SE 6"     /System/Library/Java/JavaVirtualMachines/1.6.0.jdk/Contents/Home
+
+What I have learned is
+
+1. The command-line tools like java and javac will respect the JAVA_HOME
+environment variable, and you can use, eg
+
+export JAVA_HOME="`/usr/libexec/java_home -v '1.7*'`"
+
+to give you a suitable compilation environment.
+
+2. Standard double-clickable application bundles don't use JDKs
+installed under /Library/Java (or anywhere else). Old-style .app
+bundles, bundled with the jarbundler and therefore using using Apple's
+JavaApplicationStub, will use Apple Java 6 from
+/System/Library/Frameworks.
+
+3. New-style .app bundles built with Oracle's AppBundler (without a
+bundled JRE) will (on 10.7+)use the "public" JRE in
+
+/Library/Internet Plug-Ins/JavaAppletPlugin.plugin/Contents/Home
+
+The path is hard-coded in the stub code and can't be changed; so you
+can't have two different public JREs installed simultaneously.
+
+However, you CAN (at the expense of vastly bloating the .app bundle ==
+in the case of the Dred editor it went from <450kb to >100mb) bundle an
+appropriate JRE in the app bundle, and (at least) 10.7 (probably 10.8)
+and 10.9 will use the one that's bundled.
+
+To quote Tony Hoare: ''Fuck me! If it's going to be THAT complicated
+then I'd rather be doing theory.'' (that's what he was thinking == he
+didn't quite use the same phrasing)
+
+Still: I think I now know what to do.
+
+1. Make a single small app bundle with java1.6, and tell people they can
+use that if they ONLY have java1.6 installed (an increasingly small
+proportion of Macistas are in this state as they move up the OS/X versions)
+
+2. Make a single small app bundle with java 1.8, and tell people they
+have to install java 1.8 from Oracle. This for citizens with 10.7+ who
+have the capacity to install Java without handholding.
+
+3. Make a large app bundle with java 1.8 JRE bundled. This for citizens
+without the capacity to install Java 1.8 without handholding.
+
+2 and 3 are, at least, future-proof.
+
+The appleeawt issue is orthogonal, but I have made a jar with JUST that
+API in it that can be used to compile the apple variant of the program I
+discovered all this with (my Dred editor) using Java 1.8 on OS/X 10.9. I
+have no reason to suppose that I cannot do the same with Jape; but I'm
+not inclined to do it tonight.
+
+B.
+
+-->
+
+<!-- April 19th 2018 BS
+On github there's a more or less standard Oracle app bundler. I am going to stick with it.
+
+https://github.com/ome/appbundler
+
+-->
+
+<!-- March 17, 2021
+I have abandoned appbundler
+-->
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
