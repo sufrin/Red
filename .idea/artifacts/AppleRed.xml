@@ -2,9 +2,6 @@
   <artifact type="jar" build-on-make="true" name="AppleRed">
     <output-path>$PROJECT_DIR$/out/artifacts/</output-path>
     <root id="archive" name="AppleRed.jar">
-      <element id="directory" name="META-INF">
-        <element id="file-copy" path="$PROJECT_DIR$/out/artifacts/META-INF/MANIFEST.MF" />
-      </element>
       <element id="module-output" name="Jed" />
       <element id="extracted-dir" path="$USER_HOME$/local/scalalib/scala-swing_2.13-2.1.1.jar" path-in-jar="/" />
       <element id="extracted-dir" path="$PROJECT_DIR$/../RegexKit/out/artifacts/regexkit.jar" path-in-jar="/" />
