@@ -36,7 +36,7 @@ import java.nio.file.Path
  */
 object Sessions extends Logging.Loggable {
   // Log warnings and errors
-  level = Logging.WARN
+  level = Logging.ALL
 
   /** Process arguments after locating
    * (or setting up as) a server.
@@ -52,6 +52,7 @@ object Sessions extends Logging.Loggable {
     private var processingLocally = true
 
     def process(arg: String): Unit = {
+      if (logging) info(s"process($arg)")
       if (processingLocally)
         processLocally(arg)
       else
@@ -184,13 +185,16 @@ object Sessions extends Logging.Loggable {
    * (or destined to be saved in) the filestore at `fileName`.
    */
 
-  def startSession(fileName: String): Session =
+  def startSession(fileName: String): Session = {
+    if (logging) info(s"startSession($fileName)")
     findRed(fileName) match {
       case None      => new Session(Utils.toPath(fileName), newRedIndex())
       case Some(red) => red
     }
+  }
 
   def startSession(fileName: String, location: String): Session = {
+    if (logging) info(s"startSession($fileName, $location)")
     val red = startSession(fileName)
     red.goTo(location)
     red

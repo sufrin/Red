@@ -310,9 +310,11 @@ class EditSession(val document: DocumentInterface, private var _path: String)
   /**
    *  Paste `theClip` and select it, with mark to the left.
    *  Cut and return the previously-selected text.
+   *
+   *  @param requireSelection true when an actual selection is required
    */
-  def exch(theClip: String): String = {
-    if (hasNoSelection) "" else {
+  def exch(theClip: String, requireSelection: Boolean): String = {
+    if (requireSelection && hasNoSelection) "" else {
       val text = selectionText()
       SystemClipboard.set(text)
       recordCut(Cut(text, selection.extent, selection.cursor, document.generation))
@@ -609,7 +611,7 @@ class EditSession(val document: DocumentInterface, private var _path: String)
         None
       case Some(instance) =>
         val repl = if (asRegex) instance.substitute(theReplacement) else theReplacement
-        exch(repl)
+        exch(repl, true)
         if (backwards) {
           val c = cursor;
           cursor -= repl.length;
@@ -630,7 +632,7 @@ class EditSession(val document: DocumentInterface, private var _path: String)
       val selected = selectionText()
       val (count, repl) = regex.substituteAll(selected, theReplacement, !asRegex)
       warnings.notify("Replace All", s"$count replacements")
-      if (count>0) { exch(repl); Some(selected) } else None
+      if (count>0) { exch(repl, true); Some(selected) } else None
     } catch {
       case exn: java.lang.RuntimeException =>
         warnings.notify("Replace All", s"Pattern:\n  $thePattern\n is not well-formed\n ${exn.getMessage}")

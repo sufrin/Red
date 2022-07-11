@@ -7,6 +7,7 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import javax.swing.{Icon, SwingUtilities}
+import scala.swing.{Action, Button, Image, MenuItem}
 
 /** System wide default settings. These will eventually be treated as (dynamic)
   * preferences.
@@ -21,27 +22,68 @@ object Utils {
   var feedbackFont: Font = new Font("Monospaced", Font.PLAIN, 16)
   var feedbackColor: Color = Color.BLUE
 
-  private val dateFormat: SimpleDateFormat = new SimpleDateFormat("y-MM-dd@HHmmss")
 
+  /** Miscellaneous utilities for manipulating images and icons */
+  object ImageUtilities {
+
+
+
+    /** Make an Image from an Icon */
+    def makeImage(icon: Icon): Image = {
+      import java.awt.GraphicsEnvironment
+      val w = icon.getIconWidth
+      val h = icon.getIconHeight
+      val ge = GraphicsEnvironment.getLocalGraphicsEnvironment
+      val gd = ge.getDefaultScreenDevice
+      val gc = gd.getDefaultConfiguration
+      val image = gc.createCompatibleImage(w, h)
+      val g = image.createGraphics
+      icon.paintIcon(null, g, 0, 0)
+      g.dispose()
+      image
+    }
+
+    class ColoredIcon(h: Int, w: Int, color: java.awt.Color) extends Icon {
+      def getIconHeight: Int = h
+
+      def getIconWidth: Int = w
+
+      override def paintIcon(c: Component, g: Graphics, x: Int, y: Int): Unit = {
+        g.setColor(color)
+        g.fill3DRect(0, 0, w, h, true)
+      }
+
+    }
+
+  }
+  val redIcon: Icon    = new ImageUtilities.ColoredIcon(60, 60, Color.RED)
+  val redImage:  Image = ImageUtilities.makeImage(redIcon)
+
+
+  private val dateFormat: SimpleDateFormat = new SimpleDateFormat("y-MM-dd@HHmmss")
   def dateString(time: Long): String = dateFormat.format(new Date(time))
   def dateString(): String = dateFormat.format(new Date())
 
-  class ColoredIcon(h: Int, w: Int, color: java.awt.Color)
-    extends Icon {
-    def getIconHeight: Int = h
-    def getIconWidth: Int = w
-    override def paintIcon(c: Component, g: Graphics, x: Int, y: Int): Unit = {
-      g.setColor(color)
-      g.fill3DRect(0, 0, w, h, true)
-    }
-  }
-
-  val closeIcon: Icon = new ColoredIcon(60, 60, Color.GREEN)
-  val redIcon: Icon = new ColoredIcon(60, 60, Color.RED)
 
   class Menu(title: String) extends scala.swing.Menu(title) {
     font = menuFont
   }
+
+  def Item(name: String, toolTip: String = "")(act: => Unit): MenuItem =
+    new MenuItem(Action(name) {
+      act
+    }) {
+      font = Utils.menuButtonFont
+      if (toolTip.nonEmpty) tooltip = toolTip
+    }
+
+  def Button(name: String, toolTip: String = "")(act: => Unit): swing.Button =
+    new Button(Action(name) {
+      act
+    }) {
+      font = Utils.buttonFont
+      if (toolTip.nonEmpty) tooltip = toolTip
+    }
 
   private val fileSeparator: String = System.getProperty("file.separator")
 
@@ -81,7 +123,7 @@ object Utils {
       case reason => reason
     }
 
-  import java.nio.file.{Path,Paths,Files}
+  import java.nio.file.{Files, Path, Paths}
 
   def save(path: Path, document: DocumentInterface): Option[String] = save(path.toString, document)
 

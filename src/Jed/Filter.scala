@@ -71,10 +71,10 @@ abstract class Filter extends SessionCommand {
     else
     Some {
       val result       = out.get
-      val oldSelected  = session.exch(if (addNL) result.init else result)
+      val oldSelected  = session.exch(if (addNL) result.init else result, requireSelection = false)
       new StateChange {
-        def undo(): Unit = { session.exch(oldSelected); session.selection = oldSelection }
-        def redo(): Unit = session.exch(if (addNL) result.init else result)
+        def undo(): Unit = { session.exch(oldSelected, true); session.selection = oldSelection }
+        def redo(): Unit = session.exch(if (addNL) result.init else result, true)
         override val kind: String = thisTransform.kind
       }
     }

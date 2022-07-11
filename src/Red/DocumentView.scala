@@ -37,7 +37,7 @@ package Red
 
 
     /** Number of columns (if any) in which to write the line numbers */
-    private var lineNumCols = 4
+    private var lineNumCols = 5
     private var lineNumberFormat = s"%0${lineNumCols}d"
 
     /** Set the number of columns in which to display

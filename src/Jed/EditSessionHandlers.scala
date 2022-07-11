@@ -97,11 +97,6 @@ class EditSessionHandlers(val DO: Commands.Command[EditSession]=>Unit) {
         // Multiple presses
         case MousePressed(_, _, _, Button1)  => ()
         case MousePressed(_, _, _, Button3)  => ()
-
-
-        case MouseReleased(_, _,       Button1)           => DO(commands.mouseUp)
-        case MouseReleased(_, _, _)                       => ()
-
       }
 
       /**

@@ -132,6 +132,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
       val charHeight = metrics.getHeight
       preferredSize = new Dimension(labWidth, charHeight)
     }
+    peer.setFocusable(false) // Magic to avoid blue focus ring
     if (toolTip.nonEmpty) tooltip=toolTip
   }
 
@@ -278,26 +279,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
 
     contents += new Utils.Menu("Red") {
 
-      contents += Item("Default tex source := \u24b6", toolTip = "Change default tex source using dialogue or nonempty \u24b6 field") {
-        var text = argLine.text.trim
-        if (text.isEmpty) {
-          val chooser = fileChooser
-          chooser.showOpenDialog(top) match {
-            case Approve => text = chooser.selectedFile.toString
-            case Cancel  => text = ""
-          }
-        }
-        if (text.nonEmpty) theSession.TEX=Utils.toPath(text)
-        feedbackTemporarily(s"Default tex source: ${theSession.TEX.toString}")
-      }
 
-      contents += Item(s"Default tex source := ${theSession.path}", toolTip = "Change default latex source to current file") {
-        theSession.TEX=Utils.toPath(theSession.path)
-        feedbackTemporarily(s"Tex master manuscript: ${theSession.TEX.toString}")
-      }
-
-      contents += Separator()
-      contents += Separator()
 
       contents += Item("cd \u24b6", toolTip = "Change working directory using dialogue or nonempty \u24b6 field") {
         var text = argLine.text.trim
@@ -338,6 +320,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
             Settings.clickSelects = selected
         }
       }
+
       contents += new CheckMenuItem("Auto indent") {
         tooltip  = "When enabled, a newline is followed by enough spaces to align the start of the current line"
         font     = Utils.buttonFont
@@ -346,6 +329,14 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
         reactions += {
           case event.ButtonClicked(_) =>
             theSession.autoIndenting = selected
+        }
+      }
+
+      if (theSession.hasCutRing) {
+        contents += Separator()
+        contents += Separator()
+        contents += Item("Show Cut Ring") {
+          CutRingUI.refreshIfVisible()
         }
       }
 
@@ -413,41 +404,49 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
           UI_DO(EditSessionCommands.upperCaseFilter)
         }
 
-        if (theSession.hasCutRing) {
-          contents += Separator()
-          contents += Item("Cut Ring") {
-            CutRingUI.refreshIfVisible()
-          }
-        }
+
     } // Edit Menu
 
     contents += new Utils.Menu("Pipe") {
+      // should piped oputput augment the selection, or replace it?
+      var augmentSelection: Boolean = true
+
       // Pipe the selection through ...
       contents += Item("\u24b6  < ...") {
-        withFilterWarnings("\u24b6  < ...") { UI_DO(EditSessionCommands.pipeThrough(argLine.text))}
+        withFilterWarnings("\u24b6  < ...") { UI_DO(EditSessionCommands.pipeThrough(argLine.text, replaceSelection = !augmentSelection)) }
       }
 
-      contents += Item("wc < ...") {
-        withFilterWarnings("wc < ...") { UI_DO(EditSessionCommands.pipeThrough("wc")) }
+      for { program <- Personalised.pipeNames } {
+        contents += Item(s"$program < ...") {
+          withFilterWarnings(s"$program < ...") { UI_DO(EditSessionCommands.pipeThrough(program, replaceSelection = !augmentSelection)) }
+        }
       }
 
-      contents += Item("ls \u24b6") {
-        withFilterWarnings("ls \u24b6") { UI_DO(EditSessionCommands.pipeThrough(s"ls ${argLine.text}")) }
+      contents += Separator()
+
+      contents += new CheckMenuItem("Don't replace selection") {
+        tooltip  = "When enabled, the piped output augments the selection"
+        font     = Utils.buttonFont
+        selected = true
+        listenTo(this)
+        reactions += {
+          case event.ButtonClicked(_) =>
+            augmentSelection = selected
+        }
       }
 
     } // Pipe Menu
 
+    contents += new Label("        ")
 
-    contents += new Utils.Menu("Tex") {
+    contents += Button("Tex", toolTip = "Run redpdf now") {
+      saveOperation()
+      UI_DO(EditSessionCommands.latexToPDF)
+    }
 
-      contents += Item("%%%%") {
-        val header =
-          """%%%%%%%%%%%%%%%%%%%%%%%%
-            |%%%%%%%%%%%%%%%%%%%%%%%%
-            |%%%%%%%%%%%%%%%%%%%%%%%%
-            |""".stripMargin
-        UI_DO(EditSessionCommands.latexInsert(header))
-      }
+    val classMenu = new Utils.Menu("Class") {
+
+
 
       contents += Item("\\documentclass{article}") {
         val up = "\\usepackage[]{}"
@@ -486,16 +485,38 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
       contents += Separator()
       contents += Separator()
 
-      contents += Item("\\begin{\u24b6}") {
-        UI_DO(EditSessionCommands.latexBlock(argLine.text.trim))
+      contents += Item("Tex source := \u24b6", toolTip = "Change default tex source using dialogue or nonempty \u24b6 field") {
+        var text = argLine.text.trim
+        if (text.isEmpty) {
+          val chooser = fileChooser
+          chooser.showOpenDialog(top) match {
+            case Approve => text = chooser.selectedFile.toString
+            case Cancel  => text = ""
+          }
+        }
+        if (text.nonEmpty) theSession.TEX=Utils.toPath(text)
+        feedbackTemporarily(s"Tex source: ${theSession.TEX.toString}")
       }
 
-      contents += Item("""\begin{...}->...""") {
-        UI_DO(EditSessionCommands.latexUnblock)
+      contents += Item(s"Default tex source := ${theSession.path}", toolTip = "Change default latex source to current file") {
+        theSession.TEX=Utils.toPath(theSession.path)
+        feedbackTemporarily(s"Tex source: ${theSession.TEX.toString}")
       }
     }
 
     contents += new Utils.Menu("\\begin{...}") {
+
+      contents += Item("%%%%%%%%") {
+        val header =
+          """%%%%%%%%%%%%%%%%%%%%%%%%
+            |%%%%%%%%%%%%%%%%%%%%%%%%
+            |%%%%%%%%%%%%%%%%%%%%%%%%
+            |""".stripMargin
+        UI_DO(EditSessionCommands.latexInsert(header))
+      }
+
+      contents += Separator()
+
       locally {
         val blockTypes = Red.Personalised.latexBlockTypes
 
@@ -508,14 +529,25 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
                 UI_DO(EditSessionCommands.latexBlock(block))
               }}
       }
+
+      contents += Separator()
+      contents += Item("\\begin{\u24b6}") {
+        UI_DO(EditSessionCommands.latexBlock(argLine.text.trim))
+      }
+
+      contents += Item("""\begin{...}->...""") {
+        UI_DO(EditSessionCommands.latexUnblock)
+      }
+
+      contents += Separator()
+
+      // Infrequent additions
+      contents += classMenu
     }
 
     contents += Glue.horizontal()
 
-    contents += Button("PDF", toolTip = "Run redpdf now") {
-      saveOperation()
-      UI_DO(EditSessionCommands.latexToPDF)
-    }
+
 
     contents += undoButton
     contents += redoButton
@@ -539,7 +571,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
   }
 
   val top: ControllingFrame = new ControllingFrame(theSession) {
-    title = s"Jedi: ${theSession.path}"
+    title = s"Red: ${theSession.path}"
     background = Color.lightGray
     contents = thePanel
     if (isFileEditor) menuBar = theMenuBar

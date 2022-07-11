@@ -379,7 +379,7 @@ abstract class InputPanel(val numPadAsCommand: Boolean = true,
    * There are much better, though a bit more prolix, ways of
    * typing "exotic" symbols and sequences conveniently; one of which
    * is provided in the "abbreviation" facility of the complete
-   * `Red` editor.
+   * editor.
    */
   var altKeyChar: mutable.Map[Int, Char] = new mutable.HashMap[Int, Char]().addAll(mathTrans)
 

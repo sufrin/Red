@@ -116,13 +116,13 @@ object EditSessionCommands extends Logging.Loggable {
   }
 
 
-  def pipeThrough(arg: String, errorCheck: Seq[String]=>Option[String] = { args => None }): SessionCommand = new Filter {
+  def pipeThrough(arg: String, errorCheck: Seq[String]=>Option[String] = { args => None }, replaceSelection: Boolean = true): SessionCommand = new Filter {
     protected override def transform(input: String, cwd: Path): Option[String] = {
       val args = FilterUtilities.parseArguments(arg)
       errorCheck(args) match {
         case None =>
           val cmd  = Process(args, cwd.toFile)
-          Some(Filter.runProcess(cmd, input))
+          Some(if (replaceSelection) Filter.runProcess(cmd, input) else Filter.runProcess(cmd, input)++input)
         case Some(error) =>
           Filter.warnings.notify(arg, error)
           None
@@ -512,11 +512,11 @@ object EditSessionCommands extends Logging.Loggable {
     def DO(session: EditSession): StateChangeOption = {
       val oldClip         = SystemClipboard.getOrElse("")
       val oldSelection    = session.selection             // get the polarity right on undo
-      val oldSelected     = session.exch(oldClip)
+      val oldSelected     = session.exch(oldClip, true)
       Some {
         new StateChange {
-          def undo(): Unit = { session.exch(oldSelected); session.selection = oldSelection }
-          def redo(): Unit = session.exch(oldClip)
+          def undo(): Unit = { session.exch(oldSelected, true); session.selection = oldSelection }
+          def redo(): Unit = session.exch(oldClip, true)
         }
       }
     }
@@ -538,7 +538,7 @@ object EditSessionCommands extends Logging.Loggable {
         def DO(session: EditSession): StateChangeOption = {
           val replaced = session.replace(thePattern, theReplacement, backwards, asRegex)
           if (replaced.isDefined) Some (new StateChange {
-            def undo(): Unit = { session.exch(replaced.get)  }
+            def undo(): Unit = { session.exch(replaced.get, true)  }
             def redo(): Unit = session.replace(thePattern, theReplacement, backwards, asRegex)
           }) else None
         }
@@ -549,7 +549,7 @@ object EditSessionCommands extends Logging.Loggable {
       def DO(session: EditSession): StateChangeOption = {
         val replaced = session.replaceAllInSelection(thePattern, theReplacement, asRegex)
         if (replaced.isDefined) Some (new StateChange {
-          def undo(): Unit = { session.exch(replaced.get)  }
+          def undo(): Unit = { session.exch(replaced.get, true)  }
           def redo(): Unit = session.replaceAllInSelection(thePattern, theReplacement, asRegex)
         }) else None
       }
