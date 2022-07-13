@@ -11,7 +11,10 @@ import java.awt.desktop._
 object AppleRed extends Logging.Loggable {
 
   def main(args: Array[String]): Unit =
-    withDesktop { Jed.Sessions.main(args) }
+    //SwingUtilities.invokeLater { new Runnable { def run(): Unit = withDesktop{ Jed.Sessions.main(args) } } }
+    withDesktop {
+      Jed.Sessions.main(args)
+    }
 
   def withDesktop(body: => Unit): Unit = {
     val desk: Desktop = Desktop.getDesktop
@@ -19,15 +22,17 @@ object AppleRed extends Logging.Loggable {
     // This property is set for the OS/X app
     sys.props.get("applered.port") match {
       case None =>
+        // not an OS/X app; so we need no main window
       case Some(port) =>
         import scala.swing._
         val ffont   = Jed.Utils.defaultFont
         val redLine = "\uf8ff Red \uf8ff"
-        val frame = new swing.MainFrame() {
+        val frame = new swing.Frame() {
           val panel = new BoxPanel(Orientation.Vertical) {
             val user = System.getProperty("user.name", "<no user>")
+            val client = if (sys.props.get("applered.client").nonEmpty) "<center><b>[Client]</b></center>" else ""
             val label = new Label(
-              s"<html><center><b>$redLine</b></center><center><b>$user</b></center><center><b>($port)</b></center></html>"
+              s"<html><center><b>$redLine</b></center><center><b>$user</b></center><center><b>($port)</b></center>$client</html>"
             ) {
               border = javax.swing.BorderFactory.createEtchedBorder()
               horizontalAlignment = Alignment.Center
@@ -36,7 +41,7 @@ object AppleRed extends Logging.Loggable {
             if (false) {
               // TODO: The app doesn't respond to this button. Why?
               contents += Jed.Utils.Button("New", "Start editing a new file") {
-                Jed.Sessions.startSession(s"AppleRed+${Jed.Utils.dateString()}")
+                Jed.Sessions.argProcessor.process(s"AppleRed+${Jed.Utils.dateString()}")
               }
             }
             iconImage = Jed.Utils.redImage
@@ -74,16 +79,14 @@ object AppleRed extends Logging.Loggable {
         new OpenFilesHandler {
           override def openFiles(e: OpenFilesEvent): Unit = {
             val files = e.getFiles().iterator()
-            // val names = for {f <- files} yield f.toString
-            // open a new session for each open request
-            // for {f <- names} Red(f)
-            // main(names)
             while (files.hasNext) {
               val file     = files.next()
               val fileName = file.getAbsolutePath
-              println(s"Opening $fileName")
-              if (fileName != null) Jed.Sessions.argProcessor.process(fileName)
-              else Jed.Sessions.argProcessor.process("UNTITLED")
+              info(s"Opening $fileName")
+              if (fileName != null)
+                Jed.Sessions.argProcessor.process(fileName)
+              else
+                Jed.Sessions.argProcessor.process("UNTITLED")
             }
           }
         }

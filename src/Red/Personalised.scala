@@ -1,5 +1,12 @@
 package Red
 
+/**
+ *  Personalisation module, with definitions of
+ *  abbreviations, menu entries, etc.
+ *
+ *  TODO: read configuration data to set this up.
+ *
+ */
 object Personalised {
   /** Block types to be placed on a `Latex` menu */
   def latexBlockTypes: Seq[String] =

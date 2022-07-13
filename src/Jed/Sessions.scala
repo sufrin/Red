@@ -36,7 +36,7 @@ import java.nio.file.Path
  */
 object Sessions extends Logging.Loggable {
   // Log warnings and errors
-  level = Logging.ALL
+  level = Logging.WARN
 
   /** Process arguments after locating
    * (or setting up as) a server.
@@ -85,12 +85,20 @@ object Sessions extends Logging.Loggable {
           if (logging) fine(s"Sending -probe to $server")
           val Some((port, bus)) = server
           try {
+            // when packaged as an /app/ the program no longer starts itself as a server
+            // in the absence of a response to -probe
+            // I don't understand why this is.
             bus.send(port, "-probe") match {
               case None =>
                 // -probe was not acknowledged: assume no server on port
-                startServing(port)
-                processingLocally = true
-
+                if (sys.props.get("applered.client").nonEmpty)  {
+                  if (logging) warn(s"Acting as a client, with server assumed to be at $port (via $bus)")
+                  processingLocally = false
+                } else {
+                  // serve here
+                  startServing(port)
+                  processingLocally = true
+                }
               case Some(_) =>
                 // -probe acknowledged: assume there's a server, process using the server
                 if (logging) fine(s"Server is at $port (via $bus)")
@@ -142,7 +150,9 @@ object Sessions extends Logging.Loggable {
   def main(args_ : Array[String]): Unit = {
     val args=args_ . toList
     if (args.isEmpty)
-    { isApp = true ; argProcessor.process("New Document")  }
+    { isApp = true
+      argProcessor.process(s"New Document")
+    }
     else
       for { arg <- args } argProcessor.process(arg)
     if (logging) finer(s"$argProcessor finished")

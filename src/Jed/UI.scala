@@ -408,8 +408,8 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
     } // Edit Menu
 
     contents += new Utils.Menu("Pipe") {
-      // should piped oputput augment the selection, or replace it?
-      var augmentSelection: Boolean = true
+      // should piped output replace the selection or prefix it
+      var augmentSelection: Boolean = false
 
       // Pipe the selection through ...
       contents += Item("\u24b6  < ...") {
@@ -424,10 +424,10 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
 
       contents += Separator()
 
-      contents += new CheckMenuItem("Don't replace selection") {
-        tooltip  = "When enabled, the piped output augments the selection"
+      contents += new CheckMenuItem("Append selection to piped output") {
+        tooltip  = "When enabled the piped output is supplemented with the original selection"
         font     = Utils.buttonFont
-        selected = true
+        selected = augmentSelection
         listenTo(this)
         reactions += {
           case event.ButtonClicked(_) =>
@@ -547,7 +547,12 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
 
     contents += Glue.horizontal()
 
+    contents += Button("Pandoc", toolTip = "Run redpandoc now") {
+      saveOperation()
+      UI_DO(EditSessionCommands.pandocToPDF)
+    }
 
+    contents += Glue.horizontal()
 
     contents += undoButton
     contents += redoButton

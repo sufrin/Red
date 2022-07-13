@@ -107,11 +107,10 @@ object EditSessionCommands extends Logging.Loggable {
       arg.startsWith("-") || arg.matches("[0-9]+")
     }
     def checkArgs(args: Seq[String]): Option[String] =
-      if (args forall numOrSwitch)
+      if (args.tail forall numOrSwitch)
          None
       else
          Some("fmt arguments in \u24b6 must be numbers or -switches")
-
       pipeThrough(s"fmt $arg", checkArgs(_))
   }
 
@@ -679,4 +678,65 @@ object EditSessionCommands extends Logging.Loggable {
       while (it.hasNext) { report(it.next()) }
     }
   }
+
+  val pandocToPDF: SessionCommand = new SessionCommand {
+    def DO(session: EditSession): StateChangeOption = {
+      val CWD = session.CWD.toFile // the session's working directory
+      val source = session.path // the file being edited
+      val driver = source // the driver file
+      val (row, _) = session.getCursorPosition // the 0-origin row of the file being edited
+      val logWindow = Sessions.startSession(s"$driver.pandoclog")
+      val logSession = logWindow.session
+
+      locally {
+        logSession.makeEphemeral()
+        logSession.clear()
+        logSession.insert(s"Running pandoc ${Utils.dateString()}\n")
+        logWindow.gui.makeVisible()
+      }
+
+      /**
+       * Send `out` to the logging window, and make
+       * the latter visible immediately.
+       */
+      def toLogWindow(out: String): Unit = {
+        if (true) { // hack to be generalized
+          logSession.insert(out)
+          logSession.insert('\n')
+          logSession.notifyHandlers()
+        }
+        ()
+      }
+
+      val offEdt = new OffEdtThread[Unit, String](toLogWindow(_), { logWindow.gui.makeVisible() }) {
+        /**
+         * The offEdt thread `publish`es output to its `stdout` and `stderr` streams.*
+         * This is buffered, and from time to time it is passed to `log`
+         */
+        def logger = ProcessLogger(publish(_), publish(_))
+
+        /**
+         * This method runs in an offEdt thread; ie not on the EDT.
+         * It invokes a Posix process that's run with the editing session's
+         * working directory.
+         */
+        def doOffEDT() = {
+          try {
+            val cmd = List("redpandoc", driver, (row + 1).toString, source)
+            val process = Process(cmd, CWD)
+            val exit = (process #< inputStreamOf("")) ! logger
+            if (exit != 0) {
+              publish(s"${cmd.mkString(" ")} [exit $exit]")
+            }
+          }
+          catch {
+            case exn: Exception => publish(exn.toString)
+          }
+        }
+      }
+      offEdt.execute() // Start the off edt thread; don't wait
+      None
+    }
+  }
+
 }
