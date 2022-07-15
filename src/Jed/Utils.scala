@@ -153,6 +153,18 @@ object Utils {
     }
   }
 
+  def freshDocumentName(): String = s"New=${dateString()}"
+
+  /**
+   *  Translate filename arguments to absolute paths
+   *  relative to to the current working directory.
+   */
+  def toAbsolutePath(arg: String): String =
+    if (arg.startsWith("-")) arg else {
+      import java.nio.file.Path
+      Path.of(arg).toAbsolutePath.toString
+    }
+
   def toPath(path: String): Path = Paths.get(expandHome(path)).toAbsolutePath()
 
   def toParentPath(path: String): Path = toPath(path).getParent.toAbsolutePath()

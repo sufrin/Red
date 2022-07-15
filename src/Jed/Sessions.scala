@@ -14,119 +14,24 @@ import java.nio.file.Path
  *  meaning beyond this; but (as it happens) signifies the order in which
  *  the currently-active sessions were started.
  *
- *  ===Editing Servers===
- *  The main program will use or will act as an "Editing Server" on
- *  the local host, at the port specified by the environment
- *  variable `REDPORT`. If such a variable exists, and
- *  it designates a port number, then when the program is
- *  starting, it either locates an existing server on the designated port,
- *  or sets itself up  as a server reading arguments sent as datagrams
- *  to that port from its clients.
- *
- *  If it has located a server, then it acts as a client, and
- *  sends the program  arguments, one by one to the server.
- *  In this case, path arguments are made absolute if they are
- *  not already absolute by prefixing them with the
- *  client's current working directory/folder.
- *
- *  If no such environment variable is set, or if it is set to
- *  a non-number, then this program behaves as a stand-alone
- *  editor.
- *
  */
 object Sessions extends Logging.Loggable {
   // Log warnings and errors
   level = Logging.WARN
 
-  /** Process arguments after locating
-   * (or setting up as) a server.
-   */
-  object argProcessor {
-    /** When nonEmpty, the port to to which arguments will be sent
-     * and the bus that will be used to send them.
-     */
-    private var server: Option[(Int, Red.Bus.Sender)] = None
-    /**
-     * True iff this Red is a server or a standalone editor.
-     */
-    private var processingLocally = true
-
-    def process(arg: String): Unit = {
-      if (logging) info(s"process($arg)")
-      if (processingLocally)
-        processLocally(arg)
-      else
-        server match {
-          case Some((port, bus)) =>
-            // send for remote processing
-            bus.send(port, if (arg.startsWith("-")) arg else toAbsolutePath(arg))
-
-          case None =>
-            // process locally
-            processLocally(arg)
-        }
-    }
-
-    override def toString: String =
-      if (processingLocally || server.isEmpty)
-        "Processing arguments locally"
-      else
-        s"Processing at server $server"
-
-    locally {
-      val redPort = sys.env.get("REDPORT")
-      val appPort = sys.props.get("applered.port")
-      val port    = if (redPort.isEmpty) appPort else redPort
-      port match {
-        case None =>
-          if (logging) fine("No REDPORT environment variable")
-        case Some(portSpec) if (portSpec matches "[0-9]+") =>
-          server = Some((portSpec.toInt, new Red.Bus.Sender()))
-          if (logging) fine(s"Sending -probe to $server")
-          val Some((port, bus)) = server
-          try {
-            // when packaged as an /app/ the program no longer starts itself as a server
-            // in the absence of a response to -probe
-            // I don't understand why this is.
-            bus.send(port, "-probe") match {
-              case None =>
-                // -probe was not acknowledged: assume no server on port
-                if (sys.props.get("applered.client").nonEmpty)  {
-                  if (logging) warn(s"Acting as a client, with server assumed to be at $port (via $bus)")
-                  processingLocally = false
-                } else {
-                  // serve here
-                  startServing(port)
-                  processingLocally = true
-                }
-              case Some(_) =>
-                // -probe acknowledged: assume there's a server, process using the server
-                if (logging) fine(s"Server is at $port (via $bus)")
-                processingLocally = false
-            }
-          } catch {
-            case exn: Exception =>
-              fatal(s"Probing for Red server. ${exn.getLocalizedMessage}")
-              sys.exit(1)
-          }
-        case _ =>
-          if (logging) fine("REDPORT environment variable is not a (port) number")
-      }
-    }
-  }
 
   /**
    *  Start an editing session for each of the paths named on the command line
    *  If a document exists at that path, then the session edits the document
    *  already stored there.
    *
-   *  If the no such document exists, the session edits a fresh, blank,
+   *  If no such document exists, the session edits a fresh, blank,
    *  document that is destined to be stored at that path in the filestore.
    *
    *  If an argument is of the form `-l`''module''`=`''level'' then the logging
    *  level for the named module is set to the (named) level.
    *
-   *  '''Servers and Server Invocation'''
+   *  ===Servers and Server Invocation===
    *
    *  If (and only if) the environment variable `REDPORT` is set to a port
    *  number, then this is taken to be the port on which an editor server
@@ -151,45 +56,15 @@ object Sessions extends Logging.Loggable {
     val args=args_ . toList
     if (args.isEmpty)
     { isApp = true
-      argProcessor.process(s"New Document")
+      Server.process(Utils.freshDocumentName())
     }
     else
-      for { arg <- args } argProcessor.process(arg)
-    if (logging) finer(s"$argProcessor finished")
+      for { arg <- args } Server.process(arg)
+    if (logging) finer(s"${Server} finished")
   }
 
-  def processLocally(arg: String): Unit =
-    arg match {
-      case "-probe" =>
-        if (logging) fine(s"probed")
-      case s"-l${module}=${level}" =>
-        Logging.update(module, level)
-        Logging.Default.info(s"$module=$level")
-      case s"-stop" =>
-        stopServer()
-      case s"-quit" =>
-        if (canQuit()) {
-          stopServer()
-          System.exit(0)
-        }
-      case s"-$unknown" =>
-        warn(s"$arg is an unknown switch")
-      case s"$path@$location" =>
-        Sessions.startSession(path, location)
-      case path =>
-        Sessions.startSession(path)
-    }
 
 
-  /** Translate filename arguments to absolute paths
-   * to the current working directory in which code invoking
-   * the server is running.
-   */
-  def toAbsolutePath(arg: String): String =
-    if (arg.startsWith("-")) arg else {
-      import java.nio.file.Path
-      Path.of(arg).toAbsolutePath.toString
-    }
 
   /** Yields a new `Red`, editing the document in
    * (or destined to be saved in) the filestore at `fileName`.
@@ -280,38 +155,6 @@ object Sessions extends Logging.Loggable {
   def canQuit(): Boolean = {
     forActiveReds (_.close())
     activeReds.isEmpty
-  }
-
-  /** If this editor is functioning as a server, then
-   * this is the receiver on the bus from which it
-   * is taking commands; otherwise it is `null`.
-   */
-  var serverPort: Red.Bus.Receiver = _
-
-  /** If this editor is functioning as a server,
-   * then stop servicing commands arriving on
-   * the bus; and close the associated port.
-   */
-  def stopServer(): Unit =
-    if (serverPort!=null) {
-      serverPort.stop()
-      warn(s"Stopped editor server at $serverPort")
-      serverPort = null
-    }
-
-  /** Start functioning as an editor server, reading
-   * editor arguments from the bus at `port`.
-   */
-  def startServing(port: Int): Unit =
-  { serverPort = new Red.Bus.Receiver(port)
-    if (logging) finer(s"Red Server on $port")
-    serverPort.start {
-      // on receiving an arg from a client process it here
-      case arg: String =>
-        if (logging) finer(s"Red $port <- $arg")
-        processLocally(arg)
-    }
-    warn(s"Started editor server at $serverPort")
   }
 
 }

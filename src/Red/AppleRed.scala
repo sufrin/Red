@@ -23,41 +23,48 @@ object AppleRed extends Logging.Loggable {
     sys.props.get("applered.port") match {
       case None =>
         // not an OS/X app; so we need no main window
+        appMainFrame("Linux")
       case Some(port) =>
-        import scala.swing._
-        val ffont   = Jed.Utils.defaultFont
-        val redLine = "\uf8ff Red \uf8ff"
-        val frame = new swing.Frame() {
-          val panel = new BoxPanel(Orientation.Vertical) {
-            val user = System.getProperty("user.name", "<no user>")
-            val client = if (sys.props.get("applered.client").nonEmpty) "<center><b>[Client]</b></center>" else ""
-            val label = new Label(
-              s"<html><center><b>$redLine</b></center><center><b>$user</b></center><center><b>($port)</b></center>$client</html>"
-            ) {
-              border = javax.swing.BorderFactory.createEtchedBorder()
-              horizontalAlignment = Alignment.Center
-            }
-            contents += label
-            if (false) {
-              // TODO: The app doesn't respond to this button. Why?
-              contents += Jed.Utils.Button("New", "Start editing a new file") {
-                Jed.Sessions.argProcessor.process(s"AppleRed+${Jed.Utils.dateString()}")
-              }
-            }
-            iconImage = Jed.Utils.redImage
-            border    = javax.swing.BorderFactory.createEtchedBorder()
+        // set up appMainFrame
+        appMainFrame(s"On ${port.toString}")
+    }
+
+    def appMainFrame(port: String): swing.Frame = {
+      import scala.swing._
+      val ffont = Jed.Utils.defaultFont
+      val redLine = "\uf8ff Red \uf8ff"
+      val frame = new MainFrame() {
+        val panel = new BoxPanel(Orientation.Vertical) {
+          val user = System.getProperty("user.name", "<no user>")
+          val client = if (sys.props.get("applered.client").nonEmpty) "<center><b>[Client]</b></center>" else ""
+          val label = new Label(
+            s"<html><center><b>$redLine</b></center><center><b>$user</b></center><center><b>($port)</b></center>$client</html>"
+          ) {
+            border = javax.swing.BorderFactory.createEtchedBorder()
+            horizontalAlignment = Alignment.Center
           }
-          // Frame
-          contents = panel
-          visible = true
-          title = s" $redLine "
-          peer.setLocationRelativeTo(null)
-          iconify()
-          peer.setResizable(false)
-          peer.setDefaultCloseOperation(
-            javax.swing.WindowConstants.DO_NOTHING_ON_CLOSE
-          )
+          contents += label
+          if (true) {
+            // TODO: The app doesn't respond to this button. Why?
+            contents += Jed.Utils.Button("New", "Start editing a new file") {
+              Jed.Server.process(s"AppleRed+${Jed.Utils.dateString()}")
+            }
+          }
+          iconImage = Jed.Utils.redImage
+          border = javax.swing.BorderFactory.createEtchedBorder()
         }
+        // Frame
+        contents = panel
+        visible = true
+        title = s" $redLine "
+        peer.setLocationRelativeTo(null)
+        iconify()
+        peer.setResizable(false)
+        peer.setDefaultCloseOperation(
+          javax.swing.WindowConstants.DO_NOTHING_ON_CLOSE
+        )
+      }
+      frame
     }
 
     // These facilities are not available on Linux
@@ -84,9 +91,9 @@ object AppleRed extends Logging.Loggable {
               val fileName = file.getAbsolutePath
               info(s"Opening $fileName")
               if (fileName != null)
-                Jed.Sessions.argProcessor.process(fileName)
+                Jed.Server.process(fileName)
               else
-                Jed.Sessions.argProcessor.process("UNTITLED")
+                Jed.Server.process("UNTITLED-FROM-OPENFILES-HAndler")
             }
           }
         }

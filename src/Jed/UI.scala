@@ -350,7 +350,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
     contents += new Utils.Menu("File") {
 
       contents += Item("New") {
-        openFileRequests.notify(s"${theSession.CWD.toString}/New=${Utils.dateString()}")
+        openFileRequests.notify(s"${theSession.CWD.toString}/${Utils.freshDocumentName()}")
       }
 
       contents += Item("Open \u24b6") {
