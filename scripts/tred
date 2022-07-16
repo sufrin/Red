@@ -1,0 +1,6 @@
+# Non-client, non-server invocation of Red
+exec java \
+     -Xdock:icon=/Users/sufrin/bin/tred.png  \
+     -Xdock:name=Red-Standalone \
+     -jar ~/bin/AppleRed.jar "$@" &
+

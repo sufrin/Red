@@ -16,7 +16,7 @@ import Jed.Sessions.canQuit
  *  If it has located a server, then it acts as a client, and
  *  sends the program  arguments, one by one to the server.
  *  In this case, path arguments are made absolute, if they are
- *  not already absolute, by prefixing them with the
+ *  not already absolute: usually by prefixing them with the
  *  client's current working directory/folder.
  *
  *  If no such environment variable is set, or if it is set to
@@ -25,8 +25,6 @@ import Jed.Sessions.canQuit
  */
 object UDPServer extends Logging.Loggable with ServerInterface {
   private var udpPort: String  = "UDP"
-
-  log.level=Logging.ALL
 
   def portName: String = s"UDP: $udpPort"
 
@@ -81,18 +79,17 @@ object UDPServer extends Logging.Loggable with ServerInterface {
         udpPort = portSpec
         val Some((port, bus)) = server
         try {
-          if (logging) fine(s"-probe ing  $server")
+          if (logging) fine(s"Probing for Red server at $port (via $bus)")
           bus.send(port, "-probe") match {
             case None =>
+                // this program will itself be the server
                 processingLocally = true
                 // serve here
-                if (logging) fine(s"establishMainWindowFrame($udpPort)")
-                Red.AppleRed.establishMainWindowFrame(udpPort)
-                if (logging) fine(s"startServing($port)")
+                if (logging) warn(s"Starting to serve UDP port $port")
                 startServing(port)
             case Some(_) =>
                 // -probe acknowledged: assume there's a server and use it
-                if (logging) fine(s"UDPServer is at $port (via $bus)")
+                if (logging) fine(s"Using UDP server at port $port (via $bus)")
                 processingLocally = false
           }
         } catch {
@@ -118,11 +115,11 @@ object UDPServer extends Logging.Loggable with ServerInterface {
    */
   def startServing(port: Int): Unit = {
     serverPort = new Red.Bus.Receiver(port)
-    if (logging) finer(s"Starting Red UDPServer on $port")
+    if (logging) finer(s"Starting Red UDP Server on $port")
     serverPort.start {
-      // on receiving an arg from a client process it here
+      // on receiving an arg from a client, process it here
       case arg: String =>
-        if (logging) finer(s"Red $port <- $arg")
+        if (logging) finer(s"Red UDP Server on $port receives $arg")
         processLocally(arg)
     }
     warn(s"Started editor server at $serverPort")
@@ -135,12 +132,13 @@ object UDPServer extends Logging.Loggable with ServerInterface {
     else
       server match {
         case Some((port, bus)) =>
-          // send for remote processing
+          // send absolute path for remote processing
           bus.send(
             port,
             if (arg.startsWith("-")) arg else Utils.toAbsolutePath(arg)
           )
 
+        // Shouldn't happen!
         case None =>
           // process locally
           processLocally(arg)

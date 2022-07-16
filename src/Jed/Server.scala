@@ -5,27 +5,30 @@ package Jed
   *  to `Sessions` by delegating to an implementation
   *  of `ServerInterface`.
   *
-  *  ===NB===
-  *  Originally there was only a single implementation of `ServerInterface`
-  *  but in face of an (OS/X) revision of the accessibility to UDP datagrams
+  *  ===History===
+  *  Originally there was only a single implementation of `ServerInterface`;
+  *  the one presently named `UDPServer`.
+  *
+  *  Subsequent to an (OS/X) revision of the accessibility to UDP datagrams
   *  of packaged applications, it seemed to become necessary to
   *  provide at least one other that was not reliant on
   *  receiving instructions via datagrams.
   *
-  *  At the time of writing (15 July 2022) this is the subject of
-  *  experimental investigation. We built a FIFO srver interface.
-  *
-  *  Sadly (later that day) it seems that apps are by default truly hamstrung within
-  *  newer variants of OS/X, and cannot even read fifos.
+  *  (15 July 2022) We built a FIFO server interface, but after empirical
+  *  investigation using it we concluded that packaged apps ''by default''
+  *  cannot even read fifos, let alone UDP datagram ports, without the app
+  *  acquiring special permissions.
+  *  We have not investigated how to supply these permissions without
+  *  paying Apple taxes of one or another form (not monetary).
+  *  Instead we have provided a workaround that allows the packaged app
+  *  to delegate to a (running) server.
   *
   */
 object Server extends ServerInterface with Logging.Loggable {
 
-  log.level = Logging.ALL
-
   val fifo = sys.props.get("applered.fifo") orElse sys.env.get("REDFIFO")
 
-  if (logging) fine(s"Fifo=$fifo")
+  if (logging && fifo.nonEmpty) fine(s"Fifo server using: ${fifo.get}")
 
   def isClient: Boolean = server.isClient
 
@@ -33,13 +36,13 @@ object Server extends ServerInterface with Logging.Loggable {
 
   def startServer(): Unit =
      { server = if (fifo.nonEmpty) FIFOServer else UDPServer
-       if (logging) fine(s"server=$server")
-       Utils.invokeAndWait { server.startServer() }
+       scala.swing.Swing.onEDTWait { server.startServer() }
      }
 
-  var server: ServerInterface = _
+  private var server: ServerInterface = _
 
   def process(arg: String): Unit = server.process(arg)
+
   def stopServer(): Unit = server.stopServer()
 }
 

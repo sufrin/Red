@@ -1,4 +1,6 @@
 package Red
+import Jed.Utils
+
 import java.awt.Desktop
 import java.awt.desktop._
 import scala.swing.Frame
@@ -40,19 +42,23 @@ import scala.swing.Frame
  *
  */
 object AppleRed extends Logging.Loggable {
-  log.level = Logging.ALL
 
   def main(args: Array[String]): Unit =
-    withDesktop {
-      Jed.Server.startServer()
-      if (logging) fine(s"Server interface started")
-      for  { arg <- args } Jed.Server.process(arg)
-      if (logging) fine(s"(args processed) client=${Jed.Server.isClient} isApp=${Jed.Server.isApp}")
-      // Close/dispose of the main window unless we are an OS/X (client) app
-      // The retained window keeps the forwarding server alive
-      if (Jed.Server.isClient && !Jed.Server.isApp)
-        mainWindowFrame.close()
+     { Jed.Server.startServer()
+       withDesktop {
+         if (logging) fine(s"Server interface started")
+         if (Jed.Server.isApp || Jed.Server.isServer) establishMainWindowFrame(Jed.Server.portName)
+         if (logging) fine(s"Main window ${mainWindowFrame}")
+         if (Jed.Server.isServer && args.isEmpty) {
+           Jed.Sessions.exitOnLastClose = false
+           Jed.Sessions.startSession(Utils.freshDocumentName())
+         }
+         if (logging) fine(s"Processing args: $args")
+         for  { arg <- args } Jed.Server.process(arg)
+         if (logging) fine(s"(args processed) client=${Jed.Server.isClient} noExitOnLastClose=${Jed.Server.isApp}")
+      }
     }
+
 
   def withDesktop(body: => Unit): Unit = {
     val desk: Desktop = Desktop.getDesktop
@@ -104,7 +110,7 @@ object AppleRed extends Logging.Loggable {
     val mainFrame = new MainFrame() {
         val panel = new BoxPanel(Orientation.Vertical) {
         val user = System.getProperty("user.name", "<no user>")
-        val client = if (sys.props.get("applered.client").nonEmpty) "<center><b>[Client]</b></center>" else ""
+        val client = if (sys.props.get("applered.app").nonEmpty) "<center><b>[Client]</b></center>" else ""
         val label = new Label(
           s"<html><center><b>$redLine</b></center><center><b>$user</b></center><center><b>($port)</b></center>$client</html>"
         ) {

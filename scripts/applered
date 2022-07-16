@@ -1,0 +1,2 @@
+# Open an existing file using the OS/X app
+open -a AppleRed "$@"

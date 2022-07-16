@@ -37,7 +37,7 @@ object Sessions extends Logging.Loggable {
   def main(args_ : Array[String]): Unit = {
     val args=args_ . toList
     if (args.isEmpty)
-    { isApp = true
+    { exitOnLastClose = false
       Server.process(Utils.freshDocumentName())
     }
     else
@@ -83,10 +83,10 @@ object Sessions extends Logging.Loggable {
     forActiveReds {
       case red => info(s"Still editing ${red.path} (#${red.identity})")
     }
-    if (activeReds.isEmpty && !Sessions.isApp) System.exit(1)
+    if (activeReds.isEmpty && Sessions.exitOnLastClose) System.exit(1)
   }
 
-  var isApp: Boolean = false
+  var exitOnLastClose: Boolean = true
 
   def opened(red: Session): Unit = {
     activeReds += red.identity -> red
