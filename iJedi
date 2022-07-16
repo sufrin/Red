@@ -1,2 +1,3 @@
 # Script synthesised by make
-scala -cp /Users/sufrin/local/scalalib/scala-swing.jar:/Users/sufrin/GitHomes/RegexKit/out/artifacts/regexkit.jar:./out/production/Jed Jed.Jedi "$@"
+CP=/Users/sufrin/local/scalalib/scala-swing.jar:/Users/sufrin/GitHomes/RegexKit/out/artifacts/regexkit.jar:./out/production/Jed
+REDPORT=22334 scala -cp $CP Red.AppleRed "$@" &

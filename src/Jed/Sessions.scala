@@ -21,7 +21,7 @@ object Sessions extends Logging.Loggable {
 
 
   /**
-   *  Start an editing session for each of the paths named on the command line
+   *  Start an editing session for each of the paths named in `args`
    *  If a document exists at that path, then the session edits the document
    *  already stored there.
    *
@@ -31,24 +31,6 @@ object Sessions extends Logging.Loggable {
    *  If an argument is of the form `-l`''module''`=`''level'' then the logging
    *  level for the named module is set to the (named) level.
    *
-   *  ===Servers and Server Invocation===
-   *
-   *  If (and only if) the environment variable `REDPORT` is set to a port
-   *  number, then this is taken to be the port on which an editor server
-   *  is listening (or will listen) for paths and other arguments.
-   *  If the specified port does not acknowledge a "-probe" argument
-   *  "quickly", then this `Red` starts behaving like an editor server
-   *  for the specified port.
-   *
-   *  If an argument takes one of the following forms, then it relates to
-   *  probing or stopping an existing server.
-   *  {{{
-   *    -probe -- Do nothing
-   *    -stop  -- Stops the server at `REDPORT` if there is one.
-   *    -quit  -- Stops the server at `REDPORT` if there is one,
-   *              providing no active editing session remains
-   *              open on that server.
-   *  }}}
    */
 
 
@@ -60,16 +42,16 @@ object Sessions extends Logging.Loggable {
     }
     else
       for { arg <- args } Server.process(arg)
-    if (logging) finer(s"${Server} finished")
+      if (logging) finer(s"${Server} finished")
   }
 
 
 
 
-  /** Yields a new `Red`, editing the document in
+  /**
+   * Yields a new `Red`, editing the document in
    * (or destined to be saved in) the filestore at `fileName`.
    */
-
   def startSession(fileName: String): Session = {
     if (logging) info(s"startSession($fileName)")
     findRed(fileName) match {

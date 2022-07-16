@@ -84,8 +84,7 @@
                 <javaproperty name="apple.laf.useScreenMenuBar" value="true"/>
                 <javaproperty name="applered.app"               value="true"/>
                 <javaproperty name="applered.port"              value="33445"/>                
-                <javaproperty name="applered.client"            value="1"/>                <javaproperty name="applered.port"              value="33445"/>
-                
+               
               
                 <jarfileset dir="build">
                   <include name="**/*.jar" />

@@ -1,0 +1,4 @@
+# Behave (as far as possible) like the packaged app
+CP=/Users/sufrin/local/scalalib/scala-swing.jar:/Users/sufrin/GitHomes/RegexKit/out/artifacts/regexkit.jar:./out/production/Jed
+env REDPORT=33445 JAVACMD=java JAVA_OPTS="-Dapplered.app=true -Xdock:name=AppleRed-Simulated-App -Xdock:icon=/Users/sufrin/bin/cred.png" \
+    scala -cp $CP Red.AppleRed "$@" &

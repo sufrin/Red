@@ -220,4 +220,10 @@ object Utils {
       override def run(): Unit = act
     })
   }
+
+  def invokeAndWait(act: => Unit): Unit = {
+    SwingUtilities.invokeAndWait(new Runnable {
+      override def run(): Unit = act
+    })
+  }
 }
