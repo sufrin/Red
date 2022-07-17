@@ -7,7 +7,8 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import javax.swing.{Icon, SwingUtilities}
-import scala.swing.{Action, Button, Image, MenuItem}
+import scala.swing.{Action, Alignment, Button, Image, MenuItem}
+import scala.sys.process.Process
 
 /** System wide default settings. These will eventually be treated as (dynamic)
   * preferences.
@@ -60,7 +61,7 @@ object Utils {
   val redImage:  Image = ImageUtilities.makeImage(redIcon)
 
 
-  private val dateFormat: SimpleDateFormat = new SimpleDateFormat("y-MM-dd@HHmmss")
+  private val dateFormat: SimpleDateFormat = new SimpleDateFormat("y-MM-dd-HHmmss")
   def dateString(time: Long): String = dateFormat.format(new Date(time))
   def dateString(): String = dateFormat.format(new Date())
 
@@ -83,6 +84,8 @@ object Utils {
     }) {
       font = Utils.buttonFont
       if (toolTip.nonEmpty) tooltip = toolTip
+      horizontalAlignment = Alignment.Center
+      verticalAlignment = Alignment.Center
     }
 
   private val fileSeparator: String = System.getProperty("file.separator")
@@ -203,6 +206,7 @@ object Utils {
 
   def relativeToHome(thePath: String): String = relativeToHome(toPath(thePath))
 
+  /** Construct an abbreviated path suitable for displaying in a narrow space */
   def relativeToGrandparent(thePath: String): String = {
     val path = Paths.get(thePath)
     val count = path.getNameCount
@@ -225,5 +229,33 @@ object Utils {
     SwingUtilities.invokeAndWait(new Runnable {
       override def run(): Unit = act
     })
+  }
+
+  /**
+   *    A non-EDT worker that runs `doOffEDT()` off the event dispatch thread
+   *    and passes buffered `publish`ed `Report`s to `report`.
+   */
+  abstract class OffEdtThread[Result, Report](report: Report => Unit, finished: => Unit) extends javax.swing.SwingWorker[Result, Report] {
+
+    def doOffEDT(): Result
+
+    override def doInBackground(): Result = doOffEDT()
+
+    protected override def done(): Unit = finished
+
+    /** Pass buffered `Report`s one by one to `report`. */
+    protected override def process(buffer: java.util.List[Report]): Unit = {
+      val it = buffer.iterator()
+      while (it.hasNext) { report(it.next()) }
+    }
+  }
+
+  /** start a new server and run it in the background */
+  def startServer(portName: String): Unit = {
+    val stdin = new java.io.ByteArrayInputStream("".getBytes)
+    val offEDT = new OffEdtThread[Unit, Unit]({ case _ => () }, { () }) {
+      def doOffEDT(): Unit = (Process("appleredserver") #< stdin).!
+    }
+    offEDT.execute()
   }
 }

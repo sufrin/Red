@@ -17,7 +17,6 @@ import java.nio.file.Path
  */
 object Sessions extends Logging.Loggable {
   // Log warnings and errors
-  level = Logging.WARN
 
 
   /**

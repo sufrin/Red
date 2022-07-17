@@ -51,7 +51,6 @@ object AppleRed extends Logging.Loggable {
          if (logging) fine(s"Main window ${mainWindowFrame}")
          if (Jed.Server.isServer && args.isEmpty) {
            Jed.Sessions.exitOnLastClose = false
-           Jed.Sessions.startSession(Utils.freshDocumentName())
          }
          if (logging) fine(s"Processing args: $args")
          for  { arg <- args } Jed.Server.process(arg)
@@ -105,26 +104,53 @@ object AppleRed extends Logging.Loggable {
 
   def establishMainWindowFrame(port: String): Unit = {
     import scala.swing._
-    val ffont = Jed.Utils.defaultFont
+
+    /** @return a centred label */
+    def Lab(title: String): Component = {
+      new BoxPanel(Orientation.Horizontal) {
+        contents += Red.Glue.horizontal()
+        contents += new Label(title) // { font = Utils.buttonFont }
+        contents += Red.Glue.horizontal()
+      }
+    }
+
+    /** @return a centred button */
+    def But(title: String, tip: String="")(act: => Unit): Component = {
+      new BoxPanel(Orientation.Horizontal) {
+        contents += Red.Glue.horizontal()
+        contents += { val b = Button(title) { act }; b.tooltip=tip; b }
+        contents += Red.Glue.horizontal()
+      }
+    }
+
     val redLine = "\uf8ff Red \uf8ff"
     val mainFrame = new MainFrame() {
         val panel = new BoxPanel(Orientation.Vertical) {
         val user = System.getProperty("user.name", "<no user>")
         val client = if (sys.props.get("applered.app").nonEmpty) "<center><b>[Client]</b></center>" else ""
-        val label = new Label(
-          s"<html><center><b>$redLine</b></center><center><b>$user</b></center><center><b>($port)</b></center>$client</html>"
-        ) {
-          border = javax.swing.BorderFactory.createEtchedBorder()
-          horizontalAlignment = Alignment.Center
+        val labels  = new BoxPanel(Orientation.Vertical) {
+          contents += Lab(redLine)
+          contents += Lab(user)
+          contents += Lab(port)
         }
-        contents += label
-        if (true) {
-          contents += Jed.Utils.Button("New", "Start editing a new file") {
-            Jed.Server.process(s"AppleRed+${Jed.Utils.dateString()}")
+        val buttons = new BoxPanel(Orientation.Horizontal) {
+          contents += But("Fresh", "Start editing a new document locally") {
+            Jed.Server.process(Utils.freshDocumentName())
           }
+
+          contents += But("Quit", "Quit this server") {
+            if (Jed.Sessions.canQuit()) sys.exit(0)
+          }
+
+          contents += But("Serve", "Start a new appleredserver") {
+            Utils.startServer(Jed.Server.portName)
+          }
+
         }
+        contents  += labels
+        contents  += buttons
         iconImage = Jed.Utils.redImage
-        border = javax.swing.BorderFactory.createEtchedBorder()
+        //border = javax.swing.BorderFactory.createEtchedBorder()
       }
       // Frame
       contents = panel
@@ -133,9 +159,8 @@ object AppleRed extends Logging.Loggable {
       peer.setLocationRelativeTo(null)
       iconify()
       peer.setResizable(false)
-      peer.setDefaultCloseOperation(
-        javax.swing.WindowConstants.DO_NOTHING_ON_CLOSE
-      )
+      peer.setDefaultCloseOperation(javax.swing.WindowConstants.DO_NOTHING_ON_CLOSE)
+      override def closeOperation(): Unit = { if (Jed.Sessions.canQuit()) sys.exit(0) }
     }
     mainWindowFrame=mainFrame
   }

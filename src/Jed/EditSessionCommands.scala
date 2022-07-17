@@ -600,6 +600,8 @@ object EditSessionCommands extends Logging.Loggable {
     }
   }
 
+  import Utils.OffEdtThread
+
   val latexToPDF: SessionCommand = new SessionCommand {
     def DO(session: EditSession): StateChangeOption = {
       val CWD = session.CWD.toFile // the session's working directory
@@ -660,24 +662,6 @@ object EditSessionCommands extends Logging.Loggable {
     }
   }
 
-  /**
-   *    A non-EDT workder that runs `doOffEDT()` off the event dispatch thread
-   *    and passes buffered `publish`ed `Report`s to `report`.
-   */
-  abstract class OffEdtThread[Result, Report](report: Report => Unit, finished: => Unit) extends javax.swing.SwingWorker[Result, Report] {
-
-    def doOffEDT(): Result
-
-    override def doInBackground(): Result = doOffEDT()
-
-    protected override def done(): Unit = finished
-
-    /** Pass buffered `Report`s one by one to `report`. */
-    protected override def process(buffer: java.util.List[Report]): Unit = {
-      val it = buffer.iterator()
-      while (it.hasNext) { report(it.next()) }
-    }
-  }
 
   val pandocToPDF: SessionCommand = new SessionCommand {
     def DO(session: EditSession): StateChangeOption = {
@@ -691,7 +675,7 @@ object EditSessionCommands extends Logging.Loggable {
       locally {
         logSession.makeEphemeral()
         logSession.clear()
-        logSession.insert(s"Running pandoc ${Utils.dateString()}\n")
+        logSession.insert(s"Running redpandoc ${Utils.dateString()}\n")
         logWindow.gui.makeVisible()
       }
 
