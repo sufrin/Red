@@ -1,22 +1,53 @@
 package Jed
 
+import java.net.{StandardProtocolFamily, UnixDomainSocketAddress}
+import java.nio.ByteBuffer
+import java.nio.channels.{ServerSocketChannel, SocketChannel}
+import java.nio.file.Files
+
 object FIFOServer extends Logging.Loggable with ServerInterface {
   log.level = Logging.ALL
 
+  var processingLocally = false
   def isClient: Boolean = false
 
-  private val fifo     = sys.props.get("applered.fifo") orElse sys.env.get("REDFIFO")
-  def portName: String = fifo.get
-  val port = new FIFOPort(portName)
+  private val fifo               = sys.props.get("applered.fifo") orElse sys.env.get("REDFIFO")
+  def portName: String           = fifo.get
+  var serverPort: FIFOServerPort = _
+  var clientPort: FIFOClientPort = _
 
-  def process(arg: String): Unit = processLocally(arg)
 
-  def startServer(): Unit = {
-    Utils.invokeLater { Red.AppleRed.establishMainWindowFrame(portName) }
-    port.start(processLocally)
+  def process(arg: String): Unit = {
+    if (logging) info(s"process $arg ${if (processingLocally) " locally." else " on server."}")
+    if (processingLocally)
+      processLocally(arg)
+    else
+      clientPort.send(if (arg.startsWith("-")) arg else Utils.toAbsolutePath(arg))
   }
 
-  def stopServer(): Unit = port.close()
+  def startServer(): Unit = {
+    // Try to contact the server
+    try {
+      serverPort = new FIFOServerPort(portName)
+      processingLocally = true
+      serverPort.start(processLocally)
+    } catch {
+      case exn: Exception =>
+        processingLocally = false
+      // exn.printStackTrace()
+    }
+    if (!processingLocally) {
+      try {
+        clientPort = new FIFOClientPort(portName)
+      } catch {
+        case exn: Exception =>
+          processingLocally = true
+          exn.printStackTrace()
+      }
+    }
+  }
+
+  def stopServer(): Unit = serverPort.close()
 
   def processLocally(arg: String): Unit = {
     arg match {
@@ -42,34 +73,50 @@ object FIFOServer extends Logging.Loggable with ServerInterface {
   }
 }
 
-class FIFOPort(path: String) extends Logging.Loggable {
-  val fifo = new java.io.FileInputStream(path)
+class FIFOClientPort(path: String) extends Logging.Loggable {
+  val packetSize = 1024
+  val serverAddress = UnixDomainSocketAddress.of(path)
+  val serverChannel = SocketChannel.open(serverAddress)
+
+  def send(message: String): Unit = {
+    serverChannel.write(ByteBuffer.wrap(message.getBytes(java.nio.charset.StandardCharsets.UTF_8)))
+  }
+
+  def close(): Unit = {
+    serverChannel.close()
+  }
+}
+
+class FIFOServerPort(path: String) extends Logging.Loggable {
+  val packetSize    = 1024
+  val serverSocket  = ServerSocketChannel.open(StandardProtocolFamily.UNIX)
+  val serverAddress = UnixDomainSocketAddress.of(path)
+  serverSocket.bind(serverAddress)
 
   override def toString: String = s"Fifo: $path"
 
   log.level=Logging.ALL
 
   def readLine(): String = {
-    val s = new StringBuilder()
-    var reading = true
     try {
-      if (logging) fine("readLine()")
-      while (reading) {
-        fifo.read() match {
-          case -1 => reading = false
-          case '\n' =>
-          case ch => s.append(ch.toChar)
-        }
-      }
+      val clientChannel = serverSocket.accept()
+      val buf = java.nio.ByteBuffer.allocate(packetSize)
+      val count = clientChannel.read(buf)
+      val bytes = new Array[Byte](count)
+      buf.flip()
+      buf.get(bytes)
+      new String(bytes, java.nio.charset.StandardCharsets.UTF_8)
     } catch {
       case exn: java.io.IOException =>
         exn.printStackTrace()
-        reading=false
+        ""
     }
-    s.toString()
   }
 
-  def close(): Unit = fifo.close()
+  def close(): Unit = {
+    serverSocket.close()
+    Files.deleteIfExists(serverAddress.getPath)
+  }
 
   def start(service: String => Unit): Unit = {
     var running = true
