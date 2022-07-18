@@ -69,7 +69,7 @@ object UDPServer extends Logging.Loggable with ServerInterface {
   def isClient: Boolean = !processingLocally
 
   def startServer(): Unit = {
-      if (logging) fine(s"start server begin")
+      if (logging) fine(s"serveWith server begin")
       val port = sys.env.get("REDPORT") orElse { sys.props.get("applered.port") }
       port match {
         case None =>

@@ -255,7 +255,7 @@ package object Logging {
     * whose initial level is by default `WARN` but can be specified by a system
     * property
     * {{{    KLARSE.level}}}
-    * at the start of  the `scala` run of the program.
+    * at the serveWith of  the `scala` run of the program.
     *
     * The class itself should
     * {{{    import KLARSE._}}}

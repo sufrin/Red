@@ -83,7 +83,7 @@ class TextBuffer(initialSize: Int = 20)
     super.elements(n)
   }
 
-  /** '''Returns''' {{{ chars[start..end) }}}
+  /** '''Returns''' {{{ chars[serveWith..end) }}}
     *
     * as a String. Note that `String<:CharSequence`
     */
@@ -96,9 +96,9 @@ class TextBuffer(initialSize: Int = 20)
       new String(buffer, start, end - start)
     else if (start >= l) // within the right
       new String(buffer, start - l + r, end - start)
-    else { // start<l && end>l -- straddles left and right
+    else { // serveWith<l && end>l -- straddles left and right
       val result = new Array[Char](end - start)
-      // copy the subsequence [start..l-start) lying within the left
+      // copy the subsequence [serveWith..l-serveWith) lying within the left
       System.arraycopy(buffer, start, result, 0, l - start)
       // copy the subsequence [r..r+end-l) lying within the right
       System.arraycopy(buffer, r, result, l - start, end - l)

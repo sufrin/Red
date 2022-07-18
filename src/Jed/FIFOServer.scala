@@ -13,7 +13,7 @@ object FIFOServer extends Logging.Loggable with ServerInterface {
 
   private val fifo               = sys.props.get("applered.fifo") orElse sys.env.get("REDFIFO")
   def portName: String           = fifo.get
-  var serverPort: FIFOServerPort = _
+  var service:    FIFOService    = _
   var clientPort: FIFOClientPort = _
 
 
@@ -28,26 +28,28 @@ object FIFOServer extends Logging.Loggable with ServerInterface {
   def startServer(): Unit = {
     // Try to contact the server
     try {
-      serverPort = new FIFOServerPort(portName)
+      service           = new FIFOService(portName)
       processingLocally = true
-      serverPort.start(processLocally)
+      service.serveWith(processLocally)
     } catch {
       case exn: Exception =>
         processingLocally = false
-      // exn.printStackTrace()
+        if (logging) info(s"About to behave as a client, because $exn")
     }
     if (!processingLocally) {
       try {
         clientPort = new FIFOClientPort(portName)
+        if (logging) info(s"Acquired client port: $clientPort")
       } catch {
         case exn: Exception =>
           processingLocally = true
+          if (logging) info(s"Filed to acquire client port: $portName")
           exn.printStackTrace()
       }
     }
   }
 
-  def stopServer(): Unit = serverPort.close()
+  def stopServer(): Unit = service.close()
 
   def processLocally(arg: String): Unit = {
     arg match {
@@ -79,58 +81,55 @@ class FIFOClientPort(path: String) extends Logging.Loggable {
   val serverChannel = SocketChannel.open(serverAddress)
 
   def send(message: String): Unit = {
-    serverChannel.write(ByteBuffer.wrap(message.getBytes(java.nio.charset.StandardCharsets.UTF_8)))
+    val sent = message+"\n"
+    serverChannel.write(ByteBuffer.wrap(sent.getBytes(java.nio.charset.StandardCharsets.UTF_8)))
   }
 
   def close(): Unit = {
+    if (logging) fine(s"Closing client port on $serverChannel")
     serverChannel.close()
   }
 }
 
-class FIFOServerPort(path: String) extends Logging.Loggable {
-  val packetSize    = 1024
+class FIFOService(path: String) extends Logging.Loggable {
+  val packetSize    = 4096
   val serverSocket  = ServerSocketChannel.open(StandardProtocolFamily.UNIX)
   val serverAddress = UnixDomainSocketAddress.of(path)
+
   serverSocket.bind(serverAddress)
 
   override def toString: String = s"Fifo: $path"
 
   log.level=Logging.ALL
 
-  def readLine(): String = {
-    try {
-      val clientChannel = serverSocket.accept()
-      val buf = java.nio.ByteBuffer.allocate(packetSize)
-      val count = clientChannel.read(buf)
-      val bytes = new Array[Byte](count)
-      buf.flip()
-      buf.get(bytes)
-      new String(bytes, java.nio.charset.StandardCharsets.UTF_8)
-    } catch {
-      case exn: java.io.IOException =>
-        exn.printStackTrace()
-        ""
-    }
-  }
-
   def close(): Unit = {
     serverSocket.close()
     Files.deleteIfExists(serverAddress.getPath)
   }
 
-  def start(service: String => Unit): Unit = {
+  def serveWith(service: String => Unit): Unit = {
     var running = true
     new Thread() {
       override def run(): Unit = {
-        println("server running")
-        while (running) {
-          readLine() match {
-            case ""      =>
-              running = false
-            case message =>
-              javax.swing.SwingUtilities.invokeLater { case () => service(message) }
+        if (logging) fine(s"server running on $serverSocket")
+        while (serverSocket.isOpen) {
+          val clientChannel = serverSocket.accept()
+          val buf = java.nio.ByteBuffer.allocate(packetSize)
+          while (clientChannel.isOpen) {
+            val count = clientChannel.read(buf)
+            if (count < 0) clientChannel.close() else {
+              val bytes = new Array[Byte](count)
+              buf.flip()
+              buf.get(bytes)
+              buf.flip()
+              val lines = new String(bytes, java.nio.charset.StandardCharsets.UTF_8).split('\n')
+              if (logging) finest(lines.mkString("Message: ", ", ", ""))
+              for {message <- lines}
+                javax.swing.SwingUtilities.invokeLater { case () => service(message) }
+            }
           }
         }
+        if (logging) fine(s"server stopped running on $serverSocket")
       }
     }.start()
   }

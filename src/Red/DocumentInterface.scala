@@ -92,7 +92,7 @@ trait DocumentInterface {
       to: Int
   ): Option[Int]
 
-  /** '''Return''' {{{chars[start..end}}}
+  /** '''Return''' {{{chars[serveWith..end}}}
     */
   def getString(start: Int, end: Int): String
 

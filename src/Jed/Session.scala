@@ -6,7 +6,7 @@ import java.nio.file.Files
 
 /**
  *  === Editing Session ===
- *  Construct and start a GUI-managed editor session for
+ *  Construct and serveWith a GUI-managed editor session for
  *  the document with path `path` in the filestore, and associate it with
  *  a fresh numeric identity to be used as a key to the
  *  `activeReds` table.

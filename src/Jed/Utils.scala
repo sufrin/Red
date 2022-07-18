@@ -274,7 +274,7 @@ object Utils {
     }
   }
 
-  /** start a new server and run it in the background */
+  /** serveWith a new server and run it in the background */
   def startRedServerProcess(portName: String): Unit = {
     val stdin = new java.io.ByteArrayInputStream("".getBytes)
     val offEDT: OffEdtThread[Unit, Unit] = new OffEdtThread[Unit, Unit]({ _ => () }, { () }) {

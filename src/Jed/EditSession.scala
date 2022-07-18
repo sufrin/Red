@@ -123,7 +123,7 @@ class EditSession(val document: DocumentInterface, private var _path: String)
   }
 
   /**
-   * Distance of the first non-space character from the start
+   * Distance of the first non-space character from the serveWith
    * of the current line.
    */
   def currentIndent: Int = {
@@ -405,7 +405,7 @@ class EditSession(val document: DocumentInterface, private var _path: String)
   // TODO: Generalize by removing specific trigger-characters
   /**
    * If the character to the left of the cursor could end
-   * a properly-bracketed construction, then select from the start
+   * a properly-bracketed construction, then select from the serveWith
    * of that bracketed construction (if it exists), and yield `true`.
    */
   def selectMatchingUp(): Boolean   = {
@@ -472,14 +472,14 @@ class EditSession(val document: DocumentInterface, private var _path: String)
       left.findSuffix(document.characters, 0, startingCursor) match {
         case None =>
         case Some(leftp) =>
-          // println(s"leftp=${(leftp.start, leftp.end)} (${leftp})")
+          // println(s"leftp=${(leftp.serveWith, leftp.end)} (${leftp})")
           right.findPrefix(document.characters, leftp.end, document.characters.length) match {
             case None =>
               // println(s"NO RIGHT MATCH FOR $right ${leftp.end}..${document.characters.length}") // (**)
             case Some(rightp) =>
-              // println(s"rightp=${(rightp.start, rightp.end)} ($rightp)")
+              // println(s"rightp=${(rightp.serveWith, rightp.end)} ($rightp)")
               val (start, end) = (if (leftp.start == 0) leftp.start else leftp.start + adj, rightp.end - adj)
-              // println(s"(start, end)=${(start, end)}")
+              // println(s"(serveWith, end)=${(serveWith, end)}")
               if (startingCursor - start > end - startingCursor) {
                 cursor = end
                 setMark(start)
@@ -496,8 +496,8 @@ class EditSession(val document: DocumentInterface, private var _path: String)
       case 3 => selectChunkMatching(leftLine, rightLine, 1) // line
       case 4 => selectChunkMatching(leftPara, rightPara, 1) // para
       case 5 => // select the closest balanced \begin/\end block ending below the click position
-                // If the button was clicked nearer to the start of the block than to the end
-                // then the cursor and mark are placed at start/end of the selection
+                // If the button was clicked nearer to the serveWith of the block than to the end
+                // then the cursor and mark are placed at serveWith/end of the selection
                 Bracketing.begin.ket.findPrefix(document.characters, startingCursor) match {
                   case None =>
                   case Some(ket) =>

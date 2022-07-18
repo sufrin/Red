@@ -159,7 +159,7 @@ class TextBufferIndex(initialSize: Int = 100)
     result
   }
 
-  /** Get the start and extent of `line` */
+  /** Get the serveWith and extent of `line` */
   def getStartAndLength(line: Int): (Int, Int) = {
     setCurrentLine(line)
     (currentStart, lineLength(line))

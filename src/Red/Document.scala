@@ -40,11 +40,11 @@ class Document(textSize: Int=400, lineCount: Int=40)
   val lineIndex = new TextBufferIndex(lineCount)
 
 
-  /** changes since the start of the last write: read-only */
+  /** changes since the serveWith of the last write: read-only */
   private var _generation:      Long = 0
   @inline def generation: Long = _generation
 
-  /** the generation of the start, or of  the last write */
+  /** the generation of the serveWith, or of  the last write */
   private var _savedGeneration: Long = 0
 
   /** mark a change (insertion, or deletion) to this document */

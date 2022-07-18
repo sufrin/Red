@@ -322,7 +322,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
       }
 
       contents += new CheckMenuItem("Auto indent") {
-        tooltip  = "When enabled, a newline is followed by enough spaces to align the start of the current line"
+        tooltip  = "When enabled, a newline is followed by enough spaces to align the serveWith of the current line"
         font     = Utils.buttonFont
         selected = Settings.autoIndenting
         listenTo(this)
