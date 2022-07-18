@@ -5,15 +5,15 @@ object FIFOServer extends Logging.Loggable with ServerInterface {
 
   def isClient: Boolean = false
 
-  val fifo    = sys.props.get("applered.fifo") orElse sys.env.get("REDFIFO")
-  def portName = fifo.get
+  private val fifo     = sys.props.get("applered.fifo") orElse sys.env.get("REDFIFO")
+  def portName: String = fifo.get
   val port = new FIFOPort(portName)
 
   def process(arg: String): Unit = processLocally(arg)
 
   def startServer(): Unit = {
     Utils.invokeLater { Red.AppleRed.establishMainWindowFrame(portName) }
-    port.start(processLocally(_))
+    port.start(processLocally)
   }
 
   def stopServer(): Unit = port.close()
@@ -28,12 +28,12 @@ object FIFOServer extends Logging.Loggable with ServerInterface {
       case s"-stop" =>
         stopServer()
       case s"-quit" =>
-        if (Sessions.canQuit()) {
+        if (Sessions.canQuit) {
           stopServer()
           System.exit(0)
         }
-      case s"-$unknown" =>
-        warn(s"$arg is an unknown switch")
+      case s"-$unk" =>
+        warn(s"-$unk is an unknown switch")
       case s"$path@$location" =>
         Sessions.startSession(path, location)
       case path =>

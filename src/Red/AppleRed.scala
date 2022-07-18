@@ -35,10 +35,11 @@ import scala.swing.Frame
  * Recent security changes in OS/X now make it impossible for the packaged app
  * to receive UDP packets or (apparently) to read from FIFOs unless specific
  * permission is given to the app (by means I have not yet explored). This
- * means that the packaged app cannot act as a server'', for it cannot
+ * means that ''the packaged app cannot act as a server'', for it cannot
  * receive instructions from clients.
  *
  * TODO: investigate UDP-receive permissions
+ * TODO: are unix domain UDP sockets (post java 16) any better
  *
  */
 object AppleRed extends Logging.Loggable {
@@ -48,11 +49,12 @@ object AppleRed extends Logging.Loggable {
        withDesktop {
          if (logging) fine(s"Server interface started")
          if (Jed.Server.isApp || Jed.Server.isServer) establishMainWindowFrame(Jed.Server.portName)
-         if (logging) fine(s"Main window ${mainWindowFrame}")
+         if (logging) fine(s"Main window $mainWindowFrame")
          if (Jed.Server.isServer && args.isEmpty) {
            Jed.Sessions.exitOnLastClose = false
          }
-         if (logging) fine(s"Processing args: $args")
+         if (logging)
+           fine(s"Processing args: ${args.mkString(", ")}")
          for  { arg <- args } Jed.Server.process(arg)
          if (logging) fine(s"(args processed) client=${Jed.Server.isClient} noExitOnLastClose=${Jed.Server.isApp}")
       }
@@ -69,7 +71,7 @@ object AppleRed extends Logging.Loggable {
         new QuitHandler() {
           def handleQuitRequestWith(qe: QuitEvent, qr: QuitResponse): Unit = {
             fine(s"QuitEvent(${qe.getSource})")
-            if (Jed.Sessions.canQuit())
+            if (Jed.Sessions.canQuit)
               qr.performQuit()
             else
               qr.cancelQuit()
@@ -80,7 +82,7 @@ object AppleRed extends Logging.Loggable {
       desk.setOpenFileHandler(
         new OpenFilesHandler {
           override def openFiles(e: OpenFilesEvent): Unit = {
-            val files = e.getFiles().iterator()
+            val files = e.getFiles.iterator()
             while (files.hasNext) {
               val file     = files.next()
               val fileName = file.getAbsolutePath
@@ -95,8 +97,10 @@ object AppleRed extends Logging.Loggable {
       )
 
       body
+
     } catch {
-      case exn: Exception => ()
+      case exn: Exception =>
+        exn.printStackTrace()
     }
   }
 
@@ -124,26 +128,41 @@ object AppleRed extends Logging.Loggable {
     }
 
     val redLine = "\uf8ff Red \uf8ff"
-    val mainFrame = new MainFrame() {
-        val panel = new BoxPanel(Orientation.Vertical) {
-        val user = System.getProperty("user.name", "<no user>")
-        val client = if (sys.props.get("applered.app").nonEmpty) "<center><b>[Client]</b></center>" else ""
-        val labels  = new BoxPanel(Orientation.Vertical) {
+    val mainFrame: MainFrame = new MainFrame() {
+        private val panel   = new BoxPanel(Orientation.Vertical) {
+        private val user    = System.getProperty("user.name", "<no user>")
+        private val role    =
+          if (Jed.Server.isApp)
+             // the OS/X packaged app has to be a client, for the time being
+             s"$port client (needs server)"
+          else
+          if (Jed.Server.isServer && port!="")
+             s"$port server"
+          else
+             "(standalone)"
+
+
+        private val labels  = new BoxPanel(Orientation.Vertical) {
           contents += Lab(redLine)
           contents += Lab(user)
-          contents += Lab(port)
+          contents += Lab(role)
         }
-        val buttons = new BoxPanel(Orientation.Horizontal) {
+
+        private val buttons = new BoxPanel(Orientation.Horizontal) {
           contents += But("Fresh", "Start editing a new document locally") {
             Jed.Server.process(Utils.freshDocumentName())
           }
 
-          contents += But("Quit", "Quit this server") {
-            if (Jed.Sessions.canQuit()) sys.exit(0)
+          // This nonsense is while the OS/X packaged app can't communicate
+
+          if (!Jed.Server.isApp)
+            contents += But("Quit", "Quit this server") {
+            if (Jed.Sessions.canQuit) sys.exit(0)
           }
 
-          contents += But("Serve", "Start a new appleredserver") {
-            Utils.startServer(Jed.Server.portName)
+          if (false && !Jed.Server.isApp)
+            contents += But("Serve", "Start a new appleredserver") {
+            Utils.startRedServerProcess(Jed.Server.portName)
           }
 
         }
@@ -160,7 +179,7 @@ object AppleRed extends Logging.Loggable {
       iconify()
       peer.setResizable(false)
       peer.setDefaultCloseOperation(javax.swing.WindowConstants.DO_NOTHING_ON_CLOSE)
-      override def closeOperation(): Unit = { if (Jed.Sessions.canQuit()) sys.exit(0) }
+      override def closeOperation(): Unit = { if (Jed.Sessions.canQuit) sys.exit(0) }
     }
     mainWindowFrame=mainFrame
   }

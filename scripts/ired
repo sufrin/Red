@@ -1,5 +1,5 @@
 # Behave as client/server
 # (avoids the need to re-package the app while testing)
 CP=/Users/sufrin/local/scalalib/scala-swing.jar:/Users/sufrin/GitHomes/RegexKit/out/artifacts/regexkit.jar:./out/production/Jed
-env REDPORT=3344 JAVACMD=java JAVA_OPTS="-Xdock:name=AppleRed-ClientServer -Xdock:icon=/Users/sufrin/bin/cred.png" \
+env REDPORT=3344 JAVACMD=java JAVA_OPTS="-Xdock:name=iRed-ClientServer -Xdock:icon=/Users/sufrin/bin/cred.png" \
     scala -cp $CP Red.AppleRed "$@" &

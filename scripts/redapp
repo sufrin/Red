@@ -1,0 +1,8 @@
+# Behave (as far as possible) like the packaged app (for testing)
+# (avoids the need to re-package the app while testing)
+REDPORT=3344 exec java \
+     -DJed.UDPServer.level=ALL -DRed.AppleRed.level=ALL \
+     -Xdock:icon=/Users/sufrin/bin/cred.png  \
+     -Xdock:name="AppleRed-OSX-APP-Simulated" \
+     -Dapplered.app=true \
+     -jar ~/bin/AppleRed.jar "$@" &

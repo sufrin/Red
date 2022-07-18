@@ -24,9 +24,9 @@ import Jed.Sessions.canQuit
  *  editor.
  */
 object UDPServer extends Logging.Loggable with ServerInterface {
-  private var udpPort: String  = "UDP"
+  private var udpPort: String  = ""
 
-  def portName: String = s"UDP: $udpPort"
+  def portName: String = s"$udpPort"
 
   /** When nonEmpty, the port to to which arguments will be sent
    * and the bus that will be used to send them.
@@ -48,12 +48,12 @@ object UDPServer extends Logging.Loggable with ServerInterface {
       case s"-stop" =>
         stopServer()
       case s"-quit" =>
-        if (canQuit()) {
+        if (canQuit) {
           stopServer()
           System.exit(0)
         }
-      case s"-$unknown" =>
-        warn(s"$arg is an unknown switch")
+      case s"-$unk" =>
+        warn(s"-$unk is an unknown switch")
       case s"$path@$location" =>
         Sessions.startSession(path, location)
       case path =>
@@ -68,39 +68,47 @@ object UDPServer extends Logging.Loggable with ServerInterface {
 
   def isClient: Boolean = !processingLocally
 
-  def startServer(): Unit =  {
-    if (logging) fine(s"start server begin")
-    val port = sys.env.get("REDPORT") orElse { sys.props.get("applered.port") }
-    port match {
-      case None =>
-        if (logging) fine("No REDPORT environment variable")
-      case Some(portSpec) if (portSpec matches "[0-9]+") =>
-        server  = Some((portSpec.toInt, new Red.Bus.Sender()))
-        udpPort = portSpec
-        val Some((port, bus)) = server
-        try {
-          if (logging) fine(s"Probing for Red server at $port (via $bus)")
-          bus.send(port, "-probe") match {
-            case None =>
+  def startServer(): Unit = {
+      if (logging) fine(s"start server begin")
+      val port = sys.env.get("REDPORT") orElse { sys.props.get("applered.port") }
+      port match {
+        case None =>
+          if (logging) fine("No REDPORT environment variable")
+          udpPort = ""
+        case Some(portSpec) if portSpec matches "[0-9]+" =>
+          server = Some((portSpec.toInt, new Red.Bus.Sender()))
+          udpPort = portSpec
+          val Some((port, bus)) = server
+          try {
+            if (logging) fine(s"Probing for Red server at $port (via $bus)")
+            bus.send(port, "-probe") match {
+              case None =>
                 // this program will itself be the server
-                processingLocally = true
-                // serve here
-                if (logging) warn(s"Starting to serve UDP port $port")
-                startServing(port)
-            case Some(_) =>
+                // UNLESS IT IS THE PACKAGED APP
+                if (isApp) {
+                  processingLocally = false
+                  if (logging) warn(s"OS/X Red: needs a server at UDP port $port")
+                } else {
+                  processingLocally = true
+                  // serve here
+                  if (logging) warn(s"Starting to serve UDP port $port")
+                  startServing(port)
+                }
+
+              case Some(_) =>
                 // -probe acknowledged: assume there's a server and use it
                 if (logging) fine(s"Using UDP server at port $port (via $bus)")
                 processingLocally = false
+            }
+          } catch {
+            case exn: Exception =>
+              fatal(s"Probing for Red server. ${exn.getLocalizedMessage}")
+              sys.exit(1)
           }
-        } catch {
-          case exn: Exception =>
-            fatal(s"Probing for Red server. ${exn.getLocalizedMessage}")
-            sys.exit(1)
-        }
-      case portSpec =>
-        if (logging) error(s"REDPORT environment variable ($portSpec) is not a (port) number")
+        case portSpec =>
+          if (logging) error(s"REDPORT environment variable ($portSpec) is not a (port) number")
+      }
     }
-  }
 
   /**
    * If this editor is functioning as a server, then
@@ -118,7 +126,7 @@ object UDPServer extends Logging.Loggable with ServerInterface {
     if (logging) finer(s"Starting Red UDP Server on $port")
     serverPort.start {
       // on receiving an arg from a client, process it here
-      case arg: String =>
+      arg: String =>
         if (logging) finer(s"Red UDP Server on $port receives $arg")
         processLocally(arg)
     }
@@ -138,7 +146,7 @@ object UDPServer extends Logging.Loggable with ServerInterface {
             if (arg.startsWith("-")) arg else Utils.toAbsolutePath(arg)
           )
 
-        // Shouldn't happen!
+        // Only when simulating
         case None =>
           // process locally
           processLocally(arg)

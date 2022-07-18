@@ -41,7 +41,7 @@ object Sessions extends Logging.Loggable {
     }
     else
       for { arg <- args } Server.process(arg)
-      if (logging) finer(s"${Server} finished")
+      if (logging) finer(s"$Server finished")
   }
 
 
@@ -80,7 +80,7 @@ object Sessions extends Logging.Loggable {
     activeReds -= red.identity
     info(s"Finished editing ${red.path} at ${Utils.dateString()}")
     forActiveReds {
-      case red => info(s"Still editing ${red.path} (#${red.identity})")
+      red => info(s"Still editing ${red.path} (#${red.identity})")
     }
     if (activeReds.isEmpty && Sessions.exitOnLastClose) System.exit(1)
   }
@@ -108,10 +108,10 @@ object Sessions extends Logging.Loggable {
   def rename(fromPath: Path, toPath: Path): Unit = {
     if (logging) warn(s"Renaming session $fromPath to $toPath")
     if (logging) forActiveReds {
-      case red => info(s"Before rename ${red.path} (#${red.identity})")
+      red => info(s"Before rename ${red.path} (#${red.identity})")
     }
       activeReds.collectFirst {
-        case (id, red) if red.path == fromPath => red
+        case (_, red) if red.path == fromPath => red
       } match {
         case None =>
           warn(s"No session at path: $fromPath")
@@ -121,7 +121,7 @@ object Sessions extends Logging.Loggable {
           activeReds -= red.identity
           activeReds += red.identity -> red
           if (logging) forActiveReds {
-            case red => info(s"After rename ${red.path} (#${red.identity})")
+            red => info(s"After rename ${red.path} (#${red.identity})")
           }
       }
   }
@@ -133,7 +133,7 @@ object Sessions extends Logging.Loggable {
    *  activeReds sessions that the user is still
    *  interested in.
    */
-  def canQuit(): Boolean = {
+  def canQuit: Boolean = {
     forActiveReds (_.close())
     activeReds.isEmpty
   }

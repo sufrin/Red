@@ -88,13 +88,13 @@ object Utils {
       verticalAlignment = Alignment.Center
     }
 
-  private val fileSeparator: String = System.getProperty("file.separator")
+  //private val fileSeparator: String = System.getProperty("file.separator")
 
   /** Transform a file path to the path suitable for saving a
     *  primary backup file (a copy of the original file at
     *  `filePath`).
     */
-  def filePath2Backup(filePath: String): String = s"${filePath}~"
+  def filePath2Backup(filePath: String): String = s"$filePath~"
 
   /** The suffix added to the name of a file when there is no correspondingly named file
    * in the filestore as an editor session starts.
@@ -168,9 +168,9 @@ object Utils {
       Path.of(arg).toAbsolutePath.toString
     }
 
-  def toPath(path: String): Path = Paths.get(expandHome(path)).toAbsolutePath()
+  def toPath(path: String): Path = Paths.get(expandHome(path)).toAbsolutePath
 
-  def toParentPath(path: String): Path = toPath(path).getParent.toAbsolutePath()
+  def toParentPath(path: String): Path = toPath(path).getParent.toAbsolutePath
 
   def expandHome(path: String): String =
     if (path.startsWith("~")) path.replaceFirst("^~", System.getProperty("user.home")) else path
@@ -250,11 +250,36 @@ object Utils {
     }
   }
 
+  /**
+   * Return the PID of the current process if possible
+   *
+   */
+  def getPID: String = {
+    try {
+      val stat = io.Source.fromFile("/proc/self/stat")
+      val s = new StringBuilder("PID: ")
+      var reading = true
+      while (reading) {
+        stat.next() match {
+          case ch if '0' <= ch && ch <= '9' =>
+            s.append(ch)
+          case _ =>
+            reading = false
+        }
+      }
+      s.toString()
+    }
+    catch {
+      case _: Exception => ""
+    }
+  }
+
   /** start a new server and run it in the background */
-  def startServer(portName: String): Unit = {
+  def startRedServerProcess(portName: String): Unit = {
     val stdin = new java.io.ByteArrayInputStream("".getBytes)
-    val offEDT = new OffEdtThread[Unit, Unit]({ case _ => () }, { () }) {
-      def doOffEDT(): Unit = (Process("appleredserver") #< stdin).!
+    val offEDT: OffEdtThread[Unit, Unit] = new OffEdtThread[Unit, Unit]({ _ => () }, { () }) {
+      val cmd = List("appleredserver", portName)
+      def doOffEDT(): Unit = (Process(cmd) #< stdin).!
     }
     offEDT.execute()
   }

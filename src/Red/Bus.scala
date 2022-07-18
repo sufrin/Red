@@ -13,14 +13,21 @@ object Bus {
   import java.net.{DatagramPacket, DatagramSocket, InetAddress}
 
   val LOCALHOST: InetAddress = InetAddress.getByName("localhost")
-  val UTF8 = java.nio.charset.StandardCharsets.UTF_8.name
+  private
+  val UTF8:      String      = java.nio.charset.StandardCharsets.UTF_8.name
 
   /** Representation of message that has been sent ''from'' `port` */
   case class Datagram(port: Int, message: String)
 
   /** A source of `Datagram`, listening at `port`, with the specified buffer size. */
   class Receiver(port: Int, bufferSize: Int = 4096) {
-    val socket = new DatagramSocket(port)
+    val socket: DatagramSocket =
+      try { new DatagramSocket(port) }
+      catch {
+        case exn: Exception =>
+          exn.printStackTrace()
+          null
+      }
     socket.setReceiveBufferSize(bufferSize)
     val buffer = new Array[Byte](bufferSize)
     val packet = new DatagramPacket(buffer, bufferSize)
@@ -43,7 +50,7 @@ object Bus {
         override def run(): Unit = {
           while (running) {
             receive() match {
-              case Some(Datagram(port, message)) =>
+              case Some(Datagram(_, message)) =>
                 javax.swing.SwingUtilities.invokeLater { case () =>
                   service(message)
                 }
@@ -65,7 +72,7 @@ object Bus {
         val result = new Array[Byte](packet.getLength)
         System.arraycopy(buffer, 0, result, 0, result.length)
         // ACK
-        val sendPort = packet.getPort()
+        val sendPort = packet.getPort
         val ack = s"ACK $sendPort".getBytes(UTF8)
         val acket = new DatagramPacket(ack, 0, ack.length, LOCALHOST, sendPort)
         try { socket.send(acket) }
@@ -73,7 +80,9 @@ object Bus {
         //
         Some(Datagram(sendPort, new String(result, UTF8)))
       } catch {
-        case _: Exception => None
+        case exn: Exception =>
+          exn.printStackTrace()
+          None
       }
     }
 
@@ -88,7 +97,7 @@ object Bus {
     val socket = new DatagramSocket()
     socket.setSoTimeout(ackTimeMS)
 
-    /** Send `message` in a `Datagram`` to `port`, and return
+    /** Send `message` in a `Datagram` to `port`, and return
       * `Some(ack)`  if it was acknowledged with `ack` before the timeout,
       * and `None` if it timed out or if the socket was closed.
       */

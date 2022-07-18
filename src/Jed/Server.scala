@@ -26,7 +26,7 @@ package Jed
   */
 object Server extends ServerInterface with Logging.Loggable {
 
-  val fifo = sys.props.get("applered.fifo") orElse sys.env.get("REDFIFO")
+  private val fifo = sys.props.get("applered.fifo") orElse sys.env.get("REDFIFO")
 
   if (logging && fifo.nonEmpty) fine(s"Fifo server using: ${fifo.get}")
 

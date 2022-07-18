@@ -10,7 +10,7 @@ import scala.sys.process.{ProcessBuilder, ProcessLogger}
 
 /**
  * ==Filter==
- * A `Filter`` is a component that transforms the
+ * A `Filter` is a component that transforms the
  *  currently-selected text, copies the selection, then
  *  swaps the transformed text with the current selection.
  *
@@ -57,7 +57,6 @@ abstract class Filter extends SessionCommand {
     val addNL = adjustNL && (in!="" && in.last!='\n')
     val oldSelection            = session.selection             // get the polarity right on undo
     var out:     Option[String] = None
-    var caught:  Boolean        = true
 
     try {
       out = transform(if (addNL) in+"\n" else in, session.CWD)
@@ -73,8 +72,8 @@ abstract class Filter extends SessionCommand {
       val result       = out.get
       val oldSelected  = session.exch(if (addNL) result.init else result, requireSelection = false)
       new StateChange {
-        def undo(): Unit = { session.exch(oldSelected, true); session.selection = oldSelection }
-        def redo(): Unit = session.exch(if (addNL) result.init else result, true)
+        def undo(): Unit = { session.exch(oldSelected, requireSelection = true); session.selection = oldSelection }
+        def redo(): Unit = session.exch(if (addNL) result.init else result, requireSelection = true)
         override val kind: String = thisTransform.kind
       }
     }
