@@ -30,19 +30,24 @@ object Server extends ServerInterface with Logging.Loggable {
 
   if (logging && fifo.nonEmpty) fine(s"Fifo server using: ${fifo.get}")
 
-  def isClient: Boolean = server.isClient
+  override def isClient: Boolean = server.isClient
 
-  def portName: String = server.portName
+  override def portName: String = server.portName
 
-  def startServer(): Unit =
-     { server = if (fifo.nonEmpty) FIFOServer else UDPServer
+  override def startServer(): Unit =
+     { server =
+          if (fifo.nonEmpty) {
+            warn(s"App specifies fifo service interface: but this is not feasible with this JVM. UDP service substituted.")
+            UDPServer // FIFOServer // Should be
+          } else
+            UDPServer
        scala.swing.Swing.onEDTWait { server.startServer() }
      }
 
   private var server: ServerInterface = _
 
-  def process(arg: String): Unit = server.process(arg)
+  override def process(arg: String): Unit = server.process(arg)
 
-  def stopServer(): Unit = server.stopServer()
+  override def stopServer(): Unit = server.stopServer()
 }
 

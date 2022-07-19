@@ -1,5 +1,9 @@
 package Jed
 
+/**
+ *  Compile-time compatible only with Java 16 and its successors [BS: July 2022]
+ */
+
 import java.net.{StandardProtocolFamily, UnixDomainSocketAddress}
 import java.nio.ByteBuffer
 import java.nio.channels.{ServerSocketChannel, SocketChannel}
@@ -9,16 +13,16 @@ object FIFOServer extends Logging.Loggable with ServerInterface {
   log.level = Logging.ALL
 
   var processingLocally = false
-  def isClient: Boolean = false
+  override def isClient: Boolean = false
 
   private val fifo               = sys.props.get("applered.fifo") orElse sys.env.get("REDFIFO")
 
-  def portName: String           = Utils.expandHome(fifo.get)
+  override def portName: String  = Utils.expandHome(fifo.get)
   var service:    FIFOService    = _
   var clientPort: FIFOClientPort = _
 
 
-  def process(arg: String): Unit = {
+  override def process(arg: String): Unit = {
     if (logging) info(s"process $arg ${if (processingLocally) " locally." else " on server."}")
     if (processingLocally)
       processLocally(arg)
@@ -26,7 +30,7 @@ object FIFOServer extends Logging.Loggable with ServerInterface {
       clientPort.send(if (arg.startsWith("-")) arg else Utils.toAbsolutePath(arg))
   }
 
-  def startServer(): Unit = {
+  override def startServer(): Unit = {
     var serverAvailable = false
     // Try to contact the server
 
@@ -54,7 +58,7 @@ object FIFOServer extends Logging.Loggable with ServerInterface {
 
   }
 
-  def stopServer(): Unit = service.close()
+  override def stopServer(): Unit = service.close()
 
   def processLocally(arg: String): Unit = {
     arg match {

@@ -26,7 +26,7 @@ import Jed.Sessions.canQuit
 object UDPServer extends Logging.Loggable with ServerInterface {
   private var udpPort: String  = ""
 
-  def portName: String = s"$udpPort"
+  override def portName: String = s"$udpPort"
 
   /** When nonEmpty, the port to to which arguments will be sent
    * and the bus that will be used to send them.
@@ -66,9 +66,9 @@ object UDPServer extends Logging.Loggable with ServerInterface {
     else
       s"Processing at server $server"
 
-  def isClient: Boolean = !processingLocally
+  override def isClient: Boolean = !processingLocally
 
-  def startServer(): Unit = {
+  override def startServer(): Unit = {
       if (logging) fine(s"serveWith server begin")
       val port = sys.env.get("REDPORT") orElse { sys.props.get("applered.port") }
       port match {
@@ -133,7 +133,7 @@ object UDPServer extends Logging.Loggable with ServerInterface {
     warn(s"Started editor server at $serverPort")
   }
 
-  def process(arg: String): Unit = {
+  override def process(arg: String): Unit = {
     if (logging) info(s"process $arg ${if (processingLocally) " locally." else " on server."}")
     if (processingLocally)
       processLocally(arg)
@@ -157,7 +157,7 @@ object UDPServer extends Logging.Loggable with ServerInterface {
    * then stop servicing commands arriving on
    * the bus; and close the associated port.
    */
-  def stopServer(): Unit =
+  override def stopServer(): Unit =
     if (serverPort != null) {
       serverPort.stop()
       warn(s"Stopped editor server at $serverPort")
