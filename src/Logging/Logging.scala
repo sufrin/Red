@@ -1,3 +1,5 @@
+import java.io.PrintStream
+
 /**
  * A conceptually simple logging utility, requiring minimal setup.
  *
@@ -9,6 +11,60 @@
  * @see Logging.Loggable for examples of its use.
  */
 package object Logging {
+  /** If `stream` is non-null then run `body` with `stdout` and `stderr` set to `stream`. */
+  def withConsole(stream: java.io.PrintStream = null)( body : => Unit): Unit = {
+      if (stream==null) {
+        body
+      }
+      else
+        withOut (stream) { withErr (stream) { body } }
+  }
+
+  /**
+   * Construct a printstream suitable for redirecting `stdin` and/or `stdout`.
+   *
+   * @param filePath path to the file to which the resulting stream is directed
+   * @param mustExist if true this causes `null` to be returned unless there is a writeable file at `filePath`
+   * @param append if true this causes the destination file to be appended
+   * @return a stream directed at `filePath`, or `null` if `mustExist` and there is no writeable file at `filePath`
+   */
+  def logStream(filePath: String, mustExist: Boolean = true, append: Boolean = true): java.io.PrintStream = {
+    import java.nio.file.StandardOpenOption._
+    import java.nio.file._
+    val path = Paths.get(filePath)
+    if (mustExist && !(path.toFile.exists() && path.toFile.canWrite())) {
+      Logging.Default.warn(s"Logfile $path should exist and be writeable")
+      null
+    } else {
+      val stream = if (append) Files.newOutputStream(path, CREATE, APPEND) else Files.newOutputStream(path, CREATE)
+      new PrintStream(stream)
+    }
+  }
+
+  /**
+   * 1. If `stream` is non-null then run body with `stderr` set to `stream`,
+   *    otherwise just run `body`.
+   *
+   * 2. In both cases: on termination or exception revert to the original `stderr`.
+   */
+  def withErr(stream: java.io.PrintStream)( body : => Unit): Unit =
+  { val err = System.err
+    if (stream!=null) System.setErr(stream)
+    try { body } finally { System.setErr(err) }
+  }
+
+  /**
+   * 1. If `stream` is non-null then run body with `stdout` set to `stream`,
+   *    otherwise just run `body`.
+   *
+   * 2. In both cases: on termination or exception revert to the original `stdout`.
+   */
+  def withOut(stream: java.io.PrintStream)( body : => Unit): Unit =
+  { val out = System.out
+    if (stream!=null) System.setOut(stream)
+    try { body } finally { System.setOut(out) }
+  }
+
   case class LogMessage(level: Int, logName: String, message: String)
 
   /** @param logName        the name of the log, transmitted with all messages.
@@ -165,14 +221,13 @@ package object Logging {
   }
 
   /** Map symbolic string (or digit sequence) to integer logging level */
-  def toLogLevel(level: String): Int = _levelName.find { case (_, v) =>
-    v == level
+  def toLogLevel(level: String): Int = _levelName.find {
+    case (_, v) => v == level.toUpperCase
   } match {
     case None =>
-      assert(
-        level.matches("[0-9]+"),
-        s"Logging.toLogLevel($level) -- unknown non-numeric level)"
-      ); level.toInt
+      assert(level.matches("[0-9]+"),
+             s"Logging.toLogLevel($level): malformed level specification")
+      level.toInt
     case Some((name, _)) => name
   }
 

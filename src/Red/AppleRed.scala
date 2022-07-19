@@ -45,7 +45,10 @@ import scala.swing.Frame
 object AppleRed extends Logging.Loggable {
 
   def main(args: Array[String]): Unit =
-     { Jed.Server.startServer()
+     { Logging.withConsole(Logging.logStream(Utils.expandHome("~/AppleRed-ServerStart.log"), mustExist = true, append = false)) {
+          Logging.Default.info(s"\n**********\nAppleRed starting at ${Utils.dateString()}\n**********")
+          Jed.Server.startServer()
+       }
        withDesktop {
          if (logging) fine(s"Server interface started")
          if (Jed.Server.isApp || Jed.Server.isServer) establishMainWindowFrame(Jed.Server.portName)
