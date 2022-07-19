@@ -3,6 +3,7 @@
 # Subsequent invocations act as clients, delegating to the server
 REDPORT=33445 exec java \
      -Xdock:icon=/Users/sufrin/bin/red.png  \
-     -Xdock:name=AppleRed-Server \
+     -Xdock:name="AppleRed-Client&Server" \
+     -DLogging.Default.level=error \
      -jar ~/bin/AppleRed.jar "$@" &
 

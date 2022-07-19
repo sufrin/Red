@@ -92,8 +92,14 @@
                 <javaproperty name="apple.laf.useScreenMenuBar" value="true"/>
                 <javaproperty name="applered.app"               value="true"/>
                 <javaproperty name="applered.port"              value="33445"/>                
-                <javaproperty name="applered.fifo-"              value="~/AppleRed.Server.Port"/>                
-               
+                <javaproperty name="applered.fifo-"              value="~/AppleRed.Server.Port"/>  
+                
+                <!-- These are here while we are trying to understand sandbox permissions -->           
+                <javaproperty name="Red.AppleRed.level"         value="ALL"/> 
+                <javaproperty name="Jed.UDPServer.level"        value="ALL"/> 
+                <javaproperty name="Jed.Server.level"           value="ALL"/>
+                <javaproperty name="Jed.Sessions.level"         value="ALL"/>
+                
               
                 <jarfileset dir="build">
                   <include name="**/*.jar" />
@@ -132,8 +138,8 @@
   
   <target name="clean" description="Clean up anything we can rebuild">
     <delete dir="${ant.project.name}.app"  quiet="true"/>    
-    <delete dir="${ant.project.name}-new.app"  quiet="true"/>
-    <delete file="${ant.project.name}.dmg" quiet="true"/>
+    <delete dir="${ant.project.name}-new.app"  quiet="true"/>    
+    <delete dir="${ant.project.name}-log.app"  quiet="true"/>
     <delete dir="build"                    quiet="true"/> 
     <delete dir="classes"                  quiet="true"/> 
   </target>

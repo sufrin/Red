@@ -1,6 +1,7 @@
 # Non-client, non-server invocation of Red
 exec java \
      -Xdock:icon=/Users/sufrin/bin/tred.png  \
-     -Xdock:name=Red-Standalone \
+     -Xdock:name=AppleTred \
+     -DLogging.Default.level=error \
      -jar ~/bin/AppleRed.jar "$@" &
 

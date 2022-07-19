@@ -44,24 +44,25 @@ import scala.swing.Frame
  */
 object AppleRed extends Logging.Loggable {
 
-  def main(args: Array[String]): Unit =
-     { Logging.withConsole(Logging.logStream(Utils.expandHome("~/AppleRed-ServerStart.log"), mustExist = true, append = false)) {
-          Logging.Default.info(s"\n**********\nAppleRed starting at ${Utils.dateString()}\n**********")
-          Jed.Server.startServer()
-       }
-       withDesktop {
-         if (logging) fine(s"Server interface started")
-         if (Jed.Server.isApp || Jed.Server.isServer) establishMainWindowFrame(Jed.Server.portName)
-         if (logging) fine(s"Main window $mainWindowFrame")
-         if (Jed.Server.isServer && args.isEmpty) {
-           Jed.Sessions.exitOnLastClose = false
-         }
-         if (logging)
-           fine(s"Processing args: ${args.mkString(", ")}")
-         for  { arg <- args } Jed.Server.process(arg)
-         if (logging) fine(s"(args processed) client=${Jed.Server.isClient} noExitOnLastClose=${Jed.Server.isApp}")
+  def main(args: Array[String]): Unit = {
+    Logging.withConsole(Logging.logStream(Utils.expandHome("~/AppleRed.log"), mustExist = true, append = true)) {
+      Logging.Default.info(s"\n**********\nAppleRed starting at ${Utils.dateString()}\n**********")
+      Jed.Server.startServer()
+
+      withDesktop {
+        if (logging) fine(s"Server interface started")
+        if (Jed.Server.isApp || Jed.Server.isServer) establishMainWindowFrame(Jed.Server.portName)
+        if (logging) fine(s"Main window $mainWindowFrame")
+        if (Jed.Server.isServer && args.isEmpty) {
+          Jed.Sessions.exitOnLastClose = false
+        }
+        if (logging)
+          fine(s"Processing args: ${args.mkString(", ")}")
+        for {arg <- args} Jed.Server.process(arg)
+        if (logging) fine(s"(args processed) client=${Jed.Server.isClient} noExitOnLastClose=${Jed.Server.isApp}")
       }
     }
+  }
 
 
   def withDesktop(body: => Unit): Unit = {
