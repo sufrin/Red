@@ -31,7 +31,7 @@
 
   <property name="mainclass"   value="Red.AppleRed"/>
   
-  <target name="new" 
+  <target name="new" depends="prepare"
           description="Make the app: AppleRed-new (for testing)" >
           <antcall target="makeapp">
                <param name="AppleRed"  value="AppleRed-new"/>
@@ -39,7 +39,15 @@
          </antcall>
   </target>
   
-  <target name="app" 
+  <target name="log" depends="prepare"
+          description="Make the app: AppleRed-log (for testing)" >
+          <antcall target="makeapp">
+               <param name="AppleRed"  value="AppleRed-log"/>
+               <param name="stubFile"  value="logJavaApplicationStub"/>
+         </antcall>
+  </target>
+  
+  <target name="app" depends="prepare"
           description="Make the app: AppleRed" >
           <antcall target="makeapp">
                <param name="AppleRed"  value="AppleRed"/>
@@ -84,6 +92,7 @@
                 <javaproperty name="apple.laf.useScreenMenuBar" value="true"/>
                 <javaproperty name="applered.app"               value="true"/>
                 <javaproperty name="applered.port"              value="33445"/>                
+                <javaproperty name="applered.fifo-"              value="~/AppleRed.Server.Port"/>                
                
               
                 <jarfileset dir="build">

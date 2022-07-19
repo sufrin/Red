@@ -134,12 +134,12 @@ object AppleRed extends Logging.Loggable {
         private val role    =
           if (Jed.Server.isApp)
              // the OS/X packaged app has to be a client, for the time being
-             s"$port client (needs server)"
+             s"Client (of $port)"
           else
           if (Jed.Server.isServer && port!="")
-             s"$port server"
+             s"Serving $port"
           else
-             "(standalone)"
+             "(Standalone)"
 
 
         private val labels  = new BoxPanel(Orientation.Vertical) {
@@ -169,7 +169,7 @@ object AppleRed extends Logging.Loggable {
         contents  += labels
         contents  += buttons
         iconImage = Jed.Utils.redImage
-        //border = javax.swing.BorderFactory.createEtchedBorder()
+        border = javax.swing.BorderFactory.createEtchedBorder()
       }
       // Frame
       contents = panel

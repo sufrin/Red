@@ -12,7 +12,8 @@ object FIFOServer extends Logging.Loggable with ServerInterface {
   def isClient: Boolean = false
 
   private val fifo               = sys.props.get("applered.fifo") orElse sys.env.get("REDFIFO")
-  def portName: String           = fifo.get
+
+  def portName: String           = Utils.expandHome(fifo.get)
   var service:    FIFOService    = _
   var clientPort: FIFOClientPort = _
 
@@ -26,27 +27,31 @@ object FIFOServer extends Logging.Loggable with ServerInterface {
   }
 
   def startServer(): Unit = {
+    var serverAvailable = false
     // Try to contact the server
+
+      try {
+        clientPort = new FIFOClientPort(portName)
+        if (logging) info(s"Acquired client port to server: $clientPort")
+        serverAvailable   = true
+        processingLocally = false
+      } catch {
+        case exn: Exception =>
+          if (logging) info(s"Failed to acquire client port: $portName, because $exn")
+      }
+
+    if (!serverAvailable)
     try {
+      Files.deleteIfExists(Utils.toPath(portName))
       service           = new FIFOService(portName)
       processingLocally = true
+      if (logging) info(s"About to start service on $service")
       service.serveWith(processLocally)
     } catch {
       case exn: Exception =>
-        processingLocally = false
-        if (logging) info(s"About to behave as a client, because $exn")
+        if (logging) error(s"Failed to start service at $portName")
     }
-    if (!processingLocally) {
-      try {
-        clientPort = new FIFOClientPort(portName)
-        if (logging) info(s"Acquired client port: $clientPort")
-      } catch {
-        case exn: Exception =>
-          processingLocally = true
-          if (logging) info(s"Filed to acquire client port: $portName")
-          exn.printStackTrace()
-      }
-    }
+
   }
 
   def stopServer(): Unit = service.close()
@@ -80,6 +85,8 @@ class FIFOClientPort(path: String) extends Logging.Loggable {
   val serverAddress = UnixDomainSocketAddress.of(path)
   val serverChannel = SocketChannel.open(serverAddress)
 
+  override def toString: String = s"FifoClient: $path ($serverChannel)"
+
   def send(message: String): Unit = {
     val sent = message+"\n"
     serverChannel.write(ByteBuffer.wrap(sent.getBytes(java.nio.charset.StandardCharsets.UTF_8)))
@@ -98,7 +105,7 @@ class FIFOService(path: String) extends Logging.Loggable {
 
   serverSocket.bind(serverAddress)
 
-  override def toString: String = s"Fifo: $path"
+  override def toString: String = s"FifoService: $path"
 
   log.level=Logging.ALL
 

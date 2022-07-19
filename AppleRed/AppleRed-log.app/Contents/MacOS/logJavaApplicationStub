@@ -40,7 +40,8 @@
 #                                                                                #
 ##################################################################################
 
-
+export ScalaApplicationLog=$HOME/ScalaApplications.log
+export ScalaApplicationDate=$(date +%Y%m%d%H%M%S)
 
 # function 'stub_logger()'
 #
@@ -49,19 +50,19 @@
 # @param1  the log message
 # @return  void
 ################################################################################
-function stub_logger() {
-    syslog -s -k \
-            Facility com.apple.console \
-            Level Notice \
-            Sender "$(basename "$0")" \
-            Message "[$$][${CFBundleName:-$(basename "$0")}] $1"
-}
-
 # function stub_logger() {
-#         echo \
-#                 Sender "$(basename "$0")" \
-#                 Message "[$$][${CFBundleName:-$(basename "$0")}] $1" >> $HOME/REDLOG
+#     syslog -s -k \
+#             Facility com.apple.console \
+#             Level Notice \
+#             Sender "$(basename "$0")" \
+#             Message "[$$][${CFBundleName:-$(basename "$0")}] $1"
 # }
+
+function stub_logger() {
+       echo    $ScalaApplicationDate \
+               Sender "$(basename "$0")" \
+               Message "[$$][${CFBundleName:-$(basename "$0")}] $1" >> $ScalaApplicationLog
+}
 
 
 
