@@ -98,7 +98,9 @@
                 <javaproperty name="Red.AppleRed.level"         value="ALL"/> 
                 <javaproperty name="Jed.UDPServer.level"        value="ALL"/> 
                 <javaproperty name="Jed.Server.level"           value="ALL"/>
-                <javaproperty name="Jed.Sessions.level"         value="ALL"/>
+                <javaproperty name="Jed.Sessions.level"         value="ALL"/>                
+                <javaproperty name="Jed.UI.level"               value="ALL"/>
+                <javaproperty name="Jed.Session.level"          value="ALL"/>
                 
               
                 <jarfileset dir="build">

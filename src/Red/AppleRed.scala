@@ -51,7 +51,7 @@ object AppleRed extends Logging.Loggable {
 
       withDesktop {
         if (logging) fine(s"Server interface started")
-        if (Jed.Server.isApp || Jed.Server.isServer) establishMainWindowFrame(Jed.Server.portName)
+        if (Jed.Server.isOSXApp || Jed.Server.isServer) establishMainWindowFrame(Jed.Server.portName)
         if (logging) fine(s"Main window $mainWindowFrame")
         if (Jed.Server.isServer && args.isEmpty) {
           Jed.Sessions.exitOnLastClose = false
@@ -59,7 +59,7 @@ object AppleRed extends Logging.Loggable {
         if (logging)
           fine(s"Processing args: ${args.mkString(", ")}")
         for {arg <- args} Jed.Server.process(arg)
-        if (logging) fine(s"(args processed) client=${Jed.Server.isClient} noExitOnLastClose=${Jed.Server.isApp}")
+        if (logging) fine(s"(args processed) client=${Jed.Server.isClient} noExitOnLastClose=${Jed.Server.isOSXApp}")
       }
     }
   }
@@ -136,7 +136,7 @@ object AppleRed extends Logging.Loggable {
         private val panel   = new BoxPanel(Orientation.Vertical) {
         private val user    = System.getProperty("user.name", "<no user>")
         private val role    =
-          if (Jed.Server.isApp)
+          if (Jed.Server.isOSXApp)
              // the OS/X packaged app has to be a client, for the time being
              s"Client (of $port)"
           else
@@ -153,18 +153,37 @@ object AppleRed extends Logging.Loggable {
         }
 
         private val buttons = new BoxPanel(Orientation.Horizontal) {
-          contents += But("Fresh", "Start editing a new document locally") {
+          contents += But("Fresh", "Start editing a new document") {
             Jed.Server.process(Utils.freshDocumentName())
           }
 
-          // This nonsense is while the OS/X packaged app can't communicate
-
-          if (!Jed.Server.isApp)
-            contents += But("Quit", "Quit this server") {
-            if (Jed.Sessions.canQuit) sys.exit(0)
+          /*
+           * Experiments using this button seem to indicate that a packaged OS/X app may have no more than one
+           * top-level window.
+           *
+           * Symptoms:
+           *   1. On the non-packaged program the session starts, and logs, as expected
+           *   2. On the packaged program there is no log of the session starting
+           *      and apparently no system log of a permission failure
+           *
+           *   But the investigation isn't over, for I ask myself why Jape can
+           *   possibly work on this machine under these circumstances!
+           */
+          if (false && Jed.Server.isOSXApp) {
+            contents += But("Local", "Start editing a new document locally") {
+              Jed.Sessions.startSession(Utils.freshDocumentName())
+            }
           }
 
-          if (false && !Jed.Server.isApp)
+
+          // This nonsense is while the OS/X packaged app can't communicate
+
+          if (!Jed.Server.isOSXApp)
+            contents += But("Quit", "Quit this server") {
+              if (Jed.Sessions.canQuit) sys.exit(0)
+            }
+
+          if (false && !Jed.Server.isOSXApp)
             contents += But("Serve", "Start a new appleredserver") {
             Utils.startRedServerProcess(Jed.Server.portName)
           }

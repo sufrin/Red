@@ -13,7 +13,7 @@ import scala.swing.FileChooser.Result.{Approve, Cancel}
 import scala.swing._
 
 class UI(val theSession: EditSession) extends SimpleSwingApplication {
-
+  import UI._
   /**
    * `theSession` emits warnings about things like find/replace failures
    * that we wish to report via this user interface.
@@ -761,7 +761,12 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
   /** A directory chooser used by "Open" and "Save As" in the absence of parameter text */
   def dirChooser: FileChooser = FileChooserCache.chooser(dirsOnly=true)
 
-  def start(): Unit = { main(Array()); makeVisible() }
+  def start(): Unit =
+  { if (logging) finer(s"Starting UI with window $top")
+    main(Array())
+    if (logging) finer(s"Making visible UI with window $top")
+    makeVisible()
+  }
 
 }
 

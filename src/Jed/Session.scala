@@ -23,6 +23,7 @@ import java.nio.file.Files
  */
 class Session(_path: java.nio.file.Path, val identity: Int, location: String="") {
   override def toString: String = s"Session($path, $identity)"
+  import Session._
 
   val doc     = new Red.Document()
   val session = new EditSession(doc, _path.toString) with CutRing.Plugin
@@ -51,6 +52,8 @@ class Session(_path: java.nio.file.Path, val identity: Int, location: String="")
   }
 
   locally {
+    if (logging) fine(s"Session($path, $identity, $location)")
+    if (logging) fine(s"Starting $gui")
     gui.start()
     if (location!="") goTo(location)
 
@@ -83,5 +86,9 @@ class Session(_path: java.nio.file.Path, val identity: Int, location: String="")
     /** Tell the coordinator that this is open. */
     Sessions.opened(this)
   }
+}
+
+object Session extends Logging.Loggable {
+
 }
 

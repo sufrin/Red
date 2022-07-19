@@ -85,7 +85,7 @@ object UDPServer extends Logging.Loggable with ServerInterface {
               case None =>
                 // this program will itself be the server
                 // UNLESS IT IS THE PACKAGED APP
-                if (isApp) {
+                if (isOSXApp) {
                   processingLocally = false
                   if (logging) warn(s"OS/X Red: needs a server at UDP port $port")
                 } else {
