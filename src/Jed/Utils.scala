@@ -197,7 +197,7 @@ object Utils {
    */
   def relativeToHome(thePath: Path): String = {
     if (thePath.isAbsolute && thePath.startsWith(homePath)) {
-      val rel = thePath.subpath(homePath.getNameCount, thePath.getNameCount)
+      val rel = homePath.relativize(thePath) //.subpath(homePath.getNameCount, thePath.getNameCount)
       s"~${System.getProperty("file.separator")}${rel.toString}"
     }
     else

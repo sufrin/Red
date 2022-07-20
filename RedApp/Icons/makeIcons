@@ -1,0 +1,11 @@
+#
+# Makes an iconset from a png model
+#
+NAME=${1-AppleRed}
+mkdir -vp $NAME.iconset
+for dim in 16 32 64 128 256 512 
+do
+    sips -z $dim $dim $NAME.png --out $NAME.iconset/icon_${dim}x${dim}.png
+done
+iconutil -c icns $NAME.iconset
+rm -rfv $NAME.iconset 
