@@ -18,5 +18,7 @@
       </library>
     </orderEntry>
     <orderEntry type="library" name="regexkit" level="project" />
+    <orderEntry type="library" name="scala-sdk-2.13.8" level="project" />
+    <orderEntry type="library" name="scala-sdk-2.13.8" level="application" />
   </component>
 </module>

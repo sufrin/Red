@@ -1,9 +1,13 @@
+#!/bin/sh
 # Client-server invocation of Red
 # First invocation becomes the server 
 # Subsequent invocations act as clients, delegating to the server
+PROFILE=$HOME/.Red_profile
+[ -e $PROFILE ] && . $PROFILE
+cd $HOME
 REDPORT=33445 exec java \
-     -Xdock:icon=/Users/sufrin/bin/red.png  \
+     -Xdock:icon=$HOME/bin/red.png  \
      -Xdock:name="AppleRed-Client&Server" \
      -DLogging.Default.level=error \
-     -jar ~/bin/AppleRed.jar "$@" &
+     -jar $HOME/bin/AppleRed.jar "$@" &
 
