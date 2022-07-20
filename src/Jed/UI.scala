@@ -374,7 +374,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
             }
           }
         else
-        top.saveAs(text)
+        top.saveAs(Utils.localizePath(text, theSession.CWD, Utils.toParentPath(theSession.path)))
       }
 
       contents += Item("Save & Quit") {
