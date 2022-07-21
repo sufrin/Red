@@ -156,15 +156,14 @@ object Utils {
     }
   }
 
-  def localizePath(text: String, cwd: Path, plusPath: Path): String = {
-    text match {
-      case s"~/$_"    => expandHome(text)
-      case s"+$path"  => plusPath.resolve(text).toString
-      case s"+/$path" => plusPath.resolve(text).toString
-      case s"/$path"  => s"/$path"
-      case path       => cwd.resolve(text).toString
+  def localizePath(thePath: String, cwd: Path, plusPath: Path): String = {
+    thePath match {
+      case s"~/$_" => expandHome(thePath)
+      case s"+$_"  => plusPath.resolve(thePath).toString
+      case s"+/$_" => plusPath.resolve(thePath).toString
+      case s"/$_"  => thePath
+      case path    => cwd.resolve(path).toString
     }
-
   }
 
   def freshDocumentName(): String = s"New=${dateString()}"

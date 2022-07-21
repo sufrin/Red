@@ -1,6 +1,8 @@
 #
 # Makes an iconset from a png model
 #
+#   The iconset is suitable for installing as the .icns resource for an app
+#
 NAME=${1-AppleRed}
 mkdir -vp $NAME.iconset
 for dim in 16 32 64 128 256 512 

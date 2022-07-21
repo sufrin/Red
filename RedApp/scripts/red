@@ -1,0 +1,9 @@
+# Client-server invocation of Red from command-line
+
+export REDMODE=server
+
+# This for when the application is installed in ~/Applications 
+export REDCONTAINER=$HOME/Applications/AppleRed.app/Contents
+Java=${REDCONTAINER}/Java
+exec $Java/AppleRed-server $REDCONTAINER $@ &
+
