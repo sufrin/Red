@@ -13,8 +13,6 @@ deleted** blocks of contiguous text. This feature is
 orthogonal to `undo`/`redo` and makes it straightforward 
 to re-insert material that was deleted some time ago. 
 
-
-
 --------------
 
 I have used it mainly for preparing **`latex`** and **`markdown`**
