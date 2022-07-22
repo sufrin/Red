@@ -1,13 +1,9 @@
 #
-# Client-server invocation of Red, from AppleRed.app
+# Invocation of Red from AppleRed.app (and scripts)
 #
-#   First argument is the path to the .app/Contents provided by the running app
-#       
-#   First invocation becomes the server; subsequent ones act as clients 
+#   $1 is the path to AppleRed.app/Contents of the invoking app
+#   $@ are the arguments passed to the opening script or app
 #
-#
-# date            >> ~/REDAPP
-# echo "$@"       >> ~/REDAPP
 #
 ####
 ####
@@ -22,7 +18,7 @@ PROFILE=$HOME/.AppleRed-profile
 
 #### 
 #### 
-#### Locate the resources used to start the java command
+#### Locate the resources needed to start the java command
 #### 
 #### 
 CONTAINER=${1}
@@ -30,11 +26,14 @@ shift
 Java=${CONTAINER}/Java
 Resources=${CONTAINER}/Resources
 
+#### Unless otherwise specified this script was invoked by the app
 MODE=${REDMODE-application}
 
+#### Read the appropriate profile
 PROFILE=$HOME/.AppleRed-${MODE}.profile
 [ -e $PROFILE ] && . $PROFILE
 
+#### Set the appropriate dock features (OS/X)
 if [ "$MODE" = "client"  ]
 then 
   REDICON="$Resources/AppleCred.png"
@@ -45,11 +44,9 @@ else
 fi
 
 
-IC=${REDICON}
-
 #### 
 #### 
-#### If started from the app itself change directory to something sensible
+#### If started from the OS/X app change directory to something sensible
 #### 
 #### 
 
@@ -64,7 +61,7 @@ IC=${REDICON}
 
 exec java   \
      -Xdock:icon="$REDICON"  \
-     -Xdock:name="AppleRed-Client&Server" \
+     -Xdock:name="$DOCKNAME" \
      -DLogging.Default.level=error        \
      -jar $Java/AppleRed.jar "$@" 
 

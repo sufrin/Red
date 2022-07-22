@@ -2,8 +2,20 @@
 
 This directory has the means to construct a standalone `AppleRed`
 app that *can* function without an external server on versions
-of `OS/X` earlier than `Catalina`.
+of `OS/X` earlier than `Catalina 10.15.7`.
 
+  ---------------------------------------------
+  **Obituary notice**
+
+  In view of the difficulties of explaining the strange relationship
+  between `red` and the `AppleDred` app made here, I  have decided to 
+  distribute the program as a simple `OS/X app` that invokes
+  a helper program to provide editing session functionality. 
+  Building materials for that app are found in the `RedApp` 
+  subdirectory of the distributed code.
+  ---------------------------------------------
+  
+ 
 Providing that the parent directory has an up-to-date `AppleRed.jar`
 constructed either as an **IntelliJ** artefact, or by using the
 script `makeApp` in that folder, one of the following commands will
@@ -64,7 +76,6 @@ subsequent sessions.  The command-line invocation:
 running until it is explicitly quit*.
 
 
- 
 
 
 
