@@ -1,5 +1,7 @@
 # Red
 
+## Introduction
+
 Red is no-frills `UNICODE`-capable **modeless** (and **colourless**)
 text editor with a simple implementation that can be customized
 using the **scala** language.  It has no pretensions to being an
@@ -104,6 +106,204 @@ editing server (if necessary), then passes its arguments to it, then
 and don't expect it to hang around between "starts". Drop the `AppleRed.app`
 icon onto the `OS/X` dock if you want to make it easily available.
 
+
+## Editing Sessions
+
+In each editing session window you will see the main text editing
+component at the bottom, with three minitext-editing components in a
+row above it. The minitexts are labelled **(A)** (*Argument*), **(F)** (*Find*)
+ and **(R)** (*Replace*).
+
+The *Argument* minitext provides arguments for many of the other editing
+commands, including those on the *File* menu which start new editing
+sessions, allow the document to be saved in a different file, and so
+forth.
+
+The *Find* and *Replace* minitexts provide arguments for the actions
+of the same name. The checkbox next to *Find* indicates whether
+its content will be interpreted as a regular expression or as a literal
+pattern. The same checkbox  indicates whether the *Replace* content 
+will be treated as a substitution for a matching regular expression
+or as a literal pattern. 
+
+Many of the editing commands described below are bound to keystrokes, and can
+also be used on the minitexts.
+
+Red shows which of its (mini-)text windows has the keyboard focus by
+showing its cursor in red. A text window with a greyed-out cursor
+doesn't have the keyboard focus. Focus usually moves into a text window
+as the mouse-cursor moves into it, but occasionally after popup warnings
+it's necessary to force the issue by clicking in the desired window.
+
+## The Editing Model
+
+At any stage, the document in a window (minitext or main) may have
+a *selection* -- which is a contiguous region of the document. The
+selection is bounded at one end by the *document cursor* -- which
+is shown as a thin red rectangle -- and at the other end by the
+*mark* -- which is shown as a (thinner) blue rectangle. When the
+cursor and mark are in the same position only the cursor is shown,
+and the selection (in that document) is effectively empty.
+
+The document cursor can be moved in small increments by the arrow
+keys, or can be placed anywhere in the document by clicking with
+the left mouse-button. The mark can be placed anywhere in the
+document by clicking with the right mouse button.
+
+The text of the selection is always shown on a grey background.
+
+After every editing action the position of the document in the
+editor window is adjusted automatically so that *the document
+cursor is visible.* Between editing commands the position of the
+document in the window can be adjusted manually by the scrollwheel,
+or by "dragging" -- moving the mouse with left button pressed.
+This can make the document cursor "disappear" temporarily.
+
+There is a *cut-ring* which holds the last several texts copied
+or deleted from the document. The very last such text is also
+placed on the operating system's clipboard and the most recent
+material placed in the system clipboard by Red or any other
+application is accessible is *paste*d into the document or *swap*ped
+with the current selection when the *Paste* (*Swap*) commands are
+invoked (usually by keystroke).
+
+## Editing Commands
+The editing actions described below are a small selection of the commands
+provided by the editor. 
+
+### Undo and Redo
+
+As editing commands happen their effects are pushed onto the *done stack*.
+
+*Undo* (`C-z`) undoes the topmost effect on the *done stack* and
+pushes it onto the *undone stack*.
+
+*Redo* (`C-Z`) re-does the topmost effect on the *undone stack*,
+-- pops it from that stack.
+
+When editing commands other than *Undo* or *Redo* happen, the entire
+*redo stack* is emptied.
+
+### Cut and Paste
+
+*Cut* (`C-x`, `F1`) removes the selection from the document puts
+it in the cut-buffer, and adds it to the cut-ring. 
+
+*Paste* (`C-v`, `F2`) inserts the content of
+the cut-buffer into the document and re-selects it. 
+
+*Copy* (`C-c`, `F3`) replaces the cut-buffer with the selection (if there is a
+selection).
+
+*SwapSel* (`C-b`, `F4`) exchanges the selection and
+the cut-buffer (except that if the selection is null, then the
+cut-buffer doesn't change). The replaced text is added to the cut ring
+as if it had been deleted.
+
+*SwapCursorAndMark* (`F12`) does what its name suggests.
+
+### Find and Replace in Principle  
+
+In what follows:
+
+  * *following* means "at a position to the right of or below the *editing cursor*."
+  * *preceeding* means "at a position to the left of or above the *editing cursor*."
+
+  * **(F)** means "the pattern specified by the *Find* minitext."
+  * **(R)** means "the replacement specified by the *Replace* minitext."
+  
+If the checkbox adjacent to the *Find* minitext is checked then
+the find text is interpreted as a (Java-style) regular expression.
+Otherwise it is interpreted literally.
+
+When the find text is interpreted as a regular expression, the
+replacement text is interpreted as the text obtained (using standard
+Java regular-expression substitution rules) by substituting each
+instance of `$n` in it by the text that matches the `n`th bracketed
+expression in the instance of the pattern that is being replaced.
+Otherwise it is interpreted literally.
+
+  * *FindDown* (`C-f`, `Numpad-0`)  selects the nearest *following* instance of **(F)** 
+
+  * *FindUp* `(C-F)`, `Shift-Numpad-0`) selects the nearest *preceeding* instance of **(F)** 
+
+
+If the current selection is an instance of **(F)** then:
+
+  * *ReplaceDown* `(C-r)', `Numpad-.` saves the current selection in the cut-buffer
+  and replaces it with the **(R)** selecting the replacement text
+  and leaving the cursor to the right of the mark.
+
+  * *ReplaceUp* `(C-R), `Shift-Numpad-.`` saves the current selection
+  in the cut-buffer and replaces it with the **(R)** selecting the
+  replacement text and leaving the cursor to the left of the mark.
+
+  * *FindSelDown* (C-A-f) makes the current selection the *Find*
+  pattern, turns off regular expression interpretation, and then acts as
+  *FindDown*. 
+
+  * *FindSelUp* (C-A-F) makes the current selection the *Find* pattern, 
+  then acts as *FindUp*.
+  
+  * *ClearFind* (C-Numpad-0) clears the find minitext, and 
+  moves the editing cursor to that text. 
+  
+  * *ClearRepl* (C-Numpad-.) clears the replace minitext, and 
+  moves the editing cursor to that text. 
+
+### Find and Replace in Practice
+
+One way of replacing the next instance of `"FOO"` with `"BAR"` is to
+type the keystrokes bound to
+
+   *ClearFind* `FOO` *FindSelDown* *ClearRepl* `BAR` *ReplaceDown*
+
+Replacing the following instance just requires
+
+   *FindSelDown* *ReplaceDown*
+
+since the *Find* and *Repl* minitexts are already set to the right
+pattern and replacement.
+
+  * *ReplaceAll* (on the edit menu) replaces (without any interaction)
+    all instances of the *Find* minitext in the current selection
+    with the *Repl* minitext, and selects the resulting transformed
+    text.  The original selection is preserved in the cut buffer
+    (and therefore in the cut ring), so this action can be undone
+    immediately with *SwapSel*. 
+    
+    If you want to "approve" each replacement interactively, then just use
+    *FindSelDown* *ReplaceDown* in sequence repeatedly, undoing any
+    replacement you don't approve of with *SwapSel*.
+
+### Treatment of the Selection
+
+Red offers two modes of treating the selection. Most users will decide
+on one of them and stick to it forever. (I use the second, having grown
+accustomed to it in my homegrown editors for more than thirty years.)
+
+1.  **Typing-cuts-selection:** Typing new material automatically cuts
+    the selection into the cut buffer (and adds it to the cut ring). 
+    This is the behaviour that most people have come to expect of editors.
+    
+2.  **Typing-removes-mark:** Typing new characters removes the mark, and
+    thus deselects the *selection*, but does not delete the selected
+    material. In this mode Dred does not distinguish between tentative
+    and definite selections.
+
+The choice between treatments is made using the
+**File/Preferences/Typing Removes Selection** checkbox. As with all
+other preferences its value is preserved between Dred invocations.
+
+
+##### Key Assignment Policy:
+
+It makes sense for *FindUp* to be bound to the SHIFTED key that
+*FindDown* is bound to; and for *ReplaceUp* to be bound to the
+SHIFTED *ReplaceDown* key.
+
+
+## APPENDIX
 
 ### History of `AppleRed`
 

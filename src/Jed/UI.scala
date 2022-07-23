@@ -24,6 +24,14 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
     }
   }
 
+  locally {
+    theSession.feedback.handleWith {
+          // TODO: float a window for a short time with this information.
+          //       Right now it just gets lost.
+      case (from, message) => feedback(s"[$from: $message]")
+    }
+  }
+
   /**
    * A warning from Filter during the execution of  `body` is reported
    * only in the present UI.
@@ -181,21 +189,31 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
     // Keypad bindings to find and replace
 
     case Instruction(Key.Decimal, _, mods) if (mods.hasControl) =>
+      replLine.peer.setRequestFocusEnabled(true)
+      replLine.requestFocus()
+      //replLine.requestFocusInWindow()
       replLine.text=""
-      replLine.requestFocusInWindow()
 
     case Instruction(Key.Decimal, _, mods) => replace(findLine.text, replLine.text, backwards = mods.hasShift)
 
     case Instruction(Key.Numpad0, _, mods) if (mods.hasControl) =>
+      findLine.peer.setRequestFocusEnabled(true)
+      findLine.requestFocus()
+      //findLine.requestFocusInWindow()
       findLine.text = ""
-      findLine.requestFocusInWindow()
 
     case Instruction(Key.Numpad0, _, mods)  =>
-      if (mods.hasAlt && theSession.hasSelection) findLine.text = theSession.selectionText()
+      if (mods.hasAlt && theSession.hasSelection) {
+        findLine.text = theSession.selectionText()
+        regexCheck.selected=false
+      }
       find(findLine.text, backwards = mods.hasShift)
 
     case Instruction(Key.F, _, mods)  =>
-      if (mods.hasAlt && theSession.hasSelection) findLine.text = theSession.selectionText()
+      if (mods.hasAlt && theSession.hasSelection) {
+        findLine.text = theSession.selectionText()
+        regexCheck.selected=false
+      }
       find(findLine.text, backwards = mods.hasShift)
 
     case Instruction(Key.R, _, mods) => replace(findLine.text, replLine.text, backwards = mods.hasShift)

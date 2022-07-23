@@ -538,6 +538,7 @@ class EditSession(val document: DocumentInterface, private var _path: String)
   /** Low level methods need to be able to publish scrutable warnings  */
   val warnings: Notifier[(String,String)] = new Notifier[(String, String)]
 
+  val feedback: Notifier[(String,String)] = new Notifier[(String, String)]
 
   /**
    * Cache for most recent regex: avoids recompilation on
@@ -631,7 +632,7 @@ class EditSession(val document: DocumentInterface, private var _path: String)
       val regex = RegexCache(thePattern, !asRegex)
       val selected = selectionText()
       val (count, repl) = regex.substituteAll(selected, theReplacement, !asRegex)
-      warnings.notify("Replace All", s"$count replacements")
+      feedback.notify("Replace All", s"$count replacements")
       if (count>0) { exch(repl, true); Some(selected) } else None
     } catch {
       case exn: java.lang.RuntimeException =>

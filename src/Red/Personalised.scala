@@ -17,7 +17,7 @@ object Personalised {
 
   /** Program names to be placed on the `Pipe` menu */
   def pipeNames: Seq[String] =
-  { val default = "wc; ls -lt"
+  { val default = "wc; ls -lt; printenv"
     val names = sys.env.getOrElse("REDPROGRAMS", default).split(";[ ]+").toList
     names
   }
