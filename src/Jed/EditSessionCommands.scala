@@ -20,6 +20,7 @@ object EditSessionCommands extends Logging.Loggable {
   type StateChangeOption = Option[StateChange]
 
   /**
+   *  //TODO: Remove any leading spaces to the right of the cursor
    *  Insert a newline and (if the session is in `autoIndenting` mode)
    *  enough spaces to align the left margin to the indentation of
    *  the current line.

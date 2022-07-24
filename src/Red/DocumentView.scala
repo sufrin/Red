@@ -20,7 +20,7 @@ package Red
                      override val font: Font=Utils.defaultFont
                     )
     extends InputPanel
-  {
+  { override def toString: String = s"DocumentView($rows, $cols)"
     import DocumentView._
     private val theDocument  = theSession.document
     private val metrics      = this.peer.getFontMetrics(font)

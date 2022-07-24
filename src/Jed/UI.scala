@@ -68,6 +68,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
     text = ""
     enabled = true
     peer.setForeground(Utils.feedbackColor)
+    focusable = false
   }
 
   /**
@@ -123,6 +124,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
 
   def SmallButton(label: String, toolTip: String="")(act: => Unit): Button = new Button(new Action(label) { def apply(): Unit = act } ) {
     font = Utils.smallButtonFont
+    focusable = false
     if (true) {
       val metrics = peer.getFontMetrics(font)
       val labWidth = metrics.stringWidth(label)
@@ -134,13 +136,14 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
 
   def Button(label: String, toolTip: String="")(act: => Unit): Button = new Button(new Action(label) { def apply(): Unit = act } ) {
     font = Utils.menuButtonFont
+    focusable = false
     if (false) {
       val metrics = peer.getFontMetrics(font)
       val labWidth = metrics.stringWidth(label)
       val charHeight = metrics.getHeight
       preferredSize = new Dimension(labWidth, charHeight)
     }
-    peer.setFocusable(false) // Magic to avoid blue focus ring
+    focusable = false // Magic to avoid blue focus ring
     if (toolTip.nonEmpty) tooltip=toolTip
   }
 
@@ -191,15 +194,16 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
     case Instruction(Key.Decimal, _, mods) if (mods.hasControl) =>
       replLine.peer.setRequestFocusEnabled(true)
       replLine.requestFocus()
-      //replLine.requestFocusInWindow()
+      replLine.requestFocusInWindow()
       replLine.text=""
 
-    case Instruction(Key.Decimal, _, mods) => replace(findLine.text, replLine.text, backwards = mods.hasShift)
+    case Instruction(Key.Decimal, _, mods) =>
+      replace(findLine.text, replLine.text, backwards = mods.hasShift)
 
     case Instruction(Key.Numpad0, _, mods) if (mods.hasControl) =>
       findLine.peer.setRequestFocusEnabled(true)
       findLine.requestFocus()
-      //findLine.requestFocusInWindow()
+      findLine.requestFocusInWindow()
       findLine.text = ""
 
     case Instruction(Key.Numpad0, _, mods)  =>
@@ -220,6 +224,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
   }
 
   private val argLine: TextLine = new TextLine(25) {
+    focusable = true
     override def firstHandler: UserInputHandler = {
       case Instruction(Key.G, _, mods) if mods.hasControl =>
         val loc = argLine.text.strip()
@@ -241,18 +246,21 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
   }
 
   private val findLine: TextLine = new TextLine(25) {
+    focusable = true
     override def firstHandler: UserInputHandler = findreplHandler
     /** hand back focus to the main text */
     override def mouseExited(): Unit = theView.requestFocusInWindow()
   }
 
   private val replLine: TextLine = new TextLine(25) {
+    focusable = true
     override def firstHandler: UserInputHandler = findreplHandler
     /** hand back focus to the main text */
     override def mouseExited(): Unit = theView.requestFocusInWindow()
   }
 
   private val regexCheck: CheckBox = new CheckBox("") {
+    focusable = false
     tooltip  = "Treat \u24bb pattern as regular expression (or literal)" // (F)
   }
 
@@ -267,12 +275,12 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
     } // (A)
     contents += argLine
     contents += regexCheck
-    contents += Button("\u24bb", toolTip = "Find the pattern \u2191") {
-      find(findLine.text, false)
+    contents += Button("\u24bb", toolTip = "Clear the adjacent find pattern") {
+      findLine.text = ""
     } // (F)
     contents += findLine
-    contents += Button("\u24c7", toolTip = "Replace the matched pattern with the template (or literal text) \u2191") {
-      replace(findLine.text, replLine.text, false)
+    contents += Button("\u24c7", toolTip = "Clear the adjacent replacement pattern") {
+      replLine.text = ""
     } // (R)
     contents += replLine
   }

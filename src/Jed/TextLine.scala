@@ -35,6 +35,7 @@ import scala.swing._
  *
  */
 class TextLine(cols: Int, toolTip: String = "") extends BoxPanel(Orientation.Horizontal) {
+  override def toString: String = s"TextLine($cols, \"$toolTip\")"
 
   protected val (realLF, surrogateLF): (String, String) = ("\n", "(\u0274)")
 
@@ -71,6 +72,7 @@ class TextLine(cols: Int, toolTip: String = "") extends BoxPanel(Orientation.Hor
   protected def lastHandler:  UserInputHandler = { case other: UserInput => Logging.Default.warn(s"TextLine: unhandled [[$other]]") }
 
   locally {
+    focusable = true
     contents += view
     view.viewLineNumbers(0)
     view.keystrokeInput.handleWith {

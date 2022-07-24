@@ -245,12 +245,28 @@ If the current selection is an instance of **(F)** then:
   * *FindSelUp* (C-A-F) makes the current selection the *Find* pattern, 
   then acts as *FindUp*.
   
-  * *ClearFind* (C-Numpad-0) clears the find minitext, and 
+  * *ClearFind* (C-Numpad-0, `Button-(F)`) clears the find minitext, and 
   moves the editing cursor to that text. 
   
-  * *ClearRepl* (C-Numpad-.) clears the replace minitext, and 
+  * *ClearRepl* (C-Numpad-., `Button(R)`) clears the replace minitext, and 
+  moves the editing cursor to that text. 
+  
+  * *ClearArg* (`Button(A)`) clears the argument  minitext, and 
   moves the editing cursor to that text. 
 
+  * *Indent selection* (`Tab`) (when there is a nonempty selection)
+  indents the selected lines by 4 spaces. If invoked with the
+  **alt**-shift pressed, then the selected lines are indented by
+  the **(A)** text.
+
+  * *Undent selection* (`Shift-Tab`) (when there is a nonempty
+  selection) reduces the indentation of the selected lines by 4
+  spaces where possible. If invoked with the **alt**-shift pressed,
+  then the selected lines are "undented" by the (literal)       **(A)** text 
+  where possible.
+  
+  
+  
 ### Find and Replace in Practice
 
 One way of replacing the next instance of `"FOO"` with `"BAR"` is to
@@ -298,9 +314,9 @@ other preferences its value is preserved between Dred invocations.
 
 ##### Key Assignment Policy:
 
-It makes sense for *FindUp* to be bound to the SHIFTED key that
+It makes sense for *FindUp* to be bound to the shifted key that
 *FindDown* is bound to; and for *ReplaceUp* to be bound to the
-SHIFTED *ReplaceDown* key.
+shifted *ReplaceDown* key.
 
 
 ## APPENDIX
@@ -339,7 +355,7 @@ The last spasm of **AppleRed**'s development was occasioned by a
 change in the `OS/X` security model for apps. To paraphrase my
 obituary for the unitary AppleRed app that provided editing sessions
 through its embedded server as well as providing the more usual
-drag-drop, and open-with functionality.  server that it contains:
+drag-drop, and open-with functionality:
    
    ----------------------------------------------------------
    "On `Catalina` (versions above 10.14) and its successors the

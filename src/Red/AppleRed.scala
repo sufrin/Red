@@ -38,14 +38,21 @@ import scala.swing.Frame
  * means that ''the packaged app cannot act as a server'', for it cannot
  * receive instructions from clients.
  *
+ * 24/July/2022 the packaged app cannot read Unix domain sockets either,
+ * without specific permissions are given!
+ *
  * TODO: investigate UDP-receive permissions
- * TODO: are unix domain UDP sockets (post java 16) any better
  *
  */
 object AppleRed extends Logging.Loggable {
 
   def main(args: Array[String]): Unit = {
-    Logging.withConsole(Logging.logStream(Utils.expandHome("~/AppleRed.log"), mustExist = true, append = true)) {
+    val logStream =
+        sys.props.get("applered.log") orElse { sys.env.get("REDLOG") } match {
+          case None       => Logging.logStream("/dev/tty")
+          case Some(path) => Logging.logStream(Utils.expandHome(path), mustExist = true, append = true)
+        }
+    Logging.withConsole(logStream) {
       Logging.Default.info(s"\n**********\nAppleRed starting at ${Utils.dateString()}\n**********")
       Jed.Server.startServer()
 
