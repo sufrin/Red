@@ -49,7 +49,7 @@ object AppleRed extends Logging.Loggable {
   def main(args: Array[String]): Unit = {
     val logStream =
         sys.props.get("applered.log") orElse { sys.env.get("REDLOG") } match {
-          case None       => Logging.logStream("/dev/tty")
+          case None       => null
           case Some(path) => Logging.logStream(Utils.expandHome(path), mustExist = true, append = true)
         }
     Logging.withConsole(logStream) {

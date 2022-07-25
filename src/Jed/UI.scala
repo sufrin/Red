@@ -192,18 +192,18 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
     // Keypad bindings to find and replace
 
     case Instruction(Key.Decimal, _, mods) if (mods.hasControl) =>
-      replLine.peer.setRequestFocusEnabled(true)
-      replLine.requestFocus()
-      replLine.requestFocusInWindow()
+      replLine.peer.grabFocus()
       replLine.text=""
 
     case Instruction(Key.Decimal, _, mods) =>
       replace(findLine.text, replLine.text, backwards = mods.hasShift)
 
     case Instruction(Key.Numpad0, _, mods) if (mods.hasControl) =>
-      findLine.peer.setRequestFocusEnabled(true)
-      findLine.requestFocus()
-      findLine.requestFocusInWindow()
+      findLine.peer.grabFocus()
+      findLine.text = ""
+
+    case Instruction(Key.Enter, _, mods) if (mods.hasControl) =>
+      findLine.peer.grabFocus()
       findLine.text = ""
 
     case Instruction(Key.Numpad0, _, mods)  =>

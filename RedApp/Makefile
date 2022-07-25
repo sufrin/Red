@@ -52,7 +52,7 @@ RESOURCES=${CONTAINER}/Resources
 #
 all:            app install
 
-app:            $(APP).app; \
+app:            $(APP)-server $(APP).app; \
                 cp $(APP).icns          $(RESOURCES)/droplet.icns; \
                 cp $(APP).plist         $(CONTAINER)/Info.plist; \
                 mkdir -p                $(JAVA); \
@@ -62,13 +62,15 @@ app:            $(APP).app; \
                 chmod +x $(APP)-server; \
                 cp -p $(APP)-server     $(JAVA); \
                 cp -p AppleRed.png      $(RESOURCES); \
-                cp -p AppleCred.png     $(RESOURCES)                
+                cp -p AppleCred.png     $(RESOURCES); \
+                touch app
 
 
 $(APP).app:     $(APP).plist    $(APP).scpt; \
                 osacompile -o   $(APP).app $(APP).scpt
                 
-install:        ; cp -pr $(APP).app ~/Applications
+install:        app; \
+                rm -rf ~/Applications/$(APP).app; \
+                cp -pr $(APP).app ~/Applications
 
-                
-                
+clean:          ; rm -rf app $(APP).app

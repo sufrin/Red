@@ -1,3 +1,4 @@
+#!/bin/sh
 #
 # Invocation of Red from AppleRed.app (and scripts)
 #
@@ -40,7 +41,7 @@ then
   DOCKNAME="AppleRed-Standalone"
 else 
   REDICON="$Resources/AppleRed.png"
-  DOCKNAME="AppleRed-Client&Server"
+  DOCKNAME="AppleRed-ClientServer"
 fi
 
 
@@ -59,9 +60,11 @@ fi
 #### 
 
 
-exec java   \
+
+exec java  \
      -Xdock:icon="$REDICON"  \
      -Xdock:name="$DOCKNAME" \
      -DLogging.Default.level=error        \
      -jar $Java/AppleRed.jar "$@" 
+
 
