@@ -5,16 +5,17 @@
 --
 on run
         set container to (POSIX path of (path to me)) & "Contents/"
-        -- do shell script ("echo " & container & "Java/AppleRed-server " & container & " >> ~/REDAPP")
+        --do shell script ("date >> ~/REDLOG")
+        --do shell script ("echo " & container & "Java/AppleRed-server " & container & " >> ~/REDLOG")
         do shell script ((container & "Java/AppleRed-server " & container & " > /dev/null 2>&1 &")) 
-        -- do shell script ((container & "Java/AppleRed-server " & container & " >> ~/REDLOG 2>&1 &"))
-        -- do shell script ("~/bin/redserver  > /dev/null 2>&1 &")
+        --do shell script ((container & "Java/AppleRed-server " & container & " >> ~/REDLOG 2>&1 &"))
 end run
-on open dropped
+on open dropped 
+        set container to (POSIX path of (path to me)) & "Contents/"
         repeat with p in dropped
-                -- display dialog ("~/bin/redserver " & POSIX path of p & " > /dev/null 2>&1 &")
-                do shell script ((container & "Java/AppleRed-server " & container & POSIX path of p & " > /dev/null 2>&1 &"))
-                -- do shell script ("~/bin/redserver " & POSIX path of p & " > /dev/null 2>&1 &")
+                --do shell script ("date >> ~/REDLOG") 
+                --do shell script ("echo " & container & "Java/AppleRed-server " & container & " " &  POSIX path of p & " >> ~/REDLOG")
+                do shell script ((container & "Java/AppleRed-server " & container & " " & POSIX path of p & " > /dev/null 2>&1 &"))
         end repeat
 end open
 --

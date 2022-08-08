@@ -472,14 +472,14 @@ class EditSession(val document: DocumentInterface, private var _path: String)
       left.findSuffix(document.characters, 0, startingCursor) match {
         case None =>
         case Some(leftp) =>
-          // println(s"leftp=${(leftp.start, leftp.end)} (${leftp})")
+          if (logging) finest(s"leftp=${(leftp.start, leftp.end)} (${leftp})")
           right.findPrefix(document.characters, leftp.end, document.characters.length) match {
             case None =>
-              // println(s"NO RIGHT MATCH FOR $right ${leftp.end}..${document.characters.length}") // (**)
+              if (logging) finest(s"NO RIGHT MATCH FOR $right ${leftp.end}..${document.characters.length}") // (**)
             case Some(rightp) =>
-               println(s"rightp=${(rightp.start, rightp.end)} ($rightp)")
+              if (logging) finest(s"rightp=${(rightp.start, rightp.end)} ($rightp)")
               val (start, end) = (if (leftp.start == 0) leftp.start else leftp.start + adjl, rightp.end - adjr)
-               println(s"(start, end)=${(start, end)}")
+              if (logging) finest(s"(start, end)=${(start, end)}")
               if (startingCursor - start > end - startingCursor) {
                 cursor = end
                 setMark(start)
