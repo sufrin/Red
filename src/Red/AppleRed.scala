@@ -71,31 +71,35 @@ object AppleRed extends Logging.Loggable {
     }
   }
 
+  def wherePossible(body: => Unit): Unit = try { body } catch { case exn: UnsupportedOperationException => {} }
 
   def withDesktop(body: => Unit): Unit = {
     val desk: Desktop = Desktop.getDesktop
 
-    // These facilities are not available on Linux
-    try {
-      desk.disableSuddenTermination()
-      desk.setQuitHandler {
-        new QuitHandler() {
-          def handleQuitRequestWith(qe: QuitEvent, qr: QuitResponse): Unit = {
-            fine(s"QuitEvent(${qe.getSource})")
-            if (Jed.Sessions.canQuit)
-              qr.performQuit()
-            else
-              qr.cancelQuit()
-          }
-        }
-      }
+    // One or more of these facilities are not available on Linux
 
+      wherePossible { desk.disableSuddenTermination() }
+      wherePossible {
+        desk.setQuitHandler {
+            new QuitHandler() {
+              def handleQuitRequestWith(qe: QuitEvent, qr: QuitResponse): Unit = {
+                fine(s"QuitEvent(${qe.getSource})")
+                if (Jed.Sessions.canQuit)
+                  qr.performQuit()
+                else
+                  qr.cancelQuit()
+              }
+            }
+      }
+    }
+
+    wherePossible {
       desk.setOpenFileHandler(
         new OpenFilesHandler {
           override def openFiles(e: OpenFilesEvent): Unit = {
             val files = e.getFiles.iterator()
             while (files.hasNext) {
-              val file     = files.next()
+              val file = files.next()
               val fileName = file.getAbsolutePath
               info(s"Opening $fileName")
               if (fileName != null)
@@ -106,13 +110,10 @@ object AppleRed extends Logging.Loggable {
           }
         }
       )
-
-      body
-
-    } catch {
-      case exn: Exception =>
-        exn.printStackTrace()
     }
+
+    // AND FINALLY
+    body
   }
 
   private var mainWindowFrame: Frame = _

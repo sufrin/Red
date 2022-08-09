@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Invocation of Red from AppleRed.app (and scripts)
+# Invocation of Red from AppleRed.app (and scripts), including Linux scripts
 #
 #   $1 is the path to AppleRed.app/Contents of the invoking app
 #   $@ are the arguments passed to the opening script or app
@@ -8,12 +8,12 @@
 #
 ####
 ####
-#### Read the profile, if there is one
+#### Read the global profile, if there is one: intended for Linux
 ####
 ####
 
 
-PROFILE=$HOME/.AppleRed-profile
+PROFILE=$HOME/.AppleRed.profile
 [ -e $PROFILE ] && . $PROFILE
 
 
@@ -60,11 +60,17 @@ fi
 #### 
 
 
-
-exec java  \
-     -Xdock:icon="$REDICON"  \
-     -Xdock:name="$DOCKNAME" \
-     -DLogging.Default.level=error        \
-     -jar $Java/AppleRed.jar "$@" 
+if [ `uname` = Darwin ] 
+then
+    exec java  \
+         -Xdock:icon="$REDICON"  \
+         -Xdock:name="$DOCKNAME" \
+         -DLogging.Default.level=error \
+         -jar $Java/AppleRed.jar "$@"
+else
+    exec java  \
+         -DLogging.Default.level=error \
+         -jar $Java/AppleRed.jar "$@"
+fi 
 
 
