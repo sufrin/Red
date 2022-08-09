@@ -5,7 +5,7 @@
 Red is no-frills `UNICODE`-capable **modeless** (and **colourless**)
 text editor with a simple implementation that can be customized
 using the **scala** language.  It has no pretensions to being an
-all-ecompassing workplace, and unlike many IDE and modern editors
+all-encompassing workplace, and unlike many IDE and modern editors
 does not confuse its user by spontaneously trying to be helpful:
 everything it does it does in response to user input from mouse,
 pad, or keyboard.
