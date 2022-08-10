@@ -139,7 +139,7 @@ object AppleRed extends Logging.Loggable {
       }
     }
 
-    val redLine = "\uf8ff Red \uf8ff"
+    val redLine = " « Red » " // "\uf8ff Red \uf8ff"
     val mainFrame: MainFrame = new MainFrame() {
         private val panel   = new BoxPanel(Orientation.Vertical) {
         private val user    = System.getProperty("user.name", "<no user>")

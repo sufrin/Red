@@ -153,6 +153,11 @@ object Utils {
       }
       val backupPath = new File(s"$path-${dateString(fileTime)}~").toPath
       Files.copy(thePath, backupPath, StandardCopyOption.REPLACE_EXISTING)
+      // create a convenience link
+      val latestBackupLink =  new File(s"$path~").toPath
+      Files.deleteIfExists(latestBackupLink)
+      Files.createLink(latestBackupLink, backupPath)
+
     }
   }
 
