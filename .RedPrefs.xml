@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE preferences SYSTEM "http://java.sun.com/dtd/preferences.dtd">
+<preferences EXTERNAL_XML_VERSION="1.0">
+  <root type="user">
+    <map/>
+    <node name="red">
+      <map/>
+      <node name="latex">
+        <map>
+          <entry key="code*" value=""/>
+          <entry key="note" value=""/>
+          <entry key="answer" value=""/>
+          <entry key="exercise" value=""/>
+          <entry key="enumerate" value=""/>
+          <entry key="-code" value=""/>
+          <entry key="foil" value=""/>
+          <entry key="scala" value=""/>
+          <entry key="-" value=""/>
+          <entry key="code" value=""/>
+          <entry key="verbatim" value=""/>
+          <entry key="comment" value=""/>
+          <entry key="smaller" value=""/>
+          <entry key="itemize" value=""/>
+          <entry key="center" value=""/>
+          <entry key="question" value=""/>
+          <entry key="part" value=""/>
+          <entry key="ans" value=""/>
+          <entry key="alltt" value=""/>
+        </map>
+      </node>
+      <node name="pipe">
+        <map>
+          <entry key="wc" value=""/>
+          <entry key="ls" value="-lt"/>
+        </map>
+      </node>
+    </node>
+  </root>
+</preferences>

@@ -1,5 +1,7 @@
 package Red
 
+import Useful.PrefixMap
+
 /**
  *  Personalisation module, with definitions of
  *  abbreviations, menu entries, etc.
@@ -22,4 +24,32 @@ object Personalised {
     names
   }
 
+  object Abbrev {
+    val trie = PrefixMap[String]()
+    def add(abbrevs: (String, String)*): Unit =
+        for { (abbrev, result) <- abbrevs } trie.addOne(abbrev.reverse, result)
+
+    add (
+      "=>"  -> "\\Rightarrow"
+    , "==>" -> "\\Longrightarrow"
+    )
+  }
+
+  /*
+  locally {
+    import java.util.prefs.Preferences
+    val
+    val root = Preferences.userRoot()
+
+    val redPrefs = root.node("red")
+    val latexPrefs = root.node("red/latex")
+    val pipePrefs = root.node("red/pipe")
+    pipePrefs.put("wc", "")
+    pipePrefs.put("ls", "-lt")
+    for {block <- latexBlockTypes} latexPrefs.put(block, "")
+    val dump = new FileOutputStream("./.RedPrefs.xml")
+    redPrefs.exportSubtree(dump)
+    dump.close()
+  }
+  */
 }
