@@ -4,6 +4,7 @@ import Red.DocumentInterface
 
 import java.awt.{Color, Component, Font, Graphics}
 import java.io.File
+import java.nio.file.attribute.FileTime
 import java.text.SimpleDateFormat
 import java.util.Date
 import javax.swing.{Icon, SwingUtilities}
@@ -143,18 +144,44 @@ object Utils {
    *  the very latest saved copy of an edited document will be found at the right place
    *  along with a (perhaps empty) sequence of its predecessors -- all with the
    *  same prefix, and with suffixes that permit easy and systematic tidying up.
+   *
+   *  ===Backup Detail
+   *
+   *      A file with path ending with ''dirname''`/`''filename'' will have backup(s)
+   *      in the same directory named:
+   *
+   *      ''filename''`+`''timestamp''`~`
+   *
+   *      and (as a convenience) the latest of these will also have a link to it
+   *      in the same directory, named:
+   *
+   *      ''filename''`~`
+   *
+   *      and the earliest backup, if there is more than one, will have a link to it
+   *      in the same directory, named:
+   *
+   *      ''filename''`~~`
+   *
+   *      On a Unix machine, the timestamped backup copies of this file can be
+   *      removed with the command: `rm `''dirname''`/`''filename''`+*~`
+   *
+   *
    */
   def backup(path: String): Unit = {
     import java.nio.file.{Files, StandardCopyOption}
-    val thePath = new File(path).toPath
+    var thePath = new File(path).toPath
+    var fileTime: FileTime = null
     if (Files.exists(thePath)) {
-      val fileTime = try  Files.getLastModifiedTime(thePath).toMillis catch {
-        case _: Exception => 0L
-      }
-      val backupPath = new File(s"$path-${dateString(fileTime)}~").toPath
+      try { fileTime = Files.getLastModifiedTime(thePath) }  finally {}
+      val backupPath = new File(s"$path+${dateString(fileTime.toMillis)}~").toPath
       Files.copy(thePath, backupPath, StandardCopyOption.REPLACE_EXISTING)
+      Files.setLastModifiedTime(backupPath, fileTime)
       // create a convenience link
-      val latestBackupLink =  new File(s"$path~").toPath
+      val earliestBackupLink = new File(s"$path~~").toPath
+      val latestBackupLink   = new File(s"$path~").toPath
+      if (Files.exists(latestBackupLink) && !Files.exists(earliestBackupLink)) {
+        Files.createLink(earliestBackupLink, latestBackupLink)
+      }
       Files.deleteIfExists(latestBackupLink)
       Files.createLink(latestBackupLink, backupPath)
 
