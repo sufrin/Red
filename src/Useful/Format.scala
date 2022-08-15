@@ -68,6 +68,9 @@ sealed abstract class Format  {
       case (i, b, Nest(ii, d)) :: z =>
         val fitsFlat = fits(width - k, (i, false, d) :: z)
         // println(s"fits(${width-k}, ${(i, false, d) :: z})=$fitsFlat")
+        if (true)
+          fmt(k, (i+ii, b, d) :: z)
+        else
         if (fitsFlat)
            fmt(k, (i, false, d) :: z)
         else
@@ -116,7 +119,7 @@ object Format {
   /**
    * A format
    */
-  def |||(ds: Any*): Format = {
+  def :::(ds: Any*): Format = {
       def dCons(a: Any, d: Format): Format = a match {
         case ()                    => Break :: d
         case (n: Int, nd: Format)  => nest(n)(nd) :: d
@@ -142,6 +145,6 @@ object Format {
   private[Format] case class  Nest(indent: Int, doc: Format) extends Format
   private[Format] case class  Cons(hd: Format, tl: Format) extends Format
 
-  def apply(ds: Any*): Format = |||(ds)
+  def apply(ds: Any*): Format = :::(ds)
 
 }
