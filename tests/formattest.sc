@@ -1,48 +1,49 @@
 import Useful.Format
-import Useful.Format.{:::, empty, ind, nest, group}
+import Useful.Format._
 
-import java.io.Writer
 
 trait Expr {
   def fmt: Format
   def apply(n: Int): Unit = println(this.fmt.asString(n))
 }
-case class S(seq: Expr*) extends Expr {
+
+case class S(seq: Seq[Expr]) extends Expr {
   def fmt: Format =
     { val body = seq.map(_.fmt).reduce((l,r)=>l:/:r)
-      :::("[{", nest(2)(body), (), "}]")
+      :::("[", indent(1)(body), "]")
+      //:::("begin ", optIndent(6)(body), (), "end")
     }
 }
+
 case class A(atom: Any) extends Expr {
   def fmt: Format = :::(atom)
 }
 
-val a = S(A("foo"), A("baz"), A("foobaz"))
-a(20)
+/** Construct an S-expression */
+def s(es: Any*): Expr =
+  es.map{
+     case e: Expr => e
+     case s: String => A(s)
+     case n: Int => A(n)
+  } match {
+    case List()    => A("nil")
+    case h::List() => h
+    case ts        => S(ts)
+  }
+
+val a = s("foo", "baz", "foobaz")
+a(80)
 a(5)
-val b = S(a,A("xyzzy"), a)
-b(60)
+a(0)
+
+val b = s(a,"xyzzy", a)
+b(180)
 b(20)
 
-
-val f = nest(5) ("the" :/: "rain" :/: "in" :/: "spain" :/: empty)
-f.asString(32)
-f.asString(8)
-f.asString(16)
-
-val g = :::("the", (), "rain", (), "in", (), "spain")
-g.asString(8)
-
-
-val h = :::("the", (), nest(4) (:::("rain", (), nest(4)(:::("in",(), "my")), (), "spain")), (), "falls", (), "mainly")
-h.asString(10)
-h.asString(8)
-h.toString
-
-val k = :::("able", (), ind(5)(:::("f", (), "g", (), "h")), (), "baker")
-k.asString(60)
-k.asString(8)
-
+val c = s(a, b, "middle of the road", b, a)
+c(100)
+c(20)
+c(10)
 
 
 
