@@ -66,6 +66,8 @@ class EditSessionHandlers(val DO: Commands.Command[EditSession]=>Unit) {
 
         case Instruction(Key.PageUp,   _, NoModifier) => DO(commands.selectMatchingUp)
         case Instruction(Key.PageDown, _, NoModifier) => DO(commands.selectMatchingDown)
+
+        case Instruction(Key.Escape, _, NoModifier) => DO(commands.abbreviate)
       }
 
 

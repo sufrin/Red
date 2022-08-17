@@ -26,13 +26,24 @@ object Personalised {
 
   object Abbrev {
     val trie = PrefixMap[String]()
-    def add(abbrevs: (String, String)*): Unit =
-        for { (abbrev, result) <- abbrevs } trie.addOne(abbrev.reverse, result)
 
-    add (
-      "=>"  -> "\\Rightarrow"
-    , "==>" -> "\\Longrightarrow"
+    /** Add an abbreviation mapping */
+    def addMap(abbrevs: (String, String)*): Unit =
+        for { (abbrev, result) <- abbrevs } trie.reverseUpdate(abbrev, result)
+
+    /** Add a single cycle of abbreviatins */
+    def addCycle(abbrevs: String*): Unit = {
+      for { i<-0 until abbrevs.length -1 } trie.reverseUpdate(abbrevs(i), abbrevs(i+1))
+    }
+
+    addCycle("->", "\\rightarrow", "\\longrightarrow", "->")
+    addMap (
+        "=>"  -> "\\Rightarrow"
+      , "==>" -> "\\Longrightarrow"
+      , "+>" -> "\\mapsto"
+
     )
+
   }
 
   /*

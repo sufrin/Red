@@ -81,8 +81,6 @@ object EditSessionCommands extends Logging.Loggable {
     }
   }
 
-
-
   val autoIndentSelection: SessionCommand =
       Command.guarded( _.hasSelection, indentSelection )
 
@@ -663,6 +661,31 @@ object EditSessionCommands extends Logging.Loggable {
     }
   }
 
+  /**
+   *  If the text ending at the cursor matches ''any'' abbreviation, then
+   *  replace that abbreviation with the text it abbreviates.
+   */
+  val abbreviate: SessionCommand = new SessionCommand {
+    def DO(session: EditSession): StateChangeOption = {
+      def replace(thePattern: String, theReplacement: String): Unit = {
+        session.delete(-thePattern.length)
+        session.insert(theReplacement)
+        session.setMark(session.cursor, true)
+        session.deSelect()
+      }
+      Red.Personalised.Abbrev.trie.followBackwardsFrom(session.document.characters, session.cursor) match {
+        case None => None
+        case Some((theReplacement, length)) =>
+          val oldSelection = session.selection
+          val thePattern = session.document.characters.subSequence(session.cursor-length, session.cursor).toString
+          replace(thePattern, theReplacement)
+          Some (new StateChange {
+            def undo(): Unit = { replace(theReplacement, thePattern); session.selection=oldSelection }
+            def redo(): Unit = { replace(thePattern, theReplacement) }
+          })
+      }
+    }
+  }
 
   val pandocToPDF: SessionCommand = new SessionCommand {
     def DO(session: EditSession): StateChangeOption = {

@@ -65,17 +65,22 @@ class   PrefixMap[T]
       suffixes get (s.charAt(from)) flatMap (_.get(s, from+1))
 
   /**
-   * Yield the value of the mapping at longest prefix of `s` that
-   * matches one of the mapping's domain elements, together with the length
-   * of that prefix.
+   * Yield `Some(t, i)` where `t` is the value of the mapping at longest prefix of `s` that
+   * matches one of the mapping's domain elements, and `i` is the length
+   * of that prefix. If there is no such prefix, yield `None`.
    */
   def follow(s: CharSequence): Option[(T, Int)] = follow(s.forwardIterator())
 
-  def followBackwardsFrom(upTo: Int, s: CharSequence) = follow(s.reversedIterator(upTo))
+  /**
+   * Yield `Some(t, i)` where `t` is the value of the mapping at longest suffix of {{{s take upTo}}} that
+   * matches one of the mapping's domain elements, and `i` is the length
+   * of that suffix.  If there is no such prefix, yield `None`.
+   */
+  def followBackwardsFrom(s: CharSequence, upTo: Int): Option[(T, Int)] = follow(s.reversedIterator(upTo))
 
   /**
-   * Yield the value of the mapping at longest prefix of `it` that
-   * matches one of the mapping's domain elements, together with the length
+   * Yield `Some(t, i)` where `t` is the value of the mapping at longest prefix of `it` that
+   * matches one of the mapping's domain elements, and `i` is the length
    * of that prefix. If there is no such prefix, yield `None`.
    *
    */
