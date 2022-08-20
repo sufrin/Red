@@ -15,7 +15,7 @@ import scala.swing._
 class UI(val theSession: EditSession) extends SimpleSwingApplication {
   import UI._
   /**
-   * `theSession` emits warnings about things like find/replace failures
+   * `theSession` emits feedback and warnings about things like find/replace failures
    * that we wish to report via this user interface.
    */
   locally {
@@ -26,20 +26,20 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
 
   locally {
     theSession.feedback.handleWith {
-          // TODO: float a window for a short time with this information.
-          //       Right now it just gets lost.
-      case (from, message) => feedback(s"[$from: $message]")
+      case (from, message) => feedbackPersistently(s"$from: $message")
     }
   }
-
+  /**
+   * `Personalised.Bindings` emits feedback and warnings about various things
+   * that we wish to report via this user interface.
+   */
   locally {
-
     Red.Personalised.Bindings.warning.handleWith {
       case message => warning("Personalized Bindings", s"$message")
     }
 
     Red.Personalised.Bindings.feedback.handleWith {
-      case message => feedbackTemporarily(message)
+      case message => feedbackPersistently(message)
     }
   }
 
@@ -60,6 +60,9 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
    * Show a popup window, entitled `from`, with a warning message in it.
    */
   def warning(from: String, message: String): Unit = {
+    if (theView==null) {
+      Logging.Default.warn(s"$from: $message")
+    } else
     Dialog.showMessage(
       theView,
       message,
@@ -68,6 +71,8 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
       icon = Utils.redIcon
     )
   }
+
+
 
   /**
    * A text field in which feedback about the editing session is placed
@@ -95,11 +100,21 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
       theFeedback.text =
       s"$message ${theSession.displayPath}@${row+1}:$col $changed [${theSession.cursor}/${theSession.document.textLength}]"
     delayFeedback -= 1
+    if (top != null) top.title = s"Red: ${theSession.displayPath} ${changed}"
   }
 
-  def feedbackTemporarily(message: String): Unit = {
-    delayFeedback = 3
-    theFeedback.text = message
+  /** ''Briefly'' pop-up a dialog with the given message */
+  def flash(message: String): Unit = {
+    if (theFeedback==null || !theFeedback.visible)
+      Logging.Default.warn(s"Flash: $message")
+    else {
+      theFeedback.text = message
+    }
+  }
+
+  def feedbackPersistently(message: String): Unit = {
+    delayFeedback = 2
+    flash(message)
   }
 
   def feedbackWD(wd: String) = {
@@ -409,7 +424,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
           { val chooser = fileChooser
             chooser.showSaveDialog(top) match {
               case Cancel  =>
-                feedbackTemporarily("Save as: no path specified")
+                feedbackPersistently("Save as: no path specified")
               case Approve =>
                 val path = chooser.selectedFile.getAbsolutePath
                 top.saveAs(path.toString)
@@ -537,12 +552,12 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
           }
         }
         if (text.nonEmpty) theSession.TEX=Utils.toPath(text)
-        feedbackTemporarily(s"Tex source: ${theSession.TEX.toString}")
+        feedbackPersistently(s"Tex source: ${theSession.TEX.toString}")
       }
 
       contents += Item(s"Default tex source := ${theSession.path}", toolTip = "Change default latex source to current file") {
         theSession.TEX=Utils.toPath(theSession.path)
-        feedbackTemporarily(s"Tex source: ${theSession.TEX.toString}")
+        feedbackPersistently(s"Tex source: ${theSession.TEX.toString}")
       }
     }
 
@@ -765,7 +780,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
       }
     case _ => theSession.CWD.resolve(text).toString
   }
-  if (path.nonEmpty) openFileRequests.notify(path) else feedbackTemporarily("Open: no path specified")
+  if (path.nonEmpty) openFileRequests.notify(path) else feedbackPersistently("Open: no path specified")
 }
 
   /** Save the document if it has changed */

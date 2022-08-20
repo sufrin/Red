@@ -568,7 +568,9 @@ class EditSession(val document: DocumentInterface, private var _path: String)
       if (backwards) {
         val lastMatch = regex.findSuffix(document.characters, 0, cursor)
         lastMatch match {
-          case None => false
+          case None =>
+            feedback.notify("Not found upwards", s"$thePattern")
+            false
           case Some(instance) =>
             cursor = instance.start
             setMark(instance.end)
@@ -577,7 +579,9 @@ class EditSession(val document: DocumentInterface, private var _path: String)
       } else {
         val lastMatch = regex.findPrefix(document.characters, cursor)
         lastMatch match {
-          case None => false
+          case None =>
+            feedback.notify("Not found", s"$thePattern")
+            false
           case Some(instance) =>
             //TODO: remove min hack designed to avoid embarrassment if $ matched
             cursor = instance.end min (document.characters.length-1)
