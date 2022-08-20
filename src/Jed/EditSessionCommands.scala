@@ -663,7 +663,9 @@ object EditSessionCommands extends Logging.Loggable {
 
   /**
    *  If the text ending at the cursor matches ''any'' abbreviation, then
-   *  replace that abbreviation with the text it abbreviates.
+   *  replace that abbreviation with the text it abbreviates. Unicode
+   *  sequences of the form `\uxxxx` are taken to be abbreviations for
+   *  the characters they encode.
    */
   val abbreviate: SessionCommand = new SessionCommand {
     def DO(session: EditSession): StateChangeOption = {
@@ -673,8 +675,27 @@ object EditSessionCommands extends Logging.Loggable {
         session.setMark(session.cursor, true)
         session.deSelect()
       }
-      Red.Personalised.Abbrev.trie.followBackwardsFrom(session.document.characters, session.cursor) match {
-        case None => None
+      Red.Personalised.Bindings.longestSuffixMatch(session.document.characters, session.cursor) match {
+        case None =>
+          // it may be a unicode
+          if (session.cursor>6) {
+            import Useful.CharSequenceOperations._
+            val cursor = session.cursor
+            val chars  = session.document.characters
+            val thePattern  = chars.subSequence(cursor-6, cursor).toString
+            thePattern.toUnicode match {
+              case None       => None
+              case Some(char) =>
+                val oldSelection = session.selection
+                val theReplacement = s"$char"
+                replace(thePattern, theReplacement)
+                Some (new StateChange {
+                  def undo(): Unit = { replace(theReplacement, thePattern); session.selection=oldSelection }
+                  def redo(): Unit = { replace(thePattern, theReplacement) }
+                })
+            }
+          } else None
+
         case Some((theReplacement, length)) =>
           val oldSelection = session.selection
           val thePattern = session.document.characters.subSequence(session.cursor-length, session.cursor).toString

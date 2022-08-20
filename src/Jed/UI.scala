@@ -32,6 +32,17 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
     }
   }
 
+  locally {
+
+    Red.Personalised.Bindings.warning.handleWith {
+      case message => warning("Personalized Bindings", s"$message")
+    }
+
+    Red.Personalised.Bindings.feedback.handleWith {
+      case message => feedbackTemporarily(message)
+    }
+  }
+
   /**
    * A warning from Filter during the execution of  `body` is reported
    * only in the present UI.
@@ -71,6 +82,8 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
     focusable = false
   }
 
+  private var delayFeedback = 0
+
   /**
    * Place the given `message` in the feedback field, along
    * with details about the editing session.
@@ -78,11 +91,14 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
   def feedback(message: String): Unit = {
     val (row, col) = theSession.getCursorPosition
     val changed = if (hasChanged) " (✖) " else " (✓) "
-    theFeedback.text =
+    if (delayFeedback<=0)
+      theFeedback.text =
       s"$message ${theSession.displayPath}@${row+1}:$col $changed [${theSession.cursor}/${theSession.document.textLength}]"
+    delayFeedback -= 1
   }
 
   def feedbackTemporarily(message: String): Unit = {
+    delayFeedback = 3
     theFeedback.text = message
   }
 
@@ -109,6 +125,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
         Utils.dateString(lastModified)
     )
     message.append(s" [${theSession.cursor}/${theSession.document.textLength}]")
+    delayFeedback=0
     theFeedback.text = message.toString
     if (top != null) top.title = s"Red: ${theSession.displayPath} ${if (exists) "" else "[NEW]"}"
   }
@@ -305,8 +322,6 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
 
     contents += new Utils.Menu("Red") {
 
-
-
       contents += Item("cd \u24b6", toolTip = "Change working directory using dialogue or nonempty \u24b6 field") {
         var text = argLine.text.trim
         if (text.isEmpty) {
@@ -348,7 +363,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
       }
 
       contents += new CheckMenuItem("Auto indent") {
-        tooltip  = "When enabled, a newline is followed by enough spaces to align the serveWith of the current line"
+        tooltip  = "When enabled, a newline is followed by enough spaces to align the cursor with the indentation of the current line"
         font     = Utils.buttonFont
         selected = Settings.autoIndenting
         listenTo(this)
@@ -367,6 +382,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
       }
 
       contents += Separator()
+      contents += Item("Reimport bindings")  { Personalised.Bindings.reImportBindings() }
       contents += Separator()
 
       contents += Item("Quit")  { top.closeOperation() }

@@ -12,10 +12,10 @@ trie.reverseUpdate("toof", "toof")
 trie.show
 for { (d, r) <- trie.iterator } println(s"$d->$r")
 for { (d, r) <- trie.pathIterator } println(s"$d->$r")
-trie.follow("foot")
-trie.follow("fox")
-trie.follow("foxglo")
-trie.followBackwardsFrom(4, "toof")
-trie.followBackwardsFrom(3, "oof")
+trie.longestPrefixMatch("foot")
+trie.longestPrefixMatch("fox")
+trie.longestPrefixMatch("foxglo")
+trie.longestSuffixMatch(4, "toof")
+trie.longestSuffixMatch(3, "oof")
 
 

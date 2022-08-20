@@ -310,6 +310,9 @@ abstract class InputPanel(val numPadAsCommand: Boolean = true,
     unshifted('X') -> '\u03C7',  // xi
     unshifted('Y') -> '\u03C8',  // Psi
     unshifted('Z') -> '\u03C9',
+    shifted('<') -> '\u2264',   // <=
+    shifted('>') -> '\u2265',   // >=
+    unshifted('-') -> '\u00ac',   // logical not
     shifted('=') -> '\u2262',   // IDENTICAL TO
     unshifted('=') -> '\u2261'  // NOT IDENTICAL TO
   )
@@ -317,20 +320,23 @@ abstract class InputPanel(val numPadAsCommand: Boolean = true,
    * Supplementary mapping of keycodes to characters: applied
    * only when  `Alt` or `Alt+Shift`  are in effect. This may be
    * changed ad-lib; it is initialized to a mapping from the roman
-   * alphabet to corresponding greek symbols.
+   * alphabet to corresponding greek symbols. Some Apple keymaps appropriate
+   * the alt shift for their
+   * own purposes; so the alt-interpretation is (by default) turned off
+   * in these.
    *
-   * '''Warning:'''
+   * ===Warning:
    *
    * What follows is only for the very intrepid or the very desperate. Most
    * application programmers using a `InputPanel` will not need to stray into
    * any of the detailed explanation below.
    *
-   * '''Detail'''
+   * ===Detail
    *
    * Most operating systems provide for customization of the mapping
    * between physical keys and logical characters. Many of the
    * methods involve keystrokes made with an `Alt`-shift, and here
-   * we only attempt to address these.
+   * we attempt to address these.
    *
    * Characters typed with only  `Alt` or  `Alt+Shift` in effect are
    * treated specially:
@@ -376,12 +382,14 @@ abstract class InputPanel(val numPadAsCommand: Boolean = true,
    *  ))
    * }}}
    *
-   * '''Advice'''
+   * ===Advice
+   *
    * It is a good idea to use `altKeyChar` maps sparingly.
-   * There are much better, though a bit more prolix, ways of
+   * There are much better, though more prolix, ways of
    * typing "exotic" symbols and sequences conveniently; one of which
    * is provided in the "abbreviation" facility of the complete
    * editor.
+   *
    */
   var altKeyChar: mutable.Map[Int, Char] = new mutable.HashMap[Int, Char]().addAll(mathTrans)
 

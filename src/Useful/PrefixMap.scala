@@ -32,7 +32,7 @@ import CharSequenceOperations._
  *
  *
  *   To find the datum, `t`, if any, associated with the sequence `s[0..n)`,
- *   follow the path s(0), s(1), ... from the root node: this will reach
+ *   longestPrefixMatch the path s(0), s(1), ... from the root node: this will reach
  *   a node 'm', which has value either `None`, or `Some(t)`.
  *
  *   The methods of the trait `mutable.Map` are implemented by
@@ -69,14 +69,14 @@ class   PrefixMap[T]
    * matches one of the mapping's domain elements, and `i` is the length
    * of that prefix. If there is no such prefix, yield `None`.
    */
-  def follow(s: CharSequence): Option[(T, Int)] = follow(s.forwardIterator())
+  def longestPrefixMatch(s: CharSequence): Option[(T, Int)] = longestPrefixMatch(s.forwardIterator())
 
   /**
    * Yield `Some(t, i)` where `t` is the value of the mapping at longest suffix of {{{s take upTo}}} that
    * matches one of the mapping's domain elements, and `i` is the length
    * of that suffix.  If there is no such prefix, yield `None`.
    */
-  def followBackwardsFrom(s: CharSequence, upTo: Int): Option[(T, Int)] = follow(s.reversedIterator(upTo))
+  def longestSuffixMatch(s: CharSequence, upTo: Int): Option[(T, Int)] = longestPrefixMatch(s.reversedIterator(upTo))
 
   /**
    * Yield `Some(t, i)` where `t` is the value of the mapping at longest prefix of `it` that
@@ -84,7 +84,7 @@ class   PrefixMap[T]
    * of that prefix. If there is no such prefix, yield `None`.
    *
    */
-  def follow(it: Iterator[Char]): Option[(T, Int)] =
+  def longestPrefixMatch(it: Iterator[Char]): Option[(T, Int)] =
   { // Inv:
     //   result==Some(t, n) =>
     //     n <= edges      &&
