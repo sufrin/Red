@@ -100,7 +100,11 @@ object Personalised extends Logging.Loggable {
         if (logging) info(s"importing bindings from: $file")
         val source = new BufferedSource(new FileInputStream(file))
         val thisContext = context.resolve(path)
-        for { line <- source.getLines() } processLine(depth, thisContext, stripComments(line))
+        var lineNumber = 1
+        for { line <- source.getLines() } {
+          processLine(depth, thisContext, lineNumber, stripComments(line))
+          lineNumber += 1
+        }
         source.close()
       }
 
@@ -143,7 +147,7 @@ object Personalised extends Logging.Loggable {
     }
 
     /** Context is the path to the file being read; depth is the depth of include-nesting */
-    def processLine(depth: Int, context: Path, line: String): Unit = if (line.nonEmpty) {
+    def processLine(depth: Int, context: Path, lineNumber: Int, line: String): Unit = if (line.nonEmpty) {
       val fields: List[String] = Lexical.scan(line) // line.split("\\s+").toList
       if (logging) finer(s"Binding $fields")
       fields match {
@@ -152,16 +156,16 @@ object Personalised extends Logging.Loggable {
           val exPath = toPath(context, path)
           if (exPath.toFile.exists())
             importBindings(depth+1, context, exPath)
-          else
-            feedback.notify(s"Skipping: $exPath")
         case ("text"::"abbrev"::abbr::text::_)  =>
           mapTo(abbr, text)
         case ("pipes"::abbrevs) =>
           personalPipeNames.addAll(abbrevs)
         case ("latex"::"blocks"::abbrevs) =>
           personalBlockTypes.addAll(abbrevs)
+        case ("show"::fields) =>
+          feedback.notify(fields.mkString("", " ", ""))
         case other =>
-          feedback.notify(other.mkString("Bad binding: ", " ", ""))
+          warning.notify(other.mkString("Erroneous binding declaration:\n", " ", s"\n($context@$lineNumber)"))
       }
     }
 
