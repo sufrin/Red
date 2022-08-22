@@ -661,6 +661,28 @@ object EditSessionCommands extends Logging.Loggable {
     }
   }
 
+  def unicode: SessionCommand = new SessionCommand {
+    def DO(session: EditSession): StateChangeOption = {
+      def replace(thePattern: String, theReplacement: String): Unit = {
+        session.delete(-thePattern.length)
+        session.insert(theReplacement)
+        session.setMark(session.cursor, true)
+        session.deSelect()
+      }
+      if (session.cursor>0) {
+        val theChar = session.document.characters.charAt(session.cursor-1)
+        val oldSelection   = session.selection
+        val thePattern     = s"$theChar"
+        val theReplacement = "\\u%04x".format(theChar.toInt)
+        replace(thePattern, theReplacement)
+        Some (new StateChange {
+          def undo(): Unit = { replace(theReplacement, thePattern); session.selection=oldSelection }
+          def redo(): Unit = { replace(thePattern, theReplacement) }
+        })
+      } else None
+    }
+  }
+
   /**
    *  If the text ending at the cursor matches ''any'' abbreviation, then
    *  replace that abbreviation with the text it abbreviates. Unicode

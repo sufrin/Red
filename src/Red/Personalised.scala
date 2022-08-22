@@ -164,6 +164,8 @@ object Personalised extends Logging.Loggable {
           personalBlockTypes.addAll(abbrevs)
         case ("show"::fields) =>
           feedback.notify(fields.mkString("", " ", ""))
+        case ("text"::"diacritical" :: marks :: rest) =>
+          Red.InputPanel.macKeyboardDiacritical = marks
         case other =>
           warning.notify(other.mkString("Erroneous binding declaration:\n", " ", s"\n($context@$lineNumber)"))
       }

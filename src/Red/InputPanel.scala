@@ -257,7 +257,10 @@ abstract class InputPanel(val numPadAsCommand: Boolean = true,
               case _ =>
                 if (detail.hasAlt) {
                   if (logging) finer(s"Alt-shifted '$keyChar' ${detail.asText} $location $keyCode ${e.getExtendedKeyCode}")
-                  Character(altKeyChar.getOrElse(shifted(keyCode, detail.hasShift), keyChar), location, metaToControl(detail))
+                  if (macKeyboardDiacritical.contains(keyChar))
+                    Diacritical(keyChar)
+                  else
+                    Character(altKeyChar.getOrElse(shifted(keyCode, detail.hasShift), keyChar), location, metaToControl(detail))
                 }
                 //
                 else
@@ -265,6 +268,7 @@ abstract class InputPanel(val numPadAsCommand: Boolean = true,
             }
           if (logging)
             fine(s"==> $decoded")
+
           keystrokeInput.notify(decoded)
         }
       }}
@@ -580,5 +584,12 @@ object InputPanel extends Logging.Loggable {
 
   /** Yields `char` (identical to `shifted(char, false)` */
   @inline def unshifted(char: Int): Int = char
+
+  /**
+   *  If an one of these diacritical characters appears with an alt set then
+   *  we expect that an underlying (Mac) keyboard will deliver
+   *  a precomposed ligature character on the next keystroke.
+   */
+  var macKeyboardDiacritical: String = "´`^¨"
 }
 

@@ -72,3 +72,8 @@ import scala.swing.event.Key
       s"Instruction: ${mods.asText}Key.$key @ $location"
   }
 
+  case class Diacritical(mark: Char )  extends UserInput {
+    override def toString: String =
+      s"Diacritical: $mark"
+  }
+

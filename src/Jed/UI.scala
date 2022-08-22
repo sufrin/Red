@@ -253,6 +253,9 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
       find(findLine.text, backwards = mods.hasShift)
 
     case Instruction(Key.R, _, mods) => replace(findLine.text, replLine.text, backwards = mods.hasShift)
+
+    case Diacritical(mark: Char) => feedback(s"[$mark]")
+
   }
 
   private val argLine: TextLine = new TextLine(25) {
@@ -270,6 +273,8 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
 
       case Instruction(Key.E, _, Control) =>
         openArglinePath()
+
+      case Diacritical(mark: Char) => feedback(s"[$mark]")
     }
     /** hand back focus to the main text */
     override def mouseExited(): Unit = theView.requestFocusInWindow()
@@ -664,6 +669,8 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
           top.closeOperation()
         case Instruction(Key.S, _, Control) =>
           saveOperation()
+        case Diacritical(mark: Char) =>
+          feedback(s"[$mark]")
         case other: UserInput =>
           Logging.Default.info(s"Unhandled user input [[$other]] ")
       }
