@@ -134,6 +134,25 @@ class EditSession(val document: DocumentInterface, private var _path: String)
     indent
   }
 
+  /**
+   * Distance of the first non-space character to the right of the cursor
+   */
+  def currentLead: Int = {
+    var lead     = cursor
+    while (lead<document.textLength && document.character(lead)==' ') lead += 1
+    lead-cursor
+  }
+
+  /**
+   * Distance of the first non-space character to the left of the cursor
+   */
+  def currentTrail: Int = {
+    var trail     = cursor-1
+    while (trail>=0 && document.character(trail)==' ') trail -= 1
+    cursor-trail-1
+  }
+
+
   def nextTabStop: Int = {
     var (row, col) = document.positionToCoordinates(cursor)
     var indent     = col + 1

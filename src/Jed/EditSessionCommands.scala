@@ -20,17 +20,30 @@ object EditSessionCommands extends Logging.Loggable {
   type StateChangeOption = Option[StateChange]
 
   /**
-   *  //TODO: Remove any leading spaces to the right of the cursor
-   *  Insert a newline and (if the session is in `autoIndenting` mode)
-   *  enough spaces to align the left margin to the indentation of
-   *  the current line.
+   *  Insert a newline. If the session is in `autoIndenting` mode
+   *  insert enough spaces to align the left margin to the indentation of
+   *  the current line; remove any leading spaces to the right of the cursor
+   *  and trailing spaces to the left of the cursor.
    */
   val autoIndentNL: SessionCommand = new SessionCommand {
     def DO(session: EditSession): StateChangeOption = Some {
       val indent = if (session.autoIndenting) session.currentIndent else 0
+      val leading = if (session.autoIndenting) session.currentLead else 0
+      val trailing = if (session.autoIndenting) session.currentTrail else 0
+      val oldCursor = session.cursor
+      val oldSelection = session.selection
+      println(s"$indent, $leading, $trailing")
       new StateChange {
-        def undo(): Unit = session.deleteFor(-(indent+1), record=false)
+        def undo(): Unit = {
+          session.deleteFor(-(indent+1), record=false)
+          for { i<-0 until leading+trailing } session.insert(' ')
+          session.selection = oldSelection
+          session.cursor = oldCursor
+        }
         def redo(): Unit = {
+            session.selection = NoSelection
+            session.deleteFor(-trailing, record=false)
+            session.deleteFor(leading, record=false)
             session.insert('\n')
             for { i<-0 until indent } session.insert(' ')
         }
