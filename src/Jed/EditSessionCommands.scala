@@ -32,7 +32,6 @@ object EditSessionCommands extends Logging.Loggable {
       val trailing = if (session.autoIndenting) session.currentTrail else 0
       val oldCursor = session.cursor
       val oldSelection = session.selection
-      println(s"$indent, $leading, $trailing")
       new StateChange {
         def undo(): Unit = {
           session.deleteFor(-(indent+1), record=false)
