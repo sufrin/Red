@@ -73,4 +73,8 @@ install:        app; \
                 rm -rf ~/Applications/$(APP).app; \
                 cp -pr $(APP).app ~/Applications
 
+spartacus:      app; \
+                scp -pr ~/Applications/$(APP).app/ spartacus.local:Applications/$(APP).app;\
+                scp -pr ~/.red spartacus.local: 
+
 clean:          ; rm -rf app $(APP).app

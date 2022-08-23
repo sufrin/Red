@@ -32,6 +32,9 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
   /**
    * `Personalised.Bindings` emits feedback and warnings about various things
    * that we wish to report via this user interface.
+   *
+   * TODO: these reports actually need to be made by a single "global" popup.
+   *       Right now they are made by every session.
    */
   locally {
     Red.Personalised.Bindings.warning.handleWith {
@@ -402,7 +405,12 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
       }
 
       contents += Separator()
-      contents += Item("Reimport bindings")  { Personalised.Bindings.reImportBindings() }
+      contents += Item("Reimport bindings", toolTip = "Clear bindings and force reimport")  {
+        Personalised.Bindings.reImportBindings()
+      }
+      contents += Item("Reimport bindings for profile \\u24b6", toolTip = "Set profile to \\u24b6, then clear and reimport bindings") {
+        Personalised.Bindings.profile=argLine.text
+      }
       contents += Separator()
 
       contents += Item("Quit")  { top.closeOperation() }

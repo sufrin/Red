@@ -9,7 +9,7 @@ import java.nio.file.{Path, Paths}
  *  Personalisation module, with definitions of
  *  abbreviations, menu entries, etc.
  *
- *  TODO: read configuration data to set this up.
+ *  TODO: One-per-editsession?
  *
  */
 object Personalised extends Logging.Loggable {
@@ -38,13 +38,24 @@ object Personalised extends Logging.Loggable {
 
   def clearBindings(): Unit = {
     personalPipeNames.clear()
+    personalBlockTypes.clear()
+    Bindings.clearMapping()
   }
 
   object Bindings {
     val warning: Notifier[String] = new Notifier[String]("Personalized Warning")
     val feedback: Notifier[String] = new Notifier[String]("Personalized Feedback")
 
+    private var _profile: String = ""
+    def profile: String = _profile
+    def profile_=(profile: String): Unit = {
+        _profile = profile
+        reImportBindings()
+    }
+
     private val trie = PrefixMap[String]()
+    def clearMapping(): Unit = trie.clear()
+
     def longestSuffixMatch(chars: CharSequence, upTo: Int): Option[(String, Int)] = {
        importBindings()
        trie.longestSuffixMatch(chars, upTo)
@@ -81,7 +92,7 @@ object Personalised extends Logging.Loggable {
     def importBindings(): Unit = {
       val path = sys.env.getOrElse("REDBINDINGS", "~/.red/red.bindings")
       val top = Paths.get("")
-      try importBindings(0, top, toPath(top, path)) catch {
+      try importBindings(profile, 0, top, toPath(top, path)) catch {
         case AbortBindings(why) => warning.notify(why)
       }
     }
@@ -92,7 +103,7 @@ object Personalised extends Logging.Loggable {
       importBindings()
     }
 
-    def importBindings(depth: Int, context: Path, path: Path): Unit = {
+    def importBindings(profile: String, depth: Int, context: Path, path: Path): Unit = {
       val file = path.toFile
       val timeStamp = if (file.exists) file.lastModified() else 0
       def readFile(): Unit = {
@@ -102,7 +113,7 @@ object Personalised extends Logging.Loggable {
         val thisContext = context.resolve(path)
         var lineNumber = 1
         for { line <- source.getLines() } {
-          processLine(depth, thisContext, lineNumber, stripComments(line))
+          processLine(profile, depth, thisContext, lineNumber, stripComments(line))
           lineNumber += 1
         }
         source.close()
@@ -127,6 +138,7 @@ object Personalised extends Logging.Loggable {
            throw AbortBindings(s"Including $path\nfrom $context\nthere is no such bindings file")
     }
 
+
     object Lexical {
       import sufrin.regex.Regex
       import sufrin.regex.syntax.{Branched, Parser}
@@ -146,16 +158,25 @@ object Personalised extends Logging.Loggable {
       }
     }
 
-    /** Context is the path to the file being read; depth is the depth of include-nesting */
-    def processLine(depth: Int, context: Path, lineNumber: Int, line: String): Unit = if (line.nonEmpty) {
-      val fields: List[String] = Lexical.scan(line) // line.split("\\s+").toList
-      if (logging) finer(s"Binding $fields")
-      fields match {
-        case ("include" :: path :: _)  => importBindings(depth+1, context, toPath(context, path))
+    /** Context is the path to the file being read; depth is the depth of include-nesting; profile is the profile being matched */
+    def processLine(profile: String, depth: Int, context: Path, lineNumber: Int, line: String): Unit = if (line.nonEmpty) {
+      def processFields(fields: List[String]): Unit = fields match {
+
+        case ("profile" :: pattern :: rest) =>
+          val suitable = try profile.matches(pattern) catch {
+            case exn: Error =>
+              warning.notify(fields.mkString("Erroneous declaration:\n", " ", s"\n($context@$lineNumber)\nSuspect pattern: $pattern"))
+              false
+          }
+          if (suitable)
+            processFields(rest)
+          else
+            ()
+        case ("include" :: path :: _)  => importBindings(profile, depth+1, context, toPath(context, path))
         case ("include?" :: path :: _) =>
           val exPath = toPath(context, path)
           if (exPath.toFile.exists())
-            importBindings(depth+1, context, exPath)
+            importBindings(profile, depth+1, context, exPath)
         case ("text"::"abbrev"::abbr::text::_)  =>
           mapTo(abbr, text)
         case ("pipes"::abbrevs) =>
@@ -165,10 +186,23 @@ object Personalised extends Logging.Loggable {
         case ("show"::fields) =>
           feedback.notify(fields.mkString("", " ", ""))
         case ("text"::"diacritical" :: marks :: rest) =>
-          Red.InputPanel.macKeyboardDiacritical = marks
+          AltKeyboard.macKeyboardDiacritical = marks
+
+        case ("text" :: "alt" :: "reset" :: rest) =>
+          AltKeyboard.clear()
+
+        case ("text" :: "alt" :: "shift" :: pairs ) =>
+          for { map <- pairs if map.length>=2 }
+            AltKeyboard.mapTo(map(0).toUpper, map(1), shift=true)
+
+        case ("text" :: "alt" :: pairs ) =>
+          for { map <- pairs if map.length>=2 }
+            AltKeyboard.mapTo(map(0).toUpper, map(1), shift=false)
+
         case other =>
           warning.notify(other.mkString("Erroneous binding declaration:\n", " ", s"\n($context@$lineNumber)"))
       }
+      processFields(Lexical.scan(line))
     }
 
     def stripComments(line: String): String = {
