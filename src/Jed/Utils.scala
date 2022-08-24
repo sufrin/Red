@@ -8,6 +8,7 @@ import java.nio.file.attribute.FileTime
 import java.text.SimpleDateFormat
 import java.util.Date
 import javax.swing.{Icon, SwingUtilities}
+import scala.collection.mutable.ListBuffer
 import scala.swing.{Action, Alignment, Button, Image, MenuItem}
 import scala.sys.process.Process
 
@@ -68,7 +69,30 @@ object Utils {
 
 
   class Menu(title: String) extends scala.swing.Menu(title) {
+    val prefix, suffix: collection.mutable.Buffer[scala.swing.Component] = contents
+    def dynamic: Seq[scala.swing.Component] = List()
     font = menuFont
+    def make: Menu = this
+  }
+
+  abstract class DynamicMenu(title: String) extends Menu(title) {
+    font = menuFont
+    override val prefix, suffix: collection.mutable.Buffer[scala.swing.Component] = new ListBuffer[scala.swing.Component]
+    def dynamic: Seq[scala.swing.Component]
+
+    override def make: Menu = {
+        contents.clear()
+        contents ++= prefix
+        contents ++= dynamic
+        contents ++= suffix
+        this
+    }
+  }
+
+  object DynamicMenu {
+    def apply(title: String)(generate: => Seq[scala.swing.Component] ): DynamicMenu = new DynamicMenu(title){
+      override def dynamic: Seq[scala.swing.Component] = generate
+    }
   }
 
   def Item(name: String, toolTip: String = "")(act: => Unit): MenuItem =

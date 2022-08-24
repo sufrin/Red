@@ -1,9 +1,11 @@
 package Red
 
+import Jed.Utils
 import Useful.PrefixMap
 
 import java.io.FileInputStream
 import java.nio.file.{Path, Paths}
+import scala.swing.Dialog
 
 /**
  *  Personalisation module, with definitions of
@@ -42,16 +44,38 @@ object Personalised extends Logging.Loggable {
     Bindings.clearMapping()
   }
 
+  def warning(profile: String, message: String): Unit = {
+      Dialog.showMessage(
+        null,
+        s"$message${if (profile.nonEmpty) s"\nProfile: $profile" else ""}",
+        "Bindings",
+        Dialog.Message.Warning,
+        icon = Utils.redIcon
+      )
+  }
+
+
+
   object Bindings {
-    val warning: Notifier[String] = new Notifier[String]("Personalized Warning")
-    val feedback: Notifier[String] = new Notifier[String]("Personalized Feedback")
+    val feedback: Notifier[String] = new Notifier[String]("Personalised Feedback")
+    val changed:  Notifier[Unit]   = new Notifier[Unit]("Personalised Bindings Changed")
 
     private var _profile: String = ""
     def profile: String = _profile
     def profile_=(profile: String): Unit = {
-        _profile = profile
-        reImportBindings()
+      _profile = profile
+      reImportBindings()
     }
+
+    private var _profiles: List[String] = List("OS/X", "Linux")
+    def profiles: List[String] = _profiles
+    def profiles_=(profiles: List[String]): Unit = {
+      _profiles = profiles
+      changed.notify(())
+    }
+
+
+
 
     private val trie = PrefixMap[String]()
     def clearMapping(): Unit = trie.clear()
@@ -93,7 +117,7 @@ object Personalised extends Logging.Loggable {
       val path = sys.env.getOrElse("REDBINDINGS", "~/.red/red.bindings")
       val top = Paths.get("")
       try importBindings(profile, 0, top, toPath(top, path)) catch {
-        case AbortBindings(why) => warning.notify(why)
+        case AbortBindings(why) => warning(profile, why)
       }
     }
 
@@ -162,16 +186,17 @@ object Personalised extends Logging.Loggable {
     def processLine(profile: String, depth: Int, context: Path, lineNumber: Int, line: String): Unit = if (line.nonEmpty) {
       def processFields(fields: List[String]): Unit = fields match {
 
-        case ("profile" :: pattern :: rest) =>
-          val suitable = try profile.matches(pattern) catch {
+        case (conditional :: pattern :: rest) if conditional=="if" || conditional=="unless" || conditional=="ifnot" => {
+          val cond = try profile.matches(s".*$pattern.*") catch {
             case exn: Error =>
-              warning.notify(fields.mkString("Erroneous declaration:\n", " ", s"\n($context@$lineNumber)\nSuspect pattern: $pattern"))
+              warning(profile, fields.mkString("Erroneous declaration:\n", " ", s"\n($context@$lineNumber)\nSuspect pattern: $pattern"))
               false
           }
-          if (suitable)
-            processFields(rest)
-          else
-            ()
+          //
+          if (if (conditional == "if") cond else !cond) processFields(rest)
+        }
+        case ("profiles" :: rest) =>
+          profiles = rest
         case ("include" :: path :: _)  => importBindings(profile, depth+1, context, toPath(context, path))
         case ("include?" :: path :: _) =>
           val exPath = toPath(context, path)
@@ -200,7 +225,7 @@ object Personalised extends Logging.Loggable {
             AltKeyboard.mapTo(map(0).toUpper, map(1), shift=false)
 
         case other =>
-          warning.notify(other.mkString("Erroneous binding declaration:\n", " ", s"\n($context@$lineNumber)"))
+          warning(profile, other.mkString("Erroneous binding declaration:\n", " ", s"\n($context@$lineNumber)"))
       }
       processFields(Lexical.scan(line))
     }
