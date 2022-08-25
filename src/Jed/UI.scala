@@ -14,7 +14,7 @@ import scala.swing.FileChooser.Result.{Approve, Cancel}
 import scala.swing._
 
 class UI(val theSession: EditSession) extends SimpleSwingApplication {
-  import Jed.Utils.{Item, LazyDynamicMenu, Menu}
+  import Jed.Utils.{LazyDynamicMenu, Menu}
   import UI._
   /**
    * `theSession` emits feedback and warnings about things like find/replace failures
@@ -32,111 +32,6 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
     }
   }
 
-  val profilesMenu = new LazyDynamicMenu("Profile", {Bindings.profiles}) {
-    def component(title: String): Component =
-        {   val act = Action(title) {
-            Bindings.profile = title
-          }
-          new MenuItem(act) {
-            tooltip = s"Set profile to $title, then reimport bindings"
-          }
-        }
-  }
-
-  def classMenu = new Menu("Class") {
-
-
-    contents += Item("\\documentclass{article}") {
-      val up = "\\usepackage[]{}"
-      val header =
-        s"""\\documentclass[11pt,a4paper]{article}
-           |%%%%%%%%%%%%%%%%%%%%%
-           |$up
-           |%%%%%%%%%%%%%%%%%%%%%
-           |\\author{}
-           |\\title{}
-           |\\date{}
-           |%%%%%%%%%%%%%%%%%%%%%
-           |\\begin{document}
-           |\\maketitle
-           |
-           |\\end{document}
-           |""".stripMargin
-      UI_DO(EditSessionCommands.latexInsert(header))
-    }
-
-    contents += Item("\\documentclass{letter}") {
-      val header =
-        s"""\\documentclass[12pt,lab|wor|home|magd,bernard|sufrin]{letter} %
-           |\\To{lines\\\\of\\\\mailing address}
-           |\\Dear[Dear]{Victim}
-           |\\Re{subject matter}
-           |    This is the body
-           |\\Ps{ps paragraph}
-           |\\PostSig{post signature para}
-           |\\Cc{carrbon1, carbon2, ...}
-           |\\Sign[yours sincerely]{Bernard Sufrin}
-           |""".stripMargin
-      UI_DO(EditSessionCommands.latexInsert(header))
-    }
-
-    contents += Separator()
-    contents += Separator()
-
-    contents += Item("Tex source := \u24b6", toolTip = "Change default tex source using dialogue or nonempty \u24b6 field") {
-      var text = argLine.text.trim
-      if (text.isEmpty) {
-        val chooser = fileChooser
-        chooser.showOpenDialog(top) match {
-          case Approve => text = chooser.selectedFile.toString
-          case Cancel  => text = ""
-        }
-      }
-      if (text.nonEmpty) theSession.TEX=Utils.toPath(text)
-      feedbackPersistently(s"Tex source: ${theSession.TEX.toString}")
-    }
-
-    contents += Item(s"Default tex source := ${theSession.path}", toolTip = "Change default latex source to current file") {
-      theSession.TEX=Utils.toPath(theSession.path)
-      feedbackPersistently(s"Tex source: ${theSession.TEX.toString}")
-    }
-  }
-
-  val beginMenu   = new LazyDynamicMenu("\\begin{...}", { Red.Personalised.latexBlockTypes }) {
-    prefix += Item("%%%%%%%%") {
-      val header =
-        """%%%%%%%%%%%%%%%%%%%%%%%%
-          |%%%%%%%%%%%%%%%%%%%%%%%%
-          |%%%%%%%%%%%%%%%%%%%%%%%%
-          |""".stripMargin
-      UI_DO(EditSessionCommands.latexInsert(header))
-    }
-
-    prefix += Separator()
-
-    def component (block: String): Component = {
-        if (block == "-")
-          Separator()
-        else
-            Item(s"""\\begin{$block}""") { UI_DO(EditSessionCommands.latexBlock(block)) }
-    }
-
-    // contents ++= dynamic
-
-    suffix += Separator()
-    suffix += Item("\\begin{\u24b6}") {
-      UI_DO(EditSessionCommands.latexBlock(argLine.text.trim))
-    }
-
-    suffix += Item("""\begin{...}->...""") {
-      UI_DO(EditSessionCommands.latexUnblock)
-    }
-
-    suffix += Separator()
-
-    // Infrequent additions
-    suffix += classMenu
-  }
 
   /**
    * `Personalised.Bindings` emits feedback and warnings about various things
@@ -512,7 +407,16 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
         Personalised.Bindings.reImportBindings()
       }
 
-      contents += profilesMenu // Dynamic
+      contents += new LazyDynamicMenu("Profile", {Bindings.profiles}) {
+        def component(title: String): Component =
+        {   val act = Action(title) {
+          Bindings.profile = title
+        }
+          new MenuItem(act) {
+            tooltip = s"Set profile to $title, then reimport bindings"
+          }
+        }
+      }
 
       contents += Separator()
 
@@ -617,7 +521,99 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
       UI_DO(EditSessionCommands.latexToPDF)
     }
 
-    contents += beginMenu
+    contents += new LazyDynamicMenu("\\begin{...}", { Red.Personalised.latexBlockTypes }) {
+      prefix += Item("%%%%%%%%") {
+        val header =
+          """%%%%%%%%%%%%%%%%%%%%%%%%
+            |%%%%%%%%%%%%%%%%%%%%%%%%
+            |%%%%%%%%%%%%%%%%%%%%%%%%
+            |""".stripMargin
+        UI_DO(EditSessionCommands.latexInsert(header))
+      }
+
+      prefix += Separator()
+
+      def component (block: String): Component = {
+        if (block == "-")
+          Separator()
+        else
+          Item(s"""\\begin{$block}""") { UI_DO(EditSessionCommands.latexBlock(block)) }
+      }
+
+      // contents ++= dynamic
+
+      suffix += Separator()
+      suffix += Item("\\begin{\u24b6}") {
+        UI_DO(EditSessionCommands.latexBlock(argLine.text.trim))
+      }
+
+      suffix += Item("""\begin{...}->...""") {
+        UI_DO(EditSessionCommands.latexUnblock)
+      }
+
+      suffix += Separator()
+
+      // Infrequent additions
+      suffix += new Menu("Class") {
+
+
+        contents += Item("\\documentclass{article}") {
+          val up = "\\usepackage[]{}"
+          val header =
+            s"""\\documentclass[11pt,a4paper]{article}
+               |%%%%%%%%%%%%%%%%%%%%%
+               |$up
+               |%%%%%%%%%%%%%%%%%%%%%
+               |\\author{}
+               |\\title{}
+               |\\date{}
+               |%%%%%%%%%%%%%%%%%%%%%
+               |\\begin{document}
+               |\\maketitle
+               |
+               |\\end{document}
+               |""".stripMargin
+          UI_DO(EditSessionCommands.latexInsert(header))
+        }
+
+        contents += Item("\\documentclass{letter}") {
+          val header =
+            s"""\\documentclass[12pt,lab|wor|home|magd,bernard|sufrin]{letter} %
+               |\\To{lines\\\\of\\\\mailing address}
+               |\\Dear[Dear]{Victim}
+               |\\Re{subject matter}
+               |    This is the body
+               |\\Ps{ps paragraph}
+               |\\PostSig{post signature para}
+               |\\Cc{carrbon1, carbon2, ...}
+               |\\Sign[yours sincerely]{Bernard Sufrin}
+               |""".stripMargin
+          UI_DO(EditSessionCommands.latexInsert(header))
+        }
+
+        contents += Separator()
+        contents += Separator()
+
+        contents += Item("Tex source := \u24b6", toolTip = "Change default tex source using dialogue or nonempty \u24b6 field") {
+          var text = argLine.text.trim
+          if (text.isEmpty) {
+            val chooser = fileChooser
+            chooser.showOpenDialog(top) match {
+              case Approve => text = chooser.selectedFile.toString
+              case Cancel  => text = ""
+            }
+          }
+          if (text.nonEmpty) theSession.TEX=Utils.toPath(text)
+          feedbackPersistently(s"Tex source: ${theSession.TEX.toString}")
+        }
+
+        contents += Item(s"Default tex source := ${theSession.path}", toolTip = "Change default latex source to current file") {
+          theSession.TEX=Utils.toPath(theSession.path)
+          feedbackPersistently(s"Tex source: ${theSession.TEX.toString}")
+        }
+      }
+
+    }
 
     contents += Glue.horizontal()
 
