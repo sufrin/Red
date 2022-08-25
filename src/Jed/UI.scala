@@ -14,7 +14,7 @@ import scala.swing.FileChooser.Result.{Approve, Cancel}
 import scala.swing._
 
 class UI(val theSession: EditSession) extends SimpleSwingApplication {
-  import Jed.Utils.{DynamicMenu, Menu, Item}
+  import Jed.Utils.{Item, LazyDynamicMenu, Menu}
   import UI._
   /**
    * `theSession` emits feedback and warnings about things like find/replace failures
@@ -32,17 +32,15 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
     }
   }
 
-  val profilesMenu: Menu = new DynamicMenu("Profile") {
-    override def dynamic: Seq[scala.swing.Component] =
-      for { p <- Bindings.profiles } yield {
-        val act = Action(p) {
-          Bindings.profile = p
+  val profilesMenu = new LazyDynamicMenu("Profile", {Bindings.profiles}) {
+    def component(title: String): Component =
+        {   val act = Action(title) {
+            Bindings.profile = title
+          }
+          new MenuItem(act) {
+            tooltip = s"Set profile to $title, then reimport bindings"
+          }
         }
-        new MenuItem(act) {
-          tooltip = s"Set profile to $p, then reimport bindings"
-        }
-      }
-      make
   }
 
   def classMenu = new Menu("Class") {
@@ -104,7 +102,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
     }
   }
 
-  val beginMenu   = new Menu("\\begin{...}") {
+  val beginMenu   = new LazyDynamicMenu("\\begin{...}", { Red.Personalised.latexBlockTypes }) {
     prefix += Item("%%%%%%%%") {
       val header =
         """%%%%%%%%%%%%%%%%%%%%%%%%
@@ -116,19 +114,14 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
 
     prefix += Separator()
 
-    override def dynamic: Seq[scala.swing.Component] = {
-      val blockTypes = Red.Personalised.latexBlockTypes
-
-      for { block <- blockTypes } yield {
+    def component (block: String): Component = {
         if (block == "-")
           Separator()
         else
-            Item(s"""\\begin{$block}""") {
-              UI_DO(EditSessionCommands.latexBlock(block))
-            }}
+            Item(s"""\\begin{$block}""") { UI_DO(EditSessionCommands.latexBlock(block)) }
     }
 
-    contents ++= dynamic
+    // contents ++= dynamic
 
     suffix += Separator()
     suffix += Item("\\begin{\u24b6}") {
@@ -143,7 +136,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
 
     // Infrequent additions
     suffix += classMenu
-  } . make
+  }
 
   /**
    * `Personalised.Bindings` emits feedback and warnings about various things
@@ -157,8 +150,8 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
     Red.Personalised.Bindings.changed.handleWith {
       case () =>
         if (theView.visible) {
-          profilesMenu.make
-          beginMenu.make
+          //profilesMenu.make
+          //beginMenu.make
           feedbackPersistently("Remade Profiles")
         }
     }

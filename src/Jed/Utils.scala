@@ -69,29 +69,27 @@ object Utils {
 
 
   class Menu(title: String) extends scala.swing.Menu(title) {
-    val prefix, suffix: collection.mutable.Buffer[scala.swing.Component] = contents
-    def dynamic: Seq[scala.swing.Component] = List()
     font = menuFont
-    def make: Menu = this
   }
 
-  abstract class DynamicMenu(title: String) extends Menu(title) {
+  /** A mixed-mode dynamic+static menu presented in order: prefix ++ dynamic ++ suffix */
+  abstract class DynamicMenu(title: String) extends Jed.Menus.DynamicMenu(title) {
     font = menuFont
-    override val prefix, suffix: collection.mutable.Buffer[scala.swing.Component] = new ListBuffer[scala.swing.Component]
+    val prefix, suffix: collection.mutable.Buffer[scala.swing.Component] = new ListBuffer[scala.swing.Component]
+    def content: Seq[scala.swing.Component] = prefix.toList ++ dynamic ++ suffix.toList
     def dynamic: Seq[scala.swing.Component]
-
-    override def make: Menu = {
-        contents.clear()
-        contents ++= prefix
-        contents ++= dynamic
-        contents ++= suffix
-        this
-    }
   }
 
+  abstract class LazyDynamicMenu(title: String, titles: => Seq[String]) extends Jed.Menus.LazyDynamicMenu(title, titles) {
+    font = menuFont
+    val prefix, suffix: collection.mutable.Buffer[scala.swing.Component] = new ListBuffer[scala.swing.Component]
+    override def content: Seq[scala.swing.Component] = prefix.toList ++ super.content ++ suffix.toList
+  }
+
+  /** A ''completely'' dynamic menu that evaluates  `_dynamic` to generate content on popup */
   object DynamicMenu {
-    def apply(title: String)(generate: => Seq[scala.swing.Component] ): DynamicMenu = new DynamicMenu(title){
-      override def dynamic: Seq[scala.swing.Component] = generate
+    def apply(title: String)( _dynamic: => Seq[scala.swing.Component] ): DynamicMenu = new DynamicMenu(title){
+      def dynamic: Seq[scala.swing.Component] = _dynamic
     }
   }
 
