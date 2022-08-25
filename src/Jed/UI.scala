@@ -147,14 +147,6 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
     Red.Personalised.Bindings.feedback.handleWith {
       case message => feedbackPersistently(message)
     }
-    Red.Personalised.Bindings.changed.handleWith {
-      case () =>
-        if (theView.visible) {
-          //profilesMenu.make
-          //beginMenu.make
-          feedbackPersistently("Remade Profiles")
-        }
-    }
   }
 
   /**

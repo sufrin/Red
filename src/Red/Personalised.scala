@@ -58,7 +58,6 @@ object Personalised extends Logging.Loggable {
 
   object Bindings {
     val feedback: Notifier[String] = new Notifier[String]("Personalised Feedback")
-    val changed:  Notifier[Unit]   = new Notifier[Unit]("Personalised Bindings Changed")
 
     private var _profile: String = ""
     def profile: String = _profile
@@ -71,11 +70,7 @@ object Personalised extends Logging.Loggable {
     def profiles: List[String] = _profiles
     def profiles_=(profiles: List[String]): Unit = {
       _profiles = profiles
-      changed.notify(())
     }
-
-
-
 
     private val trie = PrefixMap[String]()
     def clearMapping(): Unit = trie.clear()
@@ -197,15 +192,24 @@ object Personalised extends Logging.Loggable {
         }
         case ("profiles" :: rest) =>
           profiles = rest
-        case ("include" :: path :: _)  => importBindings(profile, depth+1, context, toPath(context, path))
-        case ("include?" :: path :: _) =>
+        case ("profiles+" :: profile :: Nil) =>
+          profiles = profiles ++ List(profile)
+        case ("include" :: path :: Nil)  =>
           val exPath = toPath(context, path)
-          if (exPath.toFile.exists())
+          if (exPath.toFile.exists() && exPath.toFile.canRead())
+             importBindings(profile, depth+1, context, exPath)
+          else
+            warning(profile, s"Infeasible include:\n$exPath\n($context@$lineNumber)")
+        case ("include?" :: path :: Nil) =>
+          val exPath = toPath(context, path)
+          if (exPath.toFile.exists()  && exPath.toFile.canRead())
             importBindings(profile, depth+1, context, exPath)
         case ("text"::"abbrev"::abbr::text::_)  =>
           mapTo(abbr, text)
         case ("pipes"::abbrevs) =>
           personalPipeNames.addAll(abbrevs)
+        case ("latex"::"blocks+"::block::Nil) =>
+          personalBlockTypes += block
         case ("latex"::"blocks"::abbrevs) =>
           personalBlockTypes.addAll(abbrevs)
         case ("show"::fields) =>
