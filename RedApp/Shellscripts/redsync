@@ -1,0 +1,4 @@
+case ${1-listen} in
+  ps)     evince-synctex ps;;
+  listen) exec evince-synctex listen red %f@%l;;
+esac

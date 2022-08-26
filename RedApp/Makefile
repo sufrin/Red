@@ -74,7 +74,7 @@ install:        app; \
                 cp -pr $(APP).app ~/Applications
 
 spartacus:      app; \
-                scp -pr ~/Applications/$(APP).app/ spartacus.local:Applications/$(APP).app/;\
-                scp -pr ~/.red spartacus.local:
+                rsync -av ~/Applications/$(APP).app/ spartacus.local:Applications/$(APP).app/;\
+                rsync -av ~/.red/ spartacus.local:.red/
 
 clean:          ; rm -rf app $(APP).app
