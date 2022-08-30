@@ -1,19 +1,17 @@
 #
-#          Make this main program as a script dependent on
-#          external libraries and the scala code runner.
+#          Make various jars and scripts
 #
-MAIN   := Jedi
-JAR    := $(MAIN).jar
-PKG    := Jed
+MAINCLASS       := Red.AppleRed
+JAR             := Red.jar
+JAVOID          := AppleRed.jar
+SCALOID         := Red.jar
 
 #
 # location of the IntelliJ-compiled class files
 #
-IJOUT    := ./out/production/Jed
+IJCLASSES       := ./out/production/Jed
 #
-# Name of the script that uses IntelliJ-compiled class files
-#
-IJMAIN := i$(MAIN)
+
 
 #
 #

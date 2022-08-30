@@ -59,6 +59,9 @@ fi
 #### 
 #### 
 
+##         -DRed.AppleRed.level=all \
+##         -DJed.UDPServer=all\
+
 
 if [ `uname` = Darwin ] 
 then

@@ -1,32 +1,22 @@
 #
 #          A monolithic executable Makefile that recompiles (see
 #          SCALAC) all discoverable sources if ANY were edited later
-#          than the target. It should be "include"d with MAIN, JAR, and
-#          PKG parameters set appropriately. 
+#          than the target.  
 #
 
-FOILS  := $(wildcard [0-9x][0-9x]*.tex)
-SOURCE := $(wildcard */*/*/*.scala */*/*.scala */*.scala)
-LIB    := $(HOME)/local/scalalib
-KIT    := $(HOME)/GitHomes/RegexKit/out/artifacts/regexkit.jar
-CP     := $(LIB)/scala-swing.jar:$(KIT)
+SOURCE := $(wildcard src/*/*/*.scala src/*/*.scala src/*.scala)
 
-#       Parameters: where the outputs will go. 
-#       * RUN specifies the name of the (local) script that runs scala using the 
-#         compilation classpath augmented the compiler's destination folder
-#       * PKG specifies a package prefix for the main object that the scrpt runs: $(PKG)$MAIN)
-#       * BIN specifies the compiler's destination folder
-#       * DOC specifies the folder into which the documentation is generated
-#       * $(DOC)/index.html is the root of the documentation tree.
+# (soft) links to current variants of the three libraries must be in the current directory
+LIB    := $(PWD)/scala-library.jar
+KIT    := $(PWD)/regexkit.jar
+SWING  := $(PWD)/scala-swing.jar
 
-BIN    := bin
-DOC    := doc
-RUN    := run
+CP     := $(LIB):$(SWING):$(KIT)
 
-#
-#       If you happen to use IntelliJ, then the following parameters will be useful
-#        
-#
+DOC             := doc
+SCRIPT          := ired
+SSCRIPT         := sred
+MANIFEST        := APPLEREDMANIFEST.MF
 
 #       Parameters: compiler, flags, documentation program
 #
@@ -44,16 +34,38 @@ SCALADOC := scaladoc -deprecation -groups -sourcepath src
 
 #       Targets. The default target is "all"
 
-all:        $(MAIN) $(IJMAIN) $(JAR) 
+all:        $(JAVOID) $(SCRIPT) $(SSCRIPT) ANNOUNCE
 
-$(BIN):     $(SOURCE); mkdir -p bin; $(SCALAC) $(SFLAGS) -cp $(CP) -d $(BIN) $(SOURCE); touch $@
+ANNOUNCE:;  @echo "############################ $(SCRIPT): uses the scala runtime and IJ files";\
+            echo  "############################ $(SSCRIPT); uses the scala runtime + Red.jar"; \
+            echo  "############################ $(JAVOID): is a complete java program - with libraries already loaded"
+
 $(JAR):     $(SOURCE); touch $(JAR); $(SCALAC) $(SFLAGS) -cp $(CP) -d $(JAR) $(SOURCE); touch $@
-$(DOC):     $(SOURCE); mkdir -p $(DOC) ; $(SCALADOC) -dependencyfile $@.DEP -cp $(CP) -d $(DOC) $(SOURCE) ; touch $@
-$(MAIN):    $(JAR) ; echo "# Script synthesised by make" > ./$(MAIN)   ; echo scala -cp $(CP):$(JAR)   $(PKG).$(MAIN) '"'$$\@'"' >> ./$(MAIN); chmod +x $(MAIN)
-$(IJMAIN):         ; echo "# Script synthesised by make" > ./$(IJMAIN) ; echo scala -cp $(CP):$(IJOUT) $(PKG).$(MAIN) '"'$$\@'"' >> ./$(IJMAIN); chmod +x $(IJMAIN)
+
+$(JAVOID):  .classes $(MANIFEST);\
+            jar cvf $(JAVOID) -C CLASSES . ;\
+            jar uvmf $(MANIFEST) $(JAVOID)
+
+.classes:   $(JAR) $(LIB) $(KIT) $(SWING);\
+            mkdir -p CLASSES ; \
+            (cd CLASSES ; \
+            jar xvf ../$(JAR) ;\
+            jar xvf ../$(LIB) ;\
+            jar xvf ../$(KIT) ;\
+            jar xvf ../$(SWING) ); touch .classes         
+
+$(SSCRIPT): $(JAR) ; \
+            echo "# Script synthesised by make" > ./$(SSCRIPT)  ; \
+            echo scala -cp $(CP):$(PWD)/$(JAR) $(MAINCLASS) >./$(SSCRIPT) '"'$$\@'"' >> ./$(SSCRIPT); chmod +x $(SSCRIPT)
+            
+$(SCRIPT):  ; \
+            echo "# Script synthesised by make" > ./$(SCRIPT)  ; \
+            echo scala -cp $(CP):$(IJCLASSES) $(MAINCLASS) >./$(SCRIPT) '"'$$\@'"' >> ./$(SCRIPT); chmod +x $(SCRIPT)
 
 DEPS:       $(JAR); jdeps -R -verbose:class -apionly -q   $(JAR)  | egrep -v 'anon|java|scala' | sed -e"s/[ ]*.jar//" > DEPS
 
-.PHONY:     clean shutdown
-clean:      shutdown; rm -rf .compiled $(BIN) $(DOC) $(MAIN) $(IJMAIN)
-shutdown:   ; [ $(SCALAC) != fsc ] || fsc -shutdown
+.PHONY:     clean ANNOUNCE
+clean:      ; cleandir; rm -rf CLASSES .classes $(DOC) $(JAR) 
+
+
+$(DOC):     $(SOURCE); mkdir -p $(DOC) ; $(SCALADOC) -dependencyfile $@.DEP -cp $(CP) -d $(DOC) $(SOURCE) ; touch $@

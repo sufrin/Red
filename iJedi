@@ -1,3 +1,0 @@
-# Script synthesised by make
-CP=/Users/sufrin/local/scalalib/scala-swing.jar:/Users/sufrin/GitHomes/RegexKit/out/artifacts/regexkit.jar:./out/production/Jed
-REDPORT=33449 scala -cp $CP Red.AppleRed "$@" &

@@ -1,0 +1,48 @@
+#redpdf  latexinputfile <texline#> editingfile
+# 
+# OS/X:
+#   pdflatex the latex input file
+#   if successful, open the pdf with Skim at the line 
+#   corresponding to the numbered line <texline#>
+#
+#  export max_print_line=100
+#  (for latex log output if you must)
+#
+echo redpdf "$@"
+inputfile=${1%%.tex}.tex
+pdffile=${inputfile%%.tex}.pdf
+line="${2-0}"
+editing="${3-$inputfile}"
+cwd=$(dirname $inputfile)
+export TEXINPUTS=.:$HOME/Tex//:
+export TEXFONTS=$TEXINPUTS
+echo "++++++++++++ REDPPDF ++++++++++"
+echo "EDITING:   " $editing
+echo "INPUT:     " $inputfile
+echo "PDF:       " $pdffile 
+echo "CWD:       " $cwd
+echo "TEXINPUTS: " $TEXINPUTS
+echo "+++++++++++++++++++++++++++++++"
+
+if [ $(uname) = "Linux" ]
+then
+ (cd $cwd ;\
+  /usr/bin/pdflatex -shell-escape -file-line-error -recorder -synctex=1 -interaction=errorstopmode "$inputfile") 
+  #echo linedisplay $line $pdffile $editing
+  #linedisplay $line $pdffile $editing
+  evince $pdffile
+  evince-synctex sync $pdffile $editing $line
+  echo "Start redsync for red synchronisation with evince (ctrl-click)"
+else
+# Assuming Darwin aka OS/X
+ (cd $cwd ;\
+ /Library/TeX/texbin/pdflatex -shell-escape -file-line-error -recorder -synctex=1 -interaction=errorstopmode "$inputfile")    
+    # Displayline invokes Skim 
+    echo skimdisplayline $line $pdffile $editing
+    skimdisplayline $line $pdffile $editing
+    exit
+    
+    echo open -a Skim $pdffile
+    # skim invokes pdfsync %file %line at the right gesture (shift cmd point)
+    exec open -a Skim $pdffile
+fi

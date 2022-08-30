@@ -50,9 +50,10 @@ RESOURCES=${CONTAINER}/Resources
 #
 #
 #
-all:            app install
+all:            ; @echo "=============== Ensure you have an up to date $(APP).app in .."; \
+                make app install
 
-app:            $(APP)-server $(APP).app; \
+app:            $(APP)-server $(APP).app ../$(APP.jar) ; \
                 cp $(APP).icns          $(RESOURCES)/droplet.icns; \
                 cp $(APP).plist         $(CONTAINER)/Info.plist; \
                 mkdir -p                $(JAVA); \
