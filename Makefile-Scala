@@ -7,11 +7,11 @@
 SOURCE := $(wildcard src/*/*/*.scala src/*/*.scala src/*.scala)
 
 # (soft) links to current variants of the three libraries must be in the current directory
-LIB    := $(PWD)/scala-library.jar
-KIT    := $(PWD)/regexkit.jar
-SWING  := $(PWD)/scala-swing.jar
+LIB    := scala-library.jar
+KIT    := regexkit.jar
+SWING  := scala-swing.jar
 
-CP     := $(LIB):$(SWING):$(KIT)
+CP     := $(PWD)/$(LIB):$(PWD)/$(SWING):$(PWD)/$(KIT)
 
 DOC             := doc
 SCRIPT          := ired
