@@ -58,7 +58,9 @@ object AppleRed extends Logging.Loggable {
 
       withDesktop {
         if (logging) fine(s"Server interface started")
-        if (Jed.Server.isOSXApp || Jed.Server.isServer) establishMainWindowFrame(Jed.Server.portName)
+        if (Jed.Server.isOSXApp || Jed.Server.isServer) {
+          scala.swing.Swing.onEDTWait { establishMainWindowFrame(Jed.Server.portName) }
+        }
         if (logging) fine(s"Main window $mainWindowFrame")
         if (Jed.Server.isServer && args.isEmpty) {
           Jed.Sessions.exitOnLastClose = false
@@ -118,6 +120,7 @@ object AppleRed extends Logging.Loggable {
 
   private var mainWindowFrame: Frame = _
 
+  /** Set up the window that's the representative for the app as a whole  */
   def establishMainWindowFrame(port: String): Unit = {
     import scala.swing._
 
