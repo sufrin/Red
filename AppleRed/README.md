@@ -1,6 +1,6 @@
 # Making `AppleRed.app` for `OS/X` 
 
-This directory has the means to construct a standalone `AppleRed`
+This directory has the means to construct a standalone orthodox `AppleRed`
 app that *can* function without an external server on versions
 of `OS/X` earlier than `Catalina 10.15.7`.
 
@@ -18,7 +18,7 @@ of `OS/X` earlier than `Catalina 10.15.7`.
  
 Providing that the parent directory has an up-to-date `AppleRed.jar`
 constructed either as an **IntelliJ** artefact, or by using the
-script `makeApp` in that folder, one of the following commands will
+script `make` in that folder, one of the following commands will
 build an app:
 
         ant clean app   # builds AppleRed.app
@@ -39,7 +39,18 @@ Apple security measures that *forbid* the reception of messages (of
 any kind) by uncertified apps. At the time of writing I see no
 reasonable way round these measures (and, believe me, I have looked)
 that can be taken without paying the Apple Ransom: which imposes both a
-financial and an intellectual burden. 
+financial and an intellectual burden.
+
+(4th September 2022)
+The above instructions lead to the construction of an orthodox OS/X application that
+functions as its own editing service. This would be perfect if
+OS/X provided any means of getting messages from outwith the
+running application instantiation to the instantiation
+itself. Sadly the "enhanced" command `open -a AppleDred --args ...`
+appears not to be useable for this purpose.
+
+
+## Superseded background
 
 Nevertheless, providing that the `red` script has been installed 
 somewhere, and has been started (with or without arguments) 

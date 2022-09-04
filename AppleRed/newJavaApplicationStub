@@ -754,7 +754,7 @@ else
 fi
 
 ########################## Prime the environment
-[ -e ${HOME}/.AppleRed_profile ] && . ${HOME}/.AppleRed_profile
+[ -e ${HOME}/.AppleRed.profile ] && . ${HOME}/.AppleRed.profile
 
 # change to Working Directory (was based upon Apple/Oracle Plist info: now HOME)
 WorkingDirectory=${HOME}

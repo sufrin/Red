@@ -89,18 +89,19 @@
                 <!-- WorkingDirectory= "/" (wtf knows?) -->
                 
       
-                <javaproperty name="apple.laf.useScreenMenuBar" value="true"/>
+                <javaproperty name="apple.laf.useScreenMenuBar" value="false"/>
                 <javaproperty name="applered.app"               value="true"/>
-                <javaproperty name="applered.port"              value="33445"/>                
-                <javaproperty name="applered.fifo-"              value="~/AppleRed.Server.Port"/>  
+                <!--javaproperty name="applered.port"              value="33445"/ -->                
+                <!--javaproperty name="applered.fifo-"             value="~/AppleRed.Server.Port"/ -->  
                 
-                <!-- These are here while we are trying to understand sandbox permissions -->           
-                <javaproperty name="Red.AppleRed.level"         value="ALL"/> 
-                <javaproperty name="Jed.UDPServer.level"        value="ALL"/> 
-                <javaproperty name="Jed.Server.level"           value="ALL"/>
-                <javaproperty name="Jed.Sessions.level"         value="ALL"/>                
-                <javaproperty name="Jed.UI.level"               value="ALL"/>
-                <javaproperty name="Jed.Session.level"          value="ALL"/>
+                <!-- These were used while we were trying to understand sandbox permissions       
+                    <javaproperty name="Red.AppleRed.level"         value="ALL"/> 
+                    <javaproperty name="Jed.UDPServer.level"        value="ALL"/> 
+                    <javaproperty name="Jed.Server.level"           value="ALL"/>
+                    <javaproperty name="Jed.Sessions.level"         value="ALL"/>
+                    <javaproperty name="Jed.UI.level"               value="ALL"/>
+                    <javaproperty name="Jed.Session.level"          value="ALL"/>
+                -->    
                 
               
                 <jarfileset dir="build">

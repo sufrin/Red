@@ -148,8 +148,7 @@ object AppleRed extends Logging.Loggable {
         private val user    = System.getProperty("user.name", "<no user>")
         private val role    =
           if (Jed.Server.isOSXApp)
-             // the OS/X packaged app has to be a client, for the time being
-             s"Client (of $port)"
+             s"OS/X: AppleRed"
           else
           if (Jed.Server.isServer && port!="")
              s"Serving $port"
@@ -167,27 +166,6 @@ object AppleRed extends Logging.Loggable {
           contents += But("Fresh", "Start editing a new document") {
             Jed.Server.process(Utils.freshDocumentName())
           }
-
-          /*
-           * Experiments using this button seem to indicate that a packaged OS/X app may have no more than one
-           * top-level window.
-           *
-           * Symptoms:
-           *   1. On the non-packaged program the session starts, and logs, as expected
-           *   2. On the packaged program there is no log of the session starting
-           *      and apparently no system log of a permission failure
-           *
-           *   But the investigation isn't over, for I ask myself why Jape can
-           *   possibly work on this machine under these circumstances!
-           */
-          if (false && Jed.Server.isOSXApp) {
-            contents += But("Local", "Start editing a new document locally") {
-              Jed.Sessions.startSession(Utils.freshDocumentName())
-            }
-          }
-
-
-          // This nonsense is while the OS/X packaged app can't communicate
 
           if (!Jed.Server.isOSXApp)
             contents += But("Quit", "Quit this server") {

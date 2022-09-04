@@ -28,7 +28,7 @@ object Server extends ServerInterface with Logging.Loggable {
 
   private val fifo = sys.props.get("applered.fifo") orElse sys.env.get("REDFIFO")
 
-  if (logging && fifo.nonEmpty) fine(s"Fifo server using: ${fifo.get}")
+  if (logging && fifo.nonEmpty && !isOSXApp) fine(s"Fifo server using: ${fifo.get}")
 
   override def isClient: Boolean = server.isClient
 
@@ -36,7 +36,10 @@ object Server extends ServerInterface with Logging.Loggable {
 
   override def startServer(): Unit =
      { server =
-          if (fifo.nonEmpty) {
+         if (isOSXApp)
+           OSXAppServer
+         else
+         if (fifo.nonEmpty) {
             warn(s"App specifies fifo service interface: but this is not feasible with this JVM. UDP service substituted.")
             UDPServer // FIFOServer // Should be
           } else
