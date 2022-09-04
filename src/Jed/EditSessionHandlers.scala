@@ -53,7 +53,7 @@ class EditSessionHandlers(val DO: Commands.Command[EditSession]=>Unit) {
         case Instruction(Key.F3, _, NoModifier)       => DO(commands.copy)
         case Instruction(Key.F2, _, NoModifier)       => DO(commands.paste)
         case Instruction(Key.F4, _, NoModifier)       => DO(commands.exchangeCut)
-        case Instruction(Key.F12, _, NoModifier)      => DO(commands.exchangeMark)
+        case Instruction(Key.F5, _, NoModifier)       => DO(commands.exchangeMark)
 
         case Instruction(Key.Home, _, NoModifier) => DO(commands.toHome)
         case Instruction(Key.End, _, NoModifier)  => DO(commands.toEnd)

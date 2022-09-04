@@ -67,6 +67,13 @@ class EditSession(val document: DocumentInterface, private var _path: String)
     document.getString(_selection.left, _selection.right)
 
   /**
+   * True when a refresh has to be forced: for the moment this
+   * is only after an autoindenting newline is invoked when there's
+   * already a selection.
+   */
+  var forceRefresh: Boolean = false
+
+  /**
    *   Tell handlers if the cursor or the selection has changed.
    *   The latter notification subsumes the former.
    *   This should be invoked after every user-invoked command.
@@ -78,10 +85,11 @@ class EditSession(val document: DocumentInterface, private var _path: String)
    */
   def notifyHandlers(): Unit = {
     val notification: DocumentEvent =
-    if (_selection ne _lastSelection) {
+    if (forceRefresh || ( _selection ne _lastSelection)) {
       // selection and cursor may have changed
       val (mRow, mCol) = document.positionToCoordinates(_selection.mark)
       val (cRow, cCol) = document.positionToCoordinates(this.cursor)
+      forceRefresh = false
       SelectionChanged(mRow,mCol,_selection.extent,cRow,cCol)
     } else
     if (_cursor != _lastCursor) {
@@ -192,6 +200,17 @@ class EditSession(val document: DocumentInterface, private var _path: String)
   def insert(ch: Char): Unit = {
     deSelect()
     cursor = document.insert(cursor, ch)
+  }
+
+  /** Insert a newline followed by an indentation, ensuring that
+   * a screen refresh is triggered. Inelegant to do it this
+   * way, but the alternative may be to have a one-purpose flag.
+   * TODO: revise the refresh-triggering machinery; perhaps by counting changes since the last refresh
+   */
+  def insertNewlineAndIndentBy(indent: Int): Unit = {
+    insert('\n')
+    for { i<- 0 until indent } insert(' ')
+    forceRefresh = true
   }
 
   def insert(string: String): Unit = {

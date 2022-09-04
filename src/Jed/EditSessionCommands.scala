@@ -40,11 +40,9 @@ object EditSessionCommands extends Logging.Loggable {
           session.cursor = oldCursor
         }
         def redo(): Unit = {
-            session.selection = NoSelection
             session.deleteFor(-trailing, record=false)
             session.deleteFor(leading, record=false)
-            session.insert('\n')
-            for { i<-0 until indent } session.insert(' ')
+            session.insertNewlineAndIndentBy(indent)
         }
         override val kind: String = "InsEol"
         locally { redo() }

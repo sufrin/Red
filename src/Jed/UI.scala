@@ -224,6 +224,10 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
   val findreplHandler: UserInputHandler = {
     // Keypad bindings to find and replace
 
+    case Instruction(Key.F8, _, mods) => replace(findLine.text, replLine.text, backwards = mods.hasShift)
+
+    case Instruction(Key.R,  _, mods) => replace(findLine.text, replLine.text, backwards = mods.hasShift)
+
     case Instruction(Key.Decimal, _, mods) if (mods.hasControl) =>
       replLine.peer.grabFocus()
       replLine.text=""
@@ -246,6 +250,13 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
       }
       find(findLine.text, backwards = mods.hasShift)
 
+    case Instruction(Key.F7, _, mods)  =>
+      if (mods.hasAlt && theSession.hasSelection) {
+        findLine.text = theSession.selectionText()
+        regexCheck.selected=false
+      }
+      find(findLine.text, backwards = mods.hasShift)
+
     case Instruction(Key.F, _, mods)  =>
       if (mods.hasAlt && theSession.hasSelection) {
         findLine.text = theSession.selectionText()
@@ -253,7 +264,6 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
       }
       find(findLine.text, backwards = mods.hasShift)
 
-    case Instruction(Key.R, _, mods) => replace(findLine.text, replLine.text, backwards = mods.hasShift)
 
     case Diacritical(mark: Char) => feedback(s"[$mark]")
 
@@ -655,7 +665,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
     val mouseDown: UserInputHandler = {
       case MousePressed(row, col, 1, Button1) =>
         UI_DO(EditSessionCommands.setCursorAndMark(row, col))
-        UI_DO(EditSessionCommands.selectMatching)
+        if (Settings.clickSelects) UI_DO(EditSessionCommands.selectMatching)
     }
 
     val indentKeys: UserInputHandler = {
