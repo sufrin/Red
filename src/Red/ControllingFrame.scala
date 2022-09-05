@@ -63,7 +63,7 @@ abstract class ControllingFrame(theSession: EditSession) extends swing.MainFrame
    *   the close button on a window frame.
    *
    *   Our objective in retaining control here
-   *   is to avoid nasty surprises,
+   *   is to avoid nasty surprises
    *   by asking the user what to do
    *   if the state of the application associated with
    *   the window has changes that need to be saved.
@@ -88,10 +88,10 @@ abstract class ControllingFrame(theSession: EditSession) extends swing.MainFrame
       if (theSession.hasChanged)
         showAlternatives(
           from    = "Closing Window",
-          message = "Do you really want to stop editing this document?",
-          choices = "Keep on editing"              -> Choice.Cancel,
-          "Stop editing (do not save)"   -> Choice.CloseNow,
-          "Stop editing (after saving)"  -> Choice.Save
+          message = "Do you just want to stop editing this document or would you like to save it first?",
+          choices = "Keep on editing"    -> Choice.Cancel,
+          "Just stop editing"   -> Choice.CloseNow,
+          "Save, and stop editing"  -> Choice.Save
         )
       else
         Choice.CloseNow
