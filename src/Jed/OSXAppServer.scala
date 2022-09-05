@@ -1,5 +1,10 @@
 package Jed
 
+/**
+ *   Service implementation designed to function with the OS/X single-instance model rather than
+ *   communicating client/service via some sort of comms technology. The essential distinction is that arguments
+ *   are processed locally.
+ */
 object OSXAppServer extends Logging.Loggable with ServerInterface {
 
   import Jed.Sessions.canQuit
@@ -8,7 +13,8 @@ object OSXAppServer extends Logging.Loggable with ServerInterface {
 
     override def portName: String = s"$udpPort"
 
-    def processLocally(arg: String): Unit =
+    def processLocally(arg: String): Unit = {
+      if (logging) fine(s"$this: $arg")
       arg match {
         case "-probe" =>
           if (logging) fine(s"probed")
@@ -29,8 +35,9 @@ object OSXAppServer extends Logging.Loggable with ServerInterface {
         case path =>
           Sessions.startSession(path)
       }
+    }
 
-    override def toString: String =
+  override def toString: String =
       s"AppleRed app (processing locally)"
 
     override def isClient: Boolean = false

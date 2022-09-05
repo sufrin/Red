@@ -94,14 +94,17 @@
                 <!--javaproperty name="applered.port"              value="33445"/ -->                
                 <!--javaproperty name="applered.fifo-"             value="~/AppleRed.Server.Port"/ -->  
                 
-                <!-- These were used while we were trying to understand sandbox permissions       
+                <!-- These were used while we were trying to understand sandbox permissions  -->     
+                    <javaproperty name="applered.log"               value="/Users/sufrin/REDLOG"/> 
                     <javaproperty name="Red.AppleRed.level"         value="ALL"/> 
+                    <javaproperty name="Jed.UDPServer.level"        value="ALL"/> 
+                    <javaproperty name="Jed.OSXAppServer.level"     value="ALL"/> 
                     <javaproperty name="Jed.UDPServer.level"        value="ALL"/> 
                     <javaproperty name="Jed.Server.level"           value="ALL"/>
                     <javaproperty name="Jed.Sessions.level"         value="ALL"/>
                     <javaproperty name="Jed.UI.level"               value="ALL"/>
                     <javaproperty name="Jed.Session.level"          value="ALL"/>
-                -->    
+                    
                 
               
                 <jarfileset dir="build">
