@@ -1,7 +1,7 @@
-package Jed
-import Jed.EditSessionCommands.{SessionCommand, StateChangeOption}
+package Red
+
+import Red.EditSessionCommands.{SessionCommand, StateChangeOption}
 import Red.UserInputHandlers._
-import Red._
 
 import scala.swing._
 
@@ -25,7 +25,7 @@ import scala.swing._
  * by invoking `find` on the current text, and for the standard `Paste` key (`control-V`),
  * to which it responds by doing nothing.
  * {{{
- *  val finder = new Jed.TextLine(25) {
+ *  val finder = new Red.TextLine(25) {
  *      override def firstHandler: UserInputHandler = {
  *        case Character('\n', _, 0) => find(text)
  *        case Instruction(Key.V, _, Control) => ()
@@ -40,27 +40,27 @@ class TextLine(cols: Int, toolTip: String = "") extends BoxPanel(Orientation.Hor
   protected val (realLF, surrogateLF): (String, String) = ("\n", "(\u0274)")
 
   private val insertLF: SessionCommand  = new SessionCommand {
-    def DO(session: EditSession): StateChangeOption = {
+    def DO(session: EditEditSessionInterface): StateChangeOption = {
       session.insert(surrogateLF)
       None
     }
   }
 
-  private trait LFPlugin extends EditSession { host =>
+  private trait LFPlugin extends EditEditSessionInterface { host =>
     override def insert(string: String): Unit  = super.insert(string.replace(realLF, surrogateLF))
     override def insert(ch: Char): Unit        = super.insert(s"$ch")
     override def selectionText(): String       = super.selectionText().replace(realLF, surrogateLF)
   }
 
   protected val doc:     DocumentInterface      = new Document()
-  protected val session: EditSession            = new EditSession(doc, "") with LFPlugin
+  protected val session: EditEditSessionInterface            = new EditEditSessionInterface(doc, "") with LFPlugin
   protected val view     = new DocumentView(session, 1, cols, font=Utils.widgetFont) {
     override def mouseExited(): Unit = TextLine.this.mouseExited()
   }
 
   def mouseExited(): Unit = {}
 
-  def DO(command: Commands.Command[EditSession]): Unit = { command.DO(session); session.notifyHandlers() }
+  def DO(command: Commands.Command[EditEditSessionInterface]): Unit = { command.DO(session); session.notifyHandlers() }
 
   protected val handler = new EditSessionHandlers(DO)
 
@@ -92,7 +92,7 @@ class TextLine(cols: Int, toolTip: String = "") extends BoxPanel(Orientation.Hor
     session.cutAll()
     session.insert(newText)
     session.cursor=newText.length
-    session.selection=Jed.NoSelection
+    session.selection=Red.NoSelection
     session.notifyHandlers()
   }
 }

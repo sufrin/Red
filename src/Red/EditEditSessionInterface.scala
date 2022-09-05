@@ -1,5 +1,4 @@
-package Jed
-import Red._
+package Red
 
 import java.nio.file.Path
 
@@ -17,9 +16,9 @@ import java.nio.file.Path
  * @param document
  * @param path
  */
-class EditSession(val document: DocumentInterface, private var _path: String)
-  extends Session {
-  import EditSession._
+class EditEditSessionInterface(val document: DocumentInterface, private var _path: String)
+  extends EditSessionInterface {
+  import EditEditSessionInterface._
 
   /** the document being shown here is ephemeral, so doesn't need saving. */
   private var _ephemeral: Boolean   = false
@@ -762,9 +761,9 @@ class EditSession(val document: DocumentInterface, private var _path: String)
 
   def TEX: Path = if (_TEX == null) Utils.toPath(path) else _TEX
 
-} // EditSession
+} // EditEditSessionInterface
 
-object EditSession extends Logging.Loggable
+object EditEditSessionInterface extends Logging.Loggable
 
 
 /**

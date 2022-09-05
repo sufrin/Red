@@ -1,9 +1,8 @@
-package Jed
+package Red
 
 import Commands.StateChange
-import FilterUtilities.inputStreamOf
-import Jed.EditSessionCommands.{SessionCommand, StateChangeOption}
-import Red.Notifier
+import Red.EditSessionCommands.{SessionCommand, StateChangeOption}
+import Red.FilterUtilities.inputStreamOf
 
 import java.nio.file.Path
 import scala.sys.process.{ProcessBuilder, ProcessLogger}
@@ -52,7 +51,7 @@ abstract class Filter extends SessionCommand {
   protected def handle(exn: Exception): Unit =
     Filter.warnings.notify("Transform", exn.toString)
 
-  def DO(session: EditSession): StateChangeOption = {
+  def DO(session: EditEditSessionInterface): StateChangeOption = {
     val in    = session.selectionText()
     val addNL = adjustNL && (in!="" && in.last!='\n')
     val oldSelection            = session.selection             // get the polarity right on undo

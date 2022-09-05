@@ -1,6 +1,4 @@
-package Jed
-
-import Red.DocumentInterface
+package Red
 
 import java.awt.{Color, Component, Font, Graphics}
 import java.io.File
@@ -25,11 +23,8 @@ object Utils {
   var feedbackFont: Font = new Font("Monospaced", Font.PLAIN, 16)
   var feedbackColor: Color = Color.BLUE
 
-
   /** Miscellaneous utilities for manipulating images and icons */
   object ImageUtilities {
-
-
 
     /** Make an Image from an Icon */
     def makeImage(icon: Icon): Image = {
@@ -51,7 +46,12 @@ object Utils {
 
       def getIconWidth: Int = w
 
-      override def paintIcon(c: Component, g: Graphics, x: Int, y: Int): Unit = {
+      override def paintIcon(
+          c: Component,
+          g: Graphics,
+          x: Int,
+          y: Int
+      ): Unit = {
         g.setColor(color)
         g.fill3DRect(0, 0, w, h, true)
       }
@@ -59,36 +59,43 @@ object Utils {
     }
 
   }
-  val redIcon: Icon    = new ImageUtilities.ColoredIcon(60, 60, Color.RED)
-  val redImage:  Image = ImageUtilities.makeImage(redIcon)
+  val redIcon: Icon = new ImageUtilities.ColoredIcon(60, 60, Color.RED)
+  val redImage: Image = ImageUtilities.makeImage(redIcon)
 
-
-  private val dateFormat: SimpleDateFormat = new SimpleDateFormat("y-MM-dd-HHmmss")
+  private val dateFormat: SimpleDateFormat = new SimpleDateFormat(
+    "y-MM-dd-HHmmss"
+  )
   def dateString(time: Long): String = dateFormat.format(new Date(time))
   def dateString(): String = dateFormat.format(new Date())
-
 
   class Menu(title: String) extends scala.swing.Menu(title) {
     font = menuFont
   }
 
   /** A mixed-mode dynamic+static menu presented in order: prefix ++ dynamic ++ suffix */
-  abstract class DynamicMenu(title: String) extends Jed.Menus.DynamicMenu(title) {
+  abstract class DynamicMenu(title: String) extends Menus.DynamicMenu(title) {
     font = menuFont
-    val prefix, suffix: collection.mutable.Buffer[scala.swing.Component] = new ListBuffer[scala.swing.Component]
-    def content: Seq[scala.swing.Component] = prefix.toList ++ dynamic ++ suffix.toList
+    val prefix, suffix: collection.mutable.Buffer[scala.swing.Component] =
+      new ListBuffer[scala.swing.Component]
+    def content: Seq[scala.swing.Component] =
+      prefix.toList ++ dynamic ++ suffix.toList
     def dynamic: Seq[scala.swing.Component]
   }
 
-  abstract class LazyDynamicMenu(title: String, titles: => Seq[String]) extends Jed.Menus.LazyDynamicMenu(title, titles) {
+  abstract class LazyDynamicMenu(title: String, titles: => Seq[String])
+      extends Menus.LazyDynamicMenu(title, titles) {
     font = menuFont
-    val prefix, suffix: collection.mutable.Buffer[scala.swing.Component] = new ListBuffer[scala.swing.Component]
-    override def content: Seq[scala.swing.Component] = prefix.toList ++ super.content ++ suffix.toList
+    val prefix, suffix: collection.mutable.Buffer[scala.swing.Component] =
+      new ListBuffer[scala.swing.Component]
+    override def content: Seq[scala.swing.Component] =
+      prefix.toList ++ super.content ++ suffix.toList
   }
 
   /** A ''completely'' dynamic menu that evaluates  `_dynamic` to generate content on popup */
   object DynamicMenu {
-    def apply(title: String)( _dynamic: => Seq[scala.swing.Component] ): DynamicMenu = new DynamicMenu(title){
+    def apply(title: String)(
+        _dynamic: => Seq[scala.swing.Component]
+    ): DynamicMenu = new DynamicMenu(title) {
       def dynamic: Seq[scala.swing.Component] = _dynamic
     }
   }
@@ -120,8 +127,8 @@ object Utils {
   def filePath2Backup(filePath: String): String = s"$filePath~"
 
   /** The suffix added to the name of a file when there is no correspondingly named file
-   * in the filestore as an editor session starts.
-   */
+    * in the filestore as an editor session starts.
+    */
   val NEWFILESUFFIX: String = "«NEW»"
 
   /** Save the given `document` in the filestore at the specified path.
@@ -151,56 +158,58 @@ object Utils {
 
   import java.nio.file.{Files, Path, Paths}
 
-  def save(path: Path, document: DocumentInterface): Option[String] = save(path.toString, document)
+  def save(path: Path, document: DocumentInterface): Option[String] =
+    save(path.toString, document)
 
   /** If a file exists in the filestore at `path`, then copy it to a new file at a path
-   *  derived from `path` by adding a string derived from the time at which the existing
-   *  file was written, and ending in a `"~"`.
-   *
-   *  This is crude, but safer than trying to manage without backups at all,
-   *  or with just a single backup. Modern filestores are large enough to cope
-   *  with storing a sequence of backups; and they obviously need not be kept
-   *  indefinitely.
-   *
-   *  By invoking this method just before saving a document to the filestore,
-   *  the very latest saved copy of an edited document will be found at the right place
-   *  along with a (perhaps empty) sequence of its predecessors -- all with the
-   *  same prefix, and with suffixes that permit easy and systematic tidying up.
-   *
-   *  ===Backup Detail
-   *
-   *      A file with path ending with ''dirname''`/`''filename'' will have backup(s)
-   *      in the same directory named:
-   *
-   *      ''filename''`+`''timestamp''`~`
-   *
-   *      and (as a convenience) the latest of these will also have a link to it
-   *      in the same directory, named:
-   *
-   *      ''filename''`~`
-   *
-   *      and the earliest backup, if there is more than one, will have a link to it
-   *      in the same directory, named:
-   *
-   *      ''filename''`~~`
-   *
-   *      On a Unix machine, the timestamped backup copies of this file can be
-   *      removed with the command: `rm `''dirname''`/`''filename''`+*~`
-   *
-   *
-   */
+    *  derived from `path` by adding a string derived from the time at which the existing
+    *  file was written, and ending in a `"~"`.
+    *
+    *  This is crude, but safer than trying to manage without backups at all,
+    *  or with just a single backup. Modern filestores are large enough to cope
+    *  with storing a sequence of backups; and they obviously need not be kept
+    *  indefinitely.
+    *
+    *  By invoking this method just before saving a document to the filestore,
+    *  the very latest saved copy of an edited document will be found at the right place
+    *  along with a (perhaps empty) sequence of its predecessors -- all with the
+    *  same prefix, and with suffixes that permit easy and systematic tidying up.
+    *
+    *  ===Backup Detail
+    *
+    *      A file with path ending with ''dirname''`/`''filename'' will have backup(s)
+    *      in the same directory named:
+    *
+    *      ''filename''`+`''timestamp''`~`
+    *
+    *      and (as a convenience) the latest of these will also have a link to it
+    *      in the same directory, named:
+    *
+    *      ''filename''`~`
+    *
+    *      and the earliest backup, if there is more than one, will have a link to it
+    *      in the same directory, named:
+    *
+    *      ''filename''`~~`
+    *
+    *      On a Unix machine, the timestamped backup copies of this file can be
+    *      removed with the command: `rm `''dirname''`/`''filename''`+*~`
+    */
   def backup(path: String): Unit = {
     import java.nio.file.{Files, StandardCopyOption}
     var thePath = new File(path).toPath
     var fileTime: FileTime = null
     if (Files.exists(thePath)) {
-      try { fileTime = Files.getLastModifiedTime(thePath) }  finally {}
-      val backupPath = new File(s"$path+${dateString(fileTime.toMillis)}~").toPath
+      try { fileTime = Files.getLastModifiedTime(thePath) }
+      finally {}
+      val backupPath = new File(
+        s"$path+${dateString(fileTime.toMillis)}~"
+      ).toPath
       Files.copy(thePath, backupPath, StandardCopyOption.REPLACE_EXISTING)
       Files.setLastModifiedTime(backupPath, fileTime)
       // create a convenience link
       val earliestBackupLink = new File(s"$path~~").toPath
-      val latestBackupLink   = new File(s"$path~").toPath
+      val latestBackupLink = new File(s"$path~").toPath
       if (Files.exists(latestBackupLink) && !Files.exists(earliestBackupLink)) {
         Files.createLink(earliestBackupLink, latestBackupLink)
       }
@@ -222,12 +231,12 @@ object Utils {
 
   def freshDocumentName(): String = s"New=${dateString()}"
 
-  /**
-   *  Translate filename arguments to absolute paths
-   *  relative to to the current working directory.
-   */
+  /**  Translate filename arguments to absolute paths
+    *  relative to to the current working directory.
+    */
   def toAbsolutePath(arg: String): String =
-    if (arg.startsWith("-")) arg else {
+    if (arg.startsWith("-")) arg
+    else {
       import java.nio.file.Path
       Path.of(arg).toAbsolutePath.toString
     }
@@ -237,34 +246,39 @@ object Utils {
   def toParentPath(path: String): Path = toPath(path).getParent.toAbsolutePath
 
   def expandHome(path: String): String =
-    if (path.startsWith("~")) path.replaceFirst("^~", System.getProperty("user.home")) else path
+    if (path.startsWith("~"))
+      path.replaceFirst("^~", System.getProperty("user.home"))
+    else path
 
-  /**
-   * Return `Some(reasonMessage)` if the given `path` does not denote a writable
-   * file in the filestore. Otherwise return `None`.
-   */
+  /** Return `Some(reasonMessage)` if the given `path` does not denote a writable
+    * file in the filestore. Otherwise return `None`.
+    */
   def checkWriteable(path: String): Option[String] = {
     val theParent = toParentPath(path)
-    val thePath   = toPath(path)
-    if (Files.exists(thePath) && Files.isDirectory(thePath))  Some(s"This path is a directory/folder: $thePath") else
-    if (Files.exists(thePath) && !Files.isWritable(thePath))  Some(s"Exists, but not writable: $thePath") else
-    if (!Files.exists(theParent) || !Files.isDirectory(theParent)) Some(s"Not a directory/folder: $theParent") else
-    if (Files.exists(theParent) && !Files.isWritable(theParent)) Some(s"Directory/folder exists, but not writable: $theParent")
+    val thePath = toPath(path)
+    if (Files.exists(thePath) && Files.isDirectory(thePath))
+      Some(s"This path is a directory/folder: $thePath")
+    else if (Files.exists(thePath) && !Files.isWritable(thePath))
+      Some(s"Exists, but not writable: $thePath")
+    else if (!Files.exists(theParent) || !Files.isDirectory(theParent))
+      Some(s"Not a directory/folder: $theParent")
+    else if (Files.exists(theParent) && !Files.isWritable(theParent))
+      Some(s"Directory/folder exists, but not writable: $theParent")
     else None
   }
 
   lazy val homePath: Path = Paths.get(System.getProperty("user.home"))
 
-  /**
-   *  `thePath` as a string relative to the user's home directory, if possible.
-   *  This leads to shorter feedback messages, without information loss.
-   */
+  /**  `thePath` as a string relative to the user's home directory, if possible.
+    *  This leads to shorter feedback messages, without information loss.
+    */
   def relativeToHome(thePath: Path): String = {
     if (thePath.isAbsolute && thePath.startsWith(homePath)) {
-      val rel = homePath.relativize(thePath) //.subpath(homePath.getNameCount, thePath.getNameCount)
+      val rel = homePath.relativize(
+        thePath
+      ) //.subpath(homePath.getNameCount, thePath.getNameCount)
       s"~${System.getProperty("file.separator")}${rel.toString}"
-    }
-    else
+    } else
       thePath.toString
   }
 
@@ -274,13 +288,14 @@ object Utils {
   def relativeToGrandparent(thePath: String): String = {
     val path = Paths.get(thePath)
     val count = path.getNameCount
-    if (count>2) path.subpath(count-2, count).toString else path.toString
+    if (count > 2) path.subpath(count - 2, count).toString else path.toString
   }
 
   def displayablePath(thePath: String): String = {
     val homeRel = relativeToHome(thePath)
-    val prefix  = if (homeRel.startsWith("~")) "~/..." else "..."
-    if (homeRel.length>60) s"$prefix/${relativeToGrandparent(thePath)}" else homeRel
+    val prefix = if (homeRel.startsWith("~")) "~/..." else "..."
+    if (homeRel.length > 60) s"$prefix/${relativeToGrandparent(thePath)}"
+    else homeRel
   }
 
   def invokeLater(act: => Unit): Unit = {
@@ -295,11 +310,13 @@ object Utils {
     })
   }
 
-  /**
-   *    A non-EDT worker that runs `doOffEDT()` off the event dispatch thread
-   *    and passes buffered `publish`ed `Report`s to `report`.
-   */
-  abstract class OffEdtThread[Result, Report](report: Report => Unit, finished: => Unit) extends javax.swing.SwingWorker[Result, Report] {
+  /**    A non-EDT worker that runs `doOffEDT()` off the event dispatch thread
+    *    and passes buffered `publish`ed `Report`s to `report`.
+    */
+  abstract class OffEdtThread[Result, Report](
+      report: Report => Unit,
+      finished: => Unit
+  ) extends javax.swing.SwingWorker[Result, Report] {
 
     def doOffEDT(): Result
 
@@ -314,10 +331,8 @@ object Utils {
     }
   }
 
-  /**
-   * Return the PID of the current process if possible
-   *
-   */
+  /** Return the PID of the current process if possible
+    */
   def getPID: String = {
     try {
       val stat = io.Source.fromFile("/proc/self/stat")
@@ -332,8 +347,7 @@ object Utils {
         }
       }
       s.toString()
-    }
-    catch {
+    } catch {
       case _: Exception => ""
     }
   }
@@ -341,10 +355,11 @@ object Utils {
   /** serveWith a new server and run it in the background */
   def startRedServerProcess(portName: String): Unit = {
     val stdin = new java.io.ByteArrayInputStream("".getBytes)
-    val offEDT: OffEdtThread[Unit, Unit] = new OffEdtThread[Unit, Unit]({ _ => () }, { () }) {
-      val cmd = List("appleredserver", portName)
-      def doOffEDT(): Unit = (Process(cmd) #< stdin).!
-    }
+    val offEDT: OffEdtThread[Unit, Unit] =
+      new OffEdtThread[Unit, Unit]({ _ => () }, { () }) {
+        val cmd = List("appleredserver", portName)
+        def doOffEDT(): Unit = (Process(cmd) #< stdin).!
+      }
     offEDT.execute()
   }
 }

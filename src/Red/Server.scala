@@ -1,7 +1,6 @@
-package Jed
+package Red
 
-/**
- *   Provides editing services directly or indirectly
+/**   Provides editing services directly or indirectly
   *  to `Sessions` by delegating to an implementation
   *  of `ServerInterface`.
   *
@@ -22,32 +21,34 @@ package Jed
   *  paying Apple taxes of one or another form (not monetary).
   *  Instead we have provided a workaround that allows the packaged app
   *  to delegate to a (running) server.
-  *
   */
 object Server extends ServerInterface with Logging.Loggable {
 
-  private val fifo = sys.props.get("applered.fifo") orElse sys.env.get("REDFIFO")
+  private val fifo =
+    sys.props.get("applered.fifo") orElse sys.env.get("REDFIFO")
 
-  if (logging && fifo.nonEmpty && !isOSXApp) fine(s"Fifo server using: ${fifo.get}")
+  if (logging && fifo.nonEmpty && !isOSXApp)
+    fine(s"Fifo server using: ${fifo.get}")
 
   override def isClient: Boolean = server.isClient
 
   override def portName: String = server.portName
 
-  override def startServer(): Unit =
-     { server =
-         if (isOSXApp)
-           OSXAppServer
-         else
-         if (fifo.nonEmpty) {
-            warn(s"App specifies fifo service interface: but this is not feasible with this JVM. UDP service substituted.")
-            UDPServer // FIFOServer // Should be
-          } else
-            UDPServer
-       // TODO:  experiment with wakening swing when the server has decided whether it is serving or not
-       //        (see UDPServer.startServer/ing)
-       scala.swing.Swing.onEDTWait { server.startServer() }
-     }
+  override def startServer(): Unit = {
+    server =
+      if (isOSXApp)
+        OSXAppServer
+      else if (fifo.nonEmpty) {
+        warn(
+          s"App specifies fifo service interface: but this is not feasible with this JVM. UDP service substituted."
+        )
+        UDPServer // FIFOServer // Should be
+      } else
+        UDPServer
+    // TODO:  experiment with wakening swing when the server has decided whether it is serving or not
+    //        (see UDPServer.startServer/ing)
+    scala.swing.Swing.onEDTWait { server.startServer() }
+  }
 
   private var server: ServerInterface = _
 
@@ -55,4 +56,3 @@ object Server extends ServerInterface with Logging.Loggable {
 
   override def stopServer(): Unit = server.stopServer()
 }
-

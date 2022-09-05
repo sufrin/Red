@@ -1,5 +1,4 @@
 package Red
-import Jed.Utils
 
 import java.awt.Desktop
 import java.awt.desktop._
@@ -54,21 +53,21 @@ object AppleRed extends Logging.Loggable {
         }
     Logging.withConsole(logStream) {
       Logging.Default.info(s"\n**********\nAppleRed starting at ${Utils.dateString()}\n**********")
-      Jed.Server.startServer()
+      Server.startServer()
 
       withDesktop {
         if (logging) fine(s"Server interface started")
-        if (Jed.Server.isOSXApp || Jed.Server.isServer) {
-          scala.swing.Swing.onEDTWait { establishMainWindowFrame(Jed.Server.portName) }
+        if (Red.Server.isOSXApp || Red.Server.isServer) {
+          scala.swing.Swing.onEDTWait { establishMainWindowFrame(Red.Server.portName) }
         }
         if (logging) fine(s"Main window $mainWindowFrame")
-        if (Jed.Server.isServer && args.isEmpty) {
-          Jed.Sessions.exitOnLastClose = false
+        if (Red.Server.isServer && args.isEmpty) {
+          Sessions.exitOnLastClose = false
         }
         if (logging)
           fine(s"Processing args: ${args.mkString(", ")}")
-        for {arg <- args} Jed.Server.process(arg)
-        if (logging) fine(s"(args processed) client=${Jed.Server.isClient} noExitOnLastClose=${Jed.Server.isOSXApp}")
+        for {arg <- args} Red.Server.process(arg)
+        if (logging) fine(s"(args processed) client=${Red.Server.isClient} noExitOnLastClose=${Red.Server.isOSXApp}")
       }
     }
   }
@@ -86,7 +85,7 @@ object AppleRed extends Logging.Loggable {
             new QuitHandler() {
               def handleQuitRequestWith(qe: QuitEvent, qr: QuitResponse): Unit = {
                 fine(s"QuitEvent(${qe.getSource})")
-                if (Jed.Sessions.canQuit)
+                if (Red.Sessions.canQuit)
                   qr.performQuit()
                 else
                   qr.cancelQuit()
@@ -105,9 +104,9 @@ object AppleRed extends Logging.Loggable {
               val fileName = file.getAbsolutePath
               info(s"Opening $fileName")
               if (fileName != null)
-                Jed.Server.process(fileName)
+                Red.Server.process(fileName)
               else
-                Jed.Server.process("UNTITLED-FROM-OPENFILES-Handler")
+                Red.Server.process("UNTITLED-FROM-OPENFILES-Handler")
             }
           }
         }
@@ -147,10 +146,10 @@ object AppleRed extends Logging.Loggable {
         private val panel   = new BoxPanel(Orientation.Vertical) {
         private val user    = System.getProperty("user.name", "<no user>")
         private val role    =
-          if (Jed.Server.isOSXApp)
+          if (Red.Server.isOSXApp)
              s"OS/X: AppleRed"
           else
-          if (Jed.Server.isServer && port!="")
+          if (Red.Server.isServer && port!="")
              s"Serving $port"
           else
              "(Standalone)"
@@ -164,23 +163,23 @@ object AppleRed extends Logging.Loggable {
 
         private val buttons = new BoxPanel(Orientation.Horizontal) {
           contents += But("Fresh", "Start editing a new document") {
-            Jed.Server.process(Utils.freshDocumentName())
+            Red.Server.process(Utils.freshDocumentName())
           }
 
-          if (!Jed.Server.isOSXApp)
+          if (!Red.Server.isOSXApp)
             contents += But("Quit", "Quit this server") {
-              if (Jed.Sessions.canQuit) sys.exit(0)
+              if (Red.Sessions.canQuit) sys.exit(0)
             }
 
-          if (false && !Jed.Server.isOSXApp)
+          if (false && !Red.Server.isOSXApp)
             contents += But("Serve", "Start a new appleredserver") {
-            Utils.startRedServerProcess(Jed.Server.portName)
+            Utils.startRedServerProcess(Red.Server.portName)
           }
 
         }
         contents  += labels
         contents  += buttons
-        iconImage = Jed.Utils.redImage
+        iconImage = Red.Utils.redImage
         border = javax.swing.BorderFactory.createEtchedBorder()
       }
       // Frame
@@ -191,7 +190,7 @@ object AppleRed extends Logging.Loggable {
       iconify()
       peer.setResizable(false)
       peer.setDefaultCloseOperation(javax.swing.WindowConstants.DO_NOTHING_ON_CLOSE)
-      override def closeOperation(): Unit = { if (Jed.Sessions.canQuit) sys.exit(0) }
+      override def closeOperation(): Unit = { if (Red.Sessions.canQuit) sys.exit(0) }
     }
     mainWindowFrame=mainFrame
   }

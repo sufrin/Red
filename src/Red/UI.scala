@@ -1,11 +1,10 @@
-package Jed
+package Red
 
 import Commands._
 import Red.Personalised.Bindings
 import Red.UserInputDetail.Key
 import Red.UserInputDetail.Modifiers._
 import Red.UserInputHandlers._
-import Red._
 
 import java.awt.Color
 import java.nio.file.{Files, Path, Paths}
@@ -13,9 +12,9 @@ import scala.swing.BorderPanel.Position._
 import scala.swing.FileChooser.Result.{Approve, Cancel}
 import scala.swing._
 
-class UI(val theSession: EditSession) extends SimpleSwingApplication {
-  import Jed.Utils.{LazyDynamicMenu, Menu}
+class UI(val theSession: EditEditSessionInterface) extends SimpleSwingApplication {
   import UI._
+  import Utils.{LazyDynamicMenu, Menu}
   /**
    * `theSession` emits feedback and warnings about things like find/replace failures
    * that we wish to report via this user interface.
@@ -211,7 +210,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
    * this final method call that causes `theView` to
    * be synchronised with the session.
    */
-  def UI_DO(c: Commands.Command[EditSession]): Unit = {
+  def UI_DO(c: Commands.Command[EditEditSessionInterface]): Unit = {
     history.DO(c)
     feedback("")
     theSession.notifyHandlers()

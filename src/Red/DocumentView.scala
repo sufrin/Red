@@ -1,8 +1,6 @@
 package Red
 
-  import Jed.Utils
-
-  import java.awt.{Color, Graphics2D, RenderingHints}
+import java.awt.{Color, Graphics2D, RenderingHints}
   import javax.swing.border.MatteBorder
   import scala.swing._
 
@@ -14,7 +12,7 @@ package Red
    *
    * @see InputPanel
    */
-  class DocumentView(val theSession: Session,
+  class DocumentView(val theSession: EditSessionInterface,
                      _rows: Int=24,
                      _cols: Int=80,
                      override val font: Font=Utils.defaultFont

@@ -1,7 +1,5 @@
 package Red
 
-import Jed.EditSession
-
 import scala.swing.Dialog
 
 /**
@@ -14,7 +12,7 @@ import scala.swing.Dialog
  * without saving document changes.
  */
 
-abstract class ControllingFrame(theSession: EditSession) extends swing.MainFrame {
+abstract class ControllingFrame(theSession: EditEditSessionInterface) extends swing.MainFrame {
   import ControllingFrame._
 
   /** Save the entity being edited */
@@ -42,7 +40,7 @@ abstract class ControllingFrame(theSession: EditSession) extends swing.MainFrame
     val index  = Dialog.showOptions(
       this, message, from,
       messageType = Question,
-      icon=Jed.Utils.redIcon,
+      icon=Utils.redIcon,
       entries=layout.map(_._1),     // the button captions
       initial=layout.length-1).id   // the ordinal of the button pressed
 

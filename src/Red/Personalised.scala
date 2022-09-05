@@ -1,6 +1,5 @@
 package Red
 
-import Jed.Utils
 import Useful.PrefixMap
 
 import java.io.FileInputStream
@@ -22,7 +21,7 @@ object Personalised extends Logging.Loggable {
   { val default = "foil itemize enumerate - note exercise answer - code -code code* scala alltt - center verbatim comment smaller - question part ans"
     Bindings.importBindings()
     if (personalBlockTypes.isEmpty)
-       Jed.FilterUtilities.parseArguments(sys.env.getOrElse("REDLATEXBLOCKS", default))
+       FilterUtilities.parseArguments(sys.env.getOrElse("REDLATEXBLOCKS", default))
     else
     personalBlockTypes.toList
   }
@@ -96,7 +95,7 @@ object Personalised extends Logging.Loggable {
 
     def toPath(context: Path, path: String): Path =
       if (path.startsWith("~/"))
-        java.nio.file.Paths.get(Jed.Utils.expandHome(path))
+        java.nio.file.Paths.get(Red.Utils.expandHome(path))
       else {
         val thePath = java.nio.file.Paths.get(path)
         if (thePath.isAbsolute)
