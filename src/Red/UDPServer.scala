@@ -81,17 +81,10 @@ object UDPServer extends Logging.Loggable with ServerInterface {
           bus.send(port, "-probe") match {
             case None =>
               // this program will itself be the server
-              // UNLESS IT IS THE PACKAGED APP
-              // TODO: excise this branch when OSXApp is fixed
-              if (isOSXApp) {
-                processingLocally = false
-                if (logging) warn(s"OS/X Red: needs a server at UDP port $port")
-              } else {
-                processingLocally = true
-                // serve here
-                if (logging) warn(s"Starting to serve UDP port $port")
-                startServing(port)
-              }
+              processingLocally = true
+              // serve here
+              if (logging) warn(s"Starting to serve UDP port $port")
+              startServing(port)
 
             case Some(_) =>
               // -probe acknowledged: assume there's a server and use it
