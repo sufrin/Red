@@ -11,7 +11,7 @@ package Red
 object CutRingUI extends Logging.Loggable {
   private lazy val doc = new Document()
   private lazy val session =
-    new EditEditSessionInterface(doc, s"«CUTRING:${Utils.dateString()}»")
+    new EditSession(doc, s"«CUTRING:${Utils.dateString()}»")
   private lazy val gui = new UI(session) {
     override def feedback(message: String): Unit = {
       super.feedback(s"$message Cut Ring: ✂ ${CutRing.length}/${CutRing.bound}")

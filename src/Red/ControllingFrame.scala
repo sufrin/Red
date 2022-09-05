@@ -12,7 +12,7 @@ import scala.swing.Dialog
  * without saving document changes.
  */
 
-abstract class ControllingFrame(theSession: EditEditSessionInterface) extends swing.MainFrame {
+abstract class ControllingFrame(theSession: EditSession) extends swing.MainFrame {
   import ControllingFrame._
 
   /** Save the entity being edited */

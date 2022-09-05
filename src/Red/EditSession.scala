@@ -16,9 +16,9 @@ import java.nio.file.Path
  * @param document
  * @param path
  */
-class EditEditSessionInterface(val document: DocumentInterface, private var _path: String)
-  extends EditSessionInterface {
-  import EditEditSessionInterface._
+class EditSession(val document: DocumentInterface, private var _path: String)
+  extends DocumentProvider {
+  import EditSession._
 
   /** the document being shown here is ephemeral, so doesn't need saving. */
   private var _ephemeral: Boolean   = false
@@ -761,9 +761,9 @@ class EditEditSessionInterface(val document: DocumentInterface, private var _pat
 
   def TEX: Path = if (_TEX == null) Utils.toPath(path) else _TEX
 
-} // EditEditSessionInterface
+} // EditSession
 
-object EditEditSessionInterface extends Logging.Loggable
+object EditSession extends Logging.Loggable
 
 
 /**

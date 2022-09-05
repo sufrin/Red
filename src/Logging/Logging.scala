@@ -4,8 +4,8 @@ import java.io.PrintStream
  * A conceptually simple logging utility, requiring minimal setup.
  *
  * It is, of course, always easy to splatter `println` calls
- * around one's program: but this FilterUtilities supports discrimination
- * between levels, and their and dynamic setting (at run-time) rather
+ * around one's program: but this component supports discrimination
+ * between levels, and dynamic setting (at run-time) rather
  * straightforwardly.
  *
  * @see Logging.Loggable for examples of its use.

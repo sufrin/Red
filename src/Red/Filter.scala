@@ -51,7 +51,7 @@ abstract class Filter extends SessionCommand {
   protected def handle(exn: Exception): Unit =
     Filter.warnings.notify("Transform", exn.toString)
 
-  def DO(session: EditEditSessionInterface): StateChangeOption = {
+  def DO(session: EditSession): StateChangeOption = {
     val in    = session.selectionText()
     val addNL = adjustNL && (in!="" && in.last!='\n')
     val oldSelection            = session.selection             // get the polarity right on undo

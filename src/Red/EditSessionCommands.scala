@@ -8,7 +8,7 @@ import java.nio.file.Path
 import scala.sys.process.{Process, ProcessLogger}
 
 /**
- *   `Command`s derived from `EditEditSessionInterface` methods.
+ *   `Command`s derived from `EditSession` methods.
  *
  *   Commands are constants, except for those that
  *   are parameterised by characters (to insert), strings
@@ -16,7 +16,7 @@ import scala.sys.process.{Process, ProcessLogger}
  */
 object EditSessionCommands extends Logging.Loggable {
 
-  type SessionCommand    = Command[EditEditSessionInterface]
+  type SessionCommand    = Command[EditSession]
   type StateChangeOption = Option[StateChange]
 
   /**
@@ -26,7 +26,7 @@ object EditSessionCommands extends Logging.Loggable {
    *  and trailing spaces to the left of the cursor.
    */
   val autoIndentNL: SessionCommand = new SessionCommand {
-    def DO(session: EditEditSessionInterface): StateChangeOption = Some {
+    def DO(session: EditSession): StateChangeOption = Some {
       val indent = if (session.autoIndenting) session.currentIndent else 0
       val leading = if (session.autoIndenting) session.currentLead else 0
       val trailing = if (session.autoIndenting) session.currentTrail else 0
@@ -95,7 +95,7 @@ object EditSessionCommands extends Logging.Loggable {
       Command.guarded( _.hasSelection, indentSelection )
 
   val autoTab: SessionCommand = new SessionCommand {
-    def DO(session: EditEditSessionInterface): StateChangeOption = Some {
+    def DO(session: EditSession): StateChangeOption = Some {
       val indent = session.nextTabStop
       new StateChange {
         def undo(): Unit = {
@@ -144,7 +144,7 @@ object EditSessionCommands extends Logging.Loggable {
    *   Otherwise the result simply succeeds having done nothing.
    */
   def whenInTypeoverMode(command: SessionCommand): SessionCommand =
-    Command.when((s: EditEditSessionInterface) => s.typeOverMode&&s.hasSelection, command)
+    Command.when((s: EditSession) => s.typeOverMode&&s.hasSelection, command)
 
   /**  A utility command that always succeeds after notifying the
    *   session's handlers that something in the session (may have) changed.
@@ -154,7 +154,7 @@ object EditSessionCommands extends Logging.Loggable {
    *   command.
    */
   def notifyNow: SessionCommand = new SessionCommand {
-       def DO(session: EditEditSessionInterface): StateChangeOption = {
+       def DO(session: EditSession): StateChangeOption = {
            session.notifyHandlers()
            Some(Command.undoNothing)
     }
@@ -168,7 +168,7 @@ object EditSessionCommands extends Logging.Loggable {
 
   def insert (ch: Char): SessionCommand = {
       if (ch == '\n') autoIndentNL else new SessionCommand {
-        def DO(session: EditEditSessionInterface): StateChangeOption = {
+        def DO(session: EditSession): StateChangeOption = {
           Some {
             session.insert(ch)
             new StateChange {
@@ -185,7 +185,7 @@ object EditSessionCommands extends Logging.Loggable {
     }
 
   val delete: SessionCommand = new SessionCommand {
-    def DO(session: EditEditSessionInterface): StateChangeOption =
+    def DO(session: EditSession): StateChangeOption =
       if (session.cursor == 0) None
       else
         Some {
@@ -201,7 +201,7 @@ object EditSessionCommands extends Logging.Loggable {
   }
 
   val flip: SessionCommand = new SessionCommand {
-    def DO(session: EditEditSessionInterface): StateChangeOption =
+    def DO(session: EditSession): StateChangeOption =
       if (session.cursor < 2) None
       else
         Some {
@@ -214,7 +214,7 @@ object EditSessionCommands extends Logging.Loggable {
   }
 
   val nextLine: SessionCommand = new SessionCommand {
-    def DO(session: EditEditSessionInterface): StateChangeOption = {
+    def DO(session: EditSession): StateChangeOption = {
       val oldCursor = session.cursor
       if (session.nextLine()) Some {
         new StateChange {
@@ -228,7 +228,7 @@ object EditSessionCommands extends Logging.Loggable {
   }
 
   val prevLine: SessionCommand = new SessionCommand {
-    def DO(session: EditEditSessionInterface): StateChangeOption = {
+    def DO(session: EditSession): StateChangeOption = {
       val oldCursor = session.cursor
       if (session.prevLine()) Some {
         new StateChange {
@@ -242,7 +242,7 @@ object EditSessionCommands extends Logging.Loggable {
   }
 
   val prevChar: SessionCommand = new SessionCommand {
-    def DO(session: EditEditSessionInterface): StateChangeOption = {
+    def DO(session: EditSession): StateChangeOption = {
       if (session.prevChar()) Some {
         new StateChange {
           def undo(): Unit = session.nextChar()
@@ -254,7 +254,7 @@ object EditSessionCommands extends Logging.Loggable {
     }
   }
   val nextChar: SessionCommand = new SessionCommand {
-    def DO(session: EditEditSessionInterface): StateChangeOption = {
+    def DO(session: EditSession): StateChangeOption = {
       if (session.nextChar()) Some {
         new StateChange {
           def undo(): Unit = session.prevChar()
@@ -267,7 +267,7 @@ object EditSessionCommands extends Logging.Loggable {
   }
 
   def setCursor(row: Int, col: Int): SessionCommand = new SessionCommand {
-    def DO(session: EditEditSessionInterface): StateChangeOption = {
+    def DO(session: EditSession): StateChangeOption = {
       val oldCursor = session.cursor
       session.setCursor(row, col)
       Some {
@@ -283,7 +283,7 @@ object EditSessionCommands extends Logging.Loggable {
     *  The undo must reset the selection
     */
   def setCursorAndMark(row: Int, col: Int): SessionCommand = new SessionCommand {
-    def DO(session: EditEditSessionInterface): StateChangeOption = {
+    def DO(session: EditSession): StateChangeOption = {
       val oldCursor = session.cursor
       val oldSelection = session.selection
       Some {
@@ -312,7 +312,7 @@ object EditSessionCommands extends Logging.Loggable {
    *  should be) merged.
    */
   def dragCursor(row: Int, col: Int): SessionCommand = new SessionCommand {
-    def DO(session: EditEditSessionInterface): StateChangeOption = {
+    def DO(session: EditSession): StateChangeOption = {
       session.dragCursor(row, col)
       None
     }
@@ -324,7 +324,7 @@ object EditSessionCommands extends Logging.Loggable {
    *
    */
   val mouseUp: SessionCommand = new SessionCommand {
-    def DO(session: EditEditSessionInterface): StateChangeOption = {
+    def DO(session: EditSession): StateChangeOption = {
       if (session.draggingFrom.isEmpty)
         None
       else Some (new StateChange {
@@ -341,7 +341,7 @@ object EditSessionCommands extends Logging.Loggable {
 
 
   def setMark(row: Int, col: Int): SessionCommand = new SessionCommand {
-    def DO(session: EditEditSessionInterface): StateChangeOption = {
+    def DO(session: EditSession): StateChangeOption = {
       val oldSelection = session.selection
       session.setMark(row, col)
       Some {
@@ -353,8 +353,8 @@ object EditSessionCommands extends Logging.Loggable {
     }
   }
 
-  def selectMatching(select: EditEditSessionInterface=>Boolean): SessionCommand = new SessionCommand {
-    def DO(session: EditEditSessionInterface): StateChangeOption = {
+  def selectMatching(select: EditSession=>Boolean): SessionCommand = new SessionCommand {
+    def DO(session: EditSession): StateChangeOption = {
       val oldSelection = session.selection
       val oldCursor = session.cursor
       if (!select(session)) None else
@@ -372,7 +372,7 @@ object EditSessionCommands extends Logging.Loggable {
   val selectMatching: SessionCommand     = (selectMatchingUp ||| selectMatchingDown ||| Command.doNothing)
 
   val copy: SessionCommand = new SessionCommand {
-    def DO(session: EditEditSessionInterface): StateChangeOption = if (session.hasNoSelection) None
+    def DO(session: EditSession): StateChangeOption = if (session.hasNoSelection) None
     else {
       val oldSelection = session.selection
       val oldClip      = SystemClipboard.getOrElse("")
@@ -390,7 +390,7 @@ object EditSessionCommands extends Logging.Loggable {
   }
 
   val cut: SessionCommand = new SessionCommand {
-    def DO(session: EditEditSessionInterface): StateChangeOption = if (session.hasNoSelection) None
+    def DO(session: EditSession): StateChangeOption = if (session.hasNoSelection) None
     else {
       val oldSelection = session.selection
       val oldCursor    = session.cursor
@@ -418,7 +418,7 @@ object EditSessionCommands extends Logging.Loggable {
   }
 
   val paste: SessionCommand = new SessionCommand {
-    def DO(session: EditEditSessionInterface): StateChangeOption = {
+    def DO(session: EditSession): StateChangeOption = {
       val oldSelection = session.selection
       val oldCursor    = session.cursor
       val oldClip      = SystemClipboard.getOrElse("")
@@ -438,7 +438,7 @@ object EditSessionCommands extends Logging.Loggable {
   }
 
   val toHome: SessionCommand = new SessionCommand {
-    def DO(session: EditEditSessionInterface): StateChangeOption = {
+    def DO(session: EditSession): StateChangeOption = {
       val oldSelection = session.selection
       val oldCursor    = session.cursor
       session.cursor = 0
@@ -455,7 +455,7 @@ object EditSessionCommands extends Logging.Loggable {
   }
 
   val toEnd: SessionCommand = new SessionCommand {
-    def DO(session: EditEditSessionInterface): StateChangeOption = {
+    def DO(session: EditSession): StateChangeOption = {
       val oldSelection = session.selection
       val oldCursor    = session.cursor
       session.cursor = session.document.textLength
@@ -472,7 +472,7 @@ object EditSessionCommands extends Logging.Loggable {
   }
 
   val selectAll: SessionCommand = new SessionCommand {
-    def DO(session: EditEditSessionInterface): StateChangeOption = {
+    def DO(session: EditSession): StateChangeOption = {
       val oldSelection = session.selection
       val oldCursor    = session.cursor
       session.selectAll()
@@ -491,7 +491,7 @@ object EditSessionCommands extends Logging.Loggable {
 
   /** Select the surrounding chunk of text depending on `clicks`: word/line/para/latex-block  */
   def selectChunk(row: Int, col: Int, clicks: Int): SessionCommand = new SessionCommand {
-    def DO(session: EditEditSessionInterface): StateChangeOption = {
+    def DO(session: EditSession): StateChangeOption = {
       val oldSelection = session.selection
       val oldCursor    = session.cursor
       session.selectChunk(row, col, clicks)
@@ -517,7 +517,7 @@ object EditSessionCommands extends Logging.Loggable {
   val clearAll: SessionCommand = Command.andThen(selectAll, cut)
 
   def exchangeCut: SessionCommand = new SessionCommand {
-    def DO(session: EditEditSessionInterface): StateChangeOption = {
+    def DO(session: EditSession): StateChangeOption = {
       val oldClip         = SystemClipboard.getOrElse("")
       val oldSelection    = session.selection             // get the polarity right on undo
       val oldSelected     = session.exch(oldClip, true)
@@ -531,7 +531,7 @@ object EditSessionCommands extends Logging.Loggable {
   }
 
   def find(thePattern: String, backwards: Boolean, asRegex: Boolean): SessionCommand = new SessionCommand {
-    def DO(session: EditEditSessionInterface): StateChangeOption = {
+    def DO(session: EditSession): StateChangeOption = {
         val oldSelection = session.selection
         val oldCursor = session.cursor
         if (session.find(thePattern, backwards, asRegex)) Some (new StateChange {
@@ -543,7 +543,7 @@ object EditSessionCommands extends Logging.Loggable {
 
   def replace(thePattern: String, theReplacement: String, backwards: Boolean, asRegex: Boolean) : SessionCommand =
       new SessionCommand {
-        def DO(session: EditEditSessionInterface): StateChangeOption = {
+        def DO(session: EditSession): StateChangeOption = {
           val replaced = session.replace(thePattern, theReplacement, backwards, asRegex)
           if (replaced.isDefined) Some (new StateChange {
             def undo(): Unit = { session.exch(replaced.get, true)  }
@@ -554,7 +554,7 @@ object EditSessionCommands extends Logging.Loggable {
 
   def replaceAllInSelection(thePattern: String, theReplacement: String, asRegex: Boolean): SessionCommand =
     new SessionCommand {
-      def DO(session: EditEditSessionInterface): StateChangeOption = {
+      def DO(session: EditSession): StateChangeOption = {
         val replaced = session.replaceAllInSelection(thePattern, theReplacement, asRegex)
         if (replaced.isDefined) Some (new StateChange {
           def undo(): Unit = { session.exch(replaced.get, true)  }
@@ -598,7 +598,7 @@ object EditSessionCommands extends Logging.Loggable {
   }
 
   val exchangeMark: SessionCommand = new SessionCommand {
-    def DO(session: EditEditSessionInterface): StateChangeOption = {
+    def DO(session: EditSession): StateChangeOption = {
       if (session.hasSelection) Some (new StateChange {
         val oldCursor    = session.cursor
         val oldSelection = session.selection
@@ -612,7 +612,7 @@ object EditSessionCommands extends Logging.Loggable {
   import Utils.OffEdtThread
 
   val latexToPDF: SessionCommand = new SessionCommand {
-    def DO(session: EditEditSessionInterface): StateChangeOption = {
+    def DO(session: EditSession): StateChangeOption = {
       val CWD = session.CWD.toFile // the session's working directory
       val source = session.path // the file being edited
       val driver = session.TEX.toString // the driver file (to be latexed at the top level)
@@ -672,7 +672,7 @@ object EditSessionCommands extends Logging.Loggable {
   }
 
   def unicode: SessionCommand = new SessionCommand {
-    def DO(session: EditEditSessionInterface): StateChangeOption = {
+    def DO(session: EditSession): StateChangeOption = {
       def replace(thePattern: String, theReplacement: String): Unit = {
         session.delete(-thePattern.length)
         session.insert(theReplacement)
@@ -700,7 +700,7 @@ object EditSessionCommands extends Logging.Loggable {
    *  the characters they encode.
    */
   val abbreviate: SessionCommand = new SessionCommand {
-    def DO(session: EditEditSessionInterface): StateChangeOption = {
+    def DO(session: EditSession): StateChangeOption = {
       def replace(thePattern: String, theReplacement: String): Unit = {
         session.delete(-thePattern.length)
         session.insert(theReplacement)
@@ -741,7 +741,7 @@ object EditSessionCommands extends Logging.Loggable {
   }
 
   val pandocToPDF: SessionCommand = new SessionCommand {
-    def DO(session: EditEditSessionInterface): StateChangeOption = {
+    def DO(session: EditSession): StateChangeOption = {
       val CWD = session.CWD.toFile // the session's working directory
       val source = session.path // the file being edited
       val driver = source // the driver file

@@ -12,7 +12,7 @@ import java.awt.{Color, Graphics2D, RenderingHints}
    *
    * @see InputPanel
    */
-  class DocumentView(val theSession: EditSessionInterface,
+  class DocumentView(val theSession: DocumentProvider,
                      _rows: Int=24,
                      _cols: Int=80,
                      override val font: Font=Utils.defaultFont

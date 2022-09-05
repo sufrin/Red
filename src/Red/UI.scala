@@ -12,7 +12,8 @@ import scala.swing.BorderPanel.Position._
 import scala.swing.FileChooser.Result.{Approve, Cancel}
 import scala.swing._
 
-class UI(val theSession: EditEditSessionInterface) extends SimpleSwingApplication {
+/** Graphical User Interface to an EditSession */
+class UI(val theSession: EditSession) extends SimpleSwingApplication {
   import UI._
   import Utils.{LazyDynamicMenu, Menu}
   /**
@@ -210,7 +211,7 @@ class UI(val theSession: EditEditSessionInterface) extends SimpleSwingApplicatio
    * this final method call that causes `theView` to
    * be synchronised with the session.
    */
-  def UI_DO(c: Commands.Command[EditEditSessionInterface]): Unit = {
+  def UI_DO(c: Commands.Command[EditSession]): Unit = {
     history.DO(c)
     feedback("")
     theSession.notifyHandlers()

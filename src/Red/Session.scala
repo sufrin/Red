@@ -5,8 +5,8 @@ import java.nio.file.Files
 
 
 /**
- *  === Editing EditSessionInterface ===
- *  Construct and serveWith a GUI-managed editor session for
+ *  === Editing Session ===
+ *  Construct and serve a GUI-managed editor session for
  *  the document with path `path` in the filestore, and associate it with
  *  a fresh numeric identity to be used as a key to the
  *  `activeReds` table.
@@ -22,11 +22,11 @@ import java.nio.file.Files
  *  (`Sessions`)
  */
 class Session(_path: java.nio.file.Path, val identity: Int, location: String="") {
-  override def toString: String = s"EditSessionInterface($path, $identity)"
+  override def toString: String = s"Session($path, $identity)"
   import Session._
 
   val doc     = new Red.Document()
-  val session = new EditEditSessionInterface(doc, _path.toString) with CutRing.Plugin
+  val session = new EditSession(doc, _path.toString) with CutRing.Plugin
 
   // TODO: systematize the use of `Path` instead of `String` to denote filestore paths.
   def path: java.nio.file.Path = java.nio.file.Paths.get(session.path)
@@ -52,7 +52,7 @@ class Session(_path: java.nio.file.Path, val identity: Int, location: String="")
   }
 
   locally {
-    if (logging) fine(s"EditSessionInterface($path, $identity, $location)")
+    if (logging) fine(s"DocumentProvider($path, $identity, $location)")
     if (logging) fine(s"Starting $gui")
     gui.start()
     if (location!="") goTo(location)
@@ -77,7 +77,7 @@ class Session(_path: java.nio.file.Path, val identity: Int, location: String="")
 
     /**
      * Declare intention to respond to changes of path (caused by
-     * invoking `SaveAs`) in the underlying `EditEditSessionInterface`.
+     * invoking `SaveAs`) in the underlying `EditSession`.
      */
     session.pathChange.handleWith {
       case (from, to) => Sessions.rename(from, to)

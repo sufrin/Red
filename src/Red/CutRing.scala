@@ -9,11 +9,11 @@ import scala.collection.mutable
   */
 object CutRing extends Logging.Loggable {
 
-  /** A plugin that adds CutRing functionality to an `EditEditSessionInterface` by
+  /** A plugin that adds CutRing functionality to an `EditSession` by
     *  implementing a substantive method to record material cut from the
     *  session's document.
     */
-  trait Plugin extends EditEditSessionInterface {
+  trait Plugin extends EditSession {
     override def hasCutRing: Boolean = true
 
     /** The merged aggregate of the most recent sequence of adjacent recorded cuts. */
@@ -39,7 +39,7 @@ object CutRing extends Logging.Loggable {
   /** The empty cut */
   @inline def emptyCut: Cut = Cut("", 0, 0, 0L)
 
-  /** A plugin that adds `CutRing` functionality to an `EditEditSessionInterface` */
+  /** A plugin that adds `CutRing` functionality to an `EditSession` */
 
   case class TimeStamped(text: String, time: String)
 

@@ -40,27 +40,27 @@ class TextLine(cols: Int, toolTip: String = "") extends BoxPanel(Orientation.Hor
   protected val (realLF, surrogateLF): (String, String) = ("\n", "(\u0274)")
 
   private val insertLF: SessionCommand  = new SessionCommand {
-    def DO(session: EditEditSessionInterface): StateChangeOption = {
+    def DO(session: EditSession): StateChangeOption = {
       session.insert(surrogateLF)
       None
     }
   }
 
-  private trait LFPlugin extends EditEditSessionInterface { host =>
+  private trait LFPlugin extends EditSession { host =>
     override def insert(string: String): Unit  = super.insert(string.replace(realLF, surrogateLF))
     override def insert(ch: Char): Unit        = super.insert(s"$ch")
     override def selectionText(): String       = super.selectionText().replace(realLF, surrogateLF)
   }
 
   protected val doc:     DocumentInterface      = new Document()
-  protected val session: EditEditSessionInterface            = new EditEditSessionInterface(doc, "") with LFPlugin
+  protected val session: EditSession            = new EditSession(doc, "") with LFPlugin
   protected val view     = new DocumentView(session, 1, cols, font=Utils.widgetFont) {
     override def mouseExited(): Unit = TextLine.this.mouseExited()
   }
 
   def mouseExited(): Unit = {}
 
-  def DO(command: Commands.Command[EditEditSessionInterface]): Unit = { command.DO(session); session.notifyHandlers() }
+  def DO(command: Commands.Command[EditSession]): Unit = { command.DO(session); session.notifyHandlers() }
 
   protected val handler = new EditSessionHandlers(DO)
 

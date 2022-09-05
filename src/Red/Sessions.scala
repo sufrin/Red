@@ -89,7 +89,7 @@ object Sessions extends Logging.Loggable {
 
   /** About to rename the session for `oldPath` to a session for `newPath`, because
     * its document has changed path, having been subject to a "Save as...".
-    * The corresponding `EditEditSessionInterface`'s path itself has not yet been renamed:
+    * The corresponding `EditSession`'s path itself has not yet been renamed:
     * it will still be `fromPath`.
     */
   def rename(fromPath: Path, toPath: Path): Unit = {
