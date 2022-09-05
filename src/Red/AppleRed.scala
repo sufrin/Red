@@ -2,6 +2,7 @@ package Red
 
 import java.awt.Desktop
 import java.awt.desktop._
+import javax.swing.JFrame
 import scala.swing.Frame
 
 /**
@@ -184,13 +185,16 @@ object AppleRed extends Logging.Loggable {
       }
       // Frame
       contents = panel
-      visible = true
       title = s" $redLine "
+      peer.pack()
       peer.setLocationRelativeTo(null)
-      iconify()
       peer.setResizable(false)
       peer.setDefaultCloseOperation(javax.swing.WindowConstants.DO_NOTHING_ON_CLOSE)
       override def closeOperation(): Unit = { if (Red.Sessions.canQuit) sys.exit(0) }
+      peer.setVisible(true)
+      peer.setExtendedState(java.awt.Frame.ICONIFIED)
+      //visible = true
+      //iconify()
     }
     mainWindowFrame=mainFrame
   }
