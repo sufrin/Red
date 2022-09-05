@@ -42,6 +42,9 @@ object UDPServer extends Logging.Loggable with ServerInterface {
       case s"-l${module}=${level}" =>
         Logging.update(module, level)
         Logging.Default.info(s"$module=$level")
+      case s"-l${module}" =>
+        Logging.update(module, "ALL")
+        Logging.Default.info(s"$module=ALL")
       case s"-stop" =>
         stopServer()
       case s"-quit" =>

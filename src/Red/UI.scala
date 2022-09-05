@@ -553,11 +553,11 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
       // contents ++= dynamic
 
       suffix += Separator()
-      suffix += Item("\\begin{\u24b6}") {
+      suffix += Item("\\begin{\u24b6}", "Embed selection in latex block named in \u24b6") {
         UI_DO(EditSessionCommands.latexBlock(argLine.text.trim))
       }
 
-      suffix += Item("""\begin{...}->...""") {
+      suffix += Item("""\begin{...}->...""", "Extract content of selected latex block") {
         UI_DO(EditSessionCommands.latexUnblock)
       }
 

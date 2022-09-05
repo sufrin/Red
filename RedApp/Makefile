@@ -69,6 +69,8 @@ app:            $(APP)-server $(APP).app ../$(APP.jar) ; \
 
 $(APP).app:     $(APP).plist    $(APP).scpt; \
                 osacompile -o   $(APP).app $(APP).scpt
+
+linuxapp:       ; mkdir -p $(APP).app/Contents/Resources
                 
 install:        app; \
                 rm -rf ~/Applications/$(APP).app; \

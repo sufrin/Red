@@ -52,7 +52,7 @@ class Session(_path: java.nio.file.Path, val identity: Int, location: String="")
   }
 
   locally {
-    if (logging) fine(s"DocumentProvider($path, $identity, $location)")
+    if (logging) fine(s"Session($path, $identity, $location)")
     if (logging) fine(s"Starting $gui")
     gui.start()
     if (location!="") goTo(location)

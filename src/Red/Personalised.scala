@@ -53,8 +53,6 @@ object Personalised extends Logging.Loggable {
       )
   }
 
-
-
   object Bindings {
     val feedback: Notifier[String] = new Notifier[String]("Personalised Feedback")
 
@@ -85,7 +83,7 @@ object Personalised extends Logging.Loggable {
 
     def mapTo(abbrev: String, result: String): Unit = trie.reverseUpdate(abbrev, result)
 
-    /** Add a single cycle of abbreviatins */
+    /** Add a single cycle of abbreviations */
     def addCycle(abbrevs: String*): Unit = {
       for { i<-0 until abbrevs.length -1 } trie.reverseUpdate(abbrevs(i), abbrevs(i+1))
     }
@@ -106,7 +104,7 @@ object Personalised extends Logging.Loggable {
 
     case class AbortBindings(cause: String) extends Error(cause)
 
-    /** Read the top-level bindings file, if it has been updated since it was last read */
+    /** Read the top-level bindings file if it has been updated since it was last read */
     def importBindings(): Unit = {
       val path = sys.env.getOrElse("REDBINDINGS", "~/.red/red.bindings")
       val top = Paths.get("")
@@ -120,7 +118,12 @@ object Personalised extends Logging.Loggable {
       lastImportTime = 0
       importBindings()
     }
-
+    /**
+     *  Read a single preferences file:
+     *  @param profile the profile being matched
+     *  @param depth the depth of include-nesting (with an ''ad-hoc'' limit to detect cyclic includes)
+     *  @param context the path to the file being read
+     */
     def importBindings(profile: String, depth: Int, context: Path, path: Path): Unit = {
       val file = path.toFile
       val timeStamp = if (file.exists) file.lastModified() else 0
@@ -160,13 +163,27 @@ object Personalised extends Logging.Loggable {
     object Lexical {
       import sufrin.regex.Regex
       import sufrin.regex.syntax.{Branched, Parser}
+      /** Build a lexer (a `Branched` pattern) for symbols matching the given regex patterns. */
       def build(pats: String*): Regex =
       { val trees = pats.map(pat => new Parser(pat).tree)
         new Regex(Branched(trees), false, false)
       }
-      val pat = build("""\s*""", """([^ "]\S+)""", """((\\[Uu]\w\w\w\w|[^ "])+)""", """\"((?:\\[Uu]\w\w\w\w|[^"])+)\"""")
+      /** Lexemes are:
+       *
+       *     0. sequences of space
+       *
+       *     1-2. non-quoted sequences of non-space (including unicode character descriptions
+       *     of the form \uXXXX)
+       *
+       *     3. quoted sequences of non-quote (including unicode character descriptions)
+       */
+      val lexer = build("""\s*""", """([^ "]\S+)""", """((\\[Uu]\w\w\w\w|[^ "])+)""", """\"((?:\\[Uu]\w\w\w\w|[^"])+)\"""")
+      /**
+       *   Scan the line, yielding a list of the non-space fragments of text, with
+       *   unicode-character descriptions transformed into characters.
+       */
       def scan(line: String): List[String] = {
-        val it = for { sym <- pat allPrefixes line if sym.theMatch.index!=0 } yield {
+        val it = for {sym <- lexer allPrefixes line if sym.theMatch.index!=0} yield {
           if (logging) finest(s"raw: $sym")
              sym.theMatch.index match {
                case 1 | 2 | 3 => expandEscapes(sym.group(1)) // expand unicodes codes, etc
@@ -176,7 +193,14 @@ object Personalised extends Logging.Loggable {
       }
     }
 
-    /** Context is the path to the file being read; depth is the depth of include-nesting; profile is the profile being matched */
+    /**
+     *  Process a single line of the preferences file:
+     *  @param profile the profile being matched
+     *  @param depth the depth of include-nesting (with an ''ad-hoc'' limit to detect cyclic includes)
+     *  @param context the path to the file being read
+     *  @param lineNumber  the number of the line in the file being read
+     *
+     */
     def processLine(profile: String, depth: Int, context: Path, lineNumber: Int, line: String): Unit = if (line.nonEmpty) {
       def processFields(fields: List[String]): Unit = fields match {
 
