@@ -151,12 +151,16 @@ object Personalised extends Logging.Loggable {
          }
          else
          // read nested files if they are not nested too deeply (and there's no cycle)
-         if (depth<6)
+         if (depth<=6)
            readFile()
          else
-           throw AbortBindings(s"Including $path\nfrom $context\nthis bindings file forms a cycle or is nested too deeply")
+           throw AbortBindings(s"Attempting, from $context, to include:\n $path\nThis bindings file forms a cycle or is nested too deeply (>6)")
       } else
-           throw AbortBindings(s"Including $path\nfrom $context\nthere is no such bindings file")
+        if (depth==0)
+           throw AbortBindings(s"No bindings file $path   (this is not catastrophic)\nEither copy AppleRed.app/Contents/Resources/Bindings to ~/.red\nor export REDBINDINGS=...a bindings file...")
+        else
+           throw AbortBindings(s"Attempting, from $context, to include:\n $path\nThere is no such bindings file\n")
+
     }
 
 
@@ -222,7 +226,7 @@ object Personalised extends Logging.Loggable {
           if (exPath.toFile.exists() && exPath.toFile.canRead())
              importBindings(profile, depth+1, context, exPath)
           else
-            warning(profile, s"Infeasible include:\n$exPath\n($context@$lineNumber)")
+            warning(profile, s"Attempting, from $context@$lineNumber, to include:\n$exPath\nNo such bindings file can be read.")
         case ("include?" :: path :: Nil) =>
           val exPath = toPath(context, path)
           if (exPath.toFile.exists()  && exPath.toFile.canRead())

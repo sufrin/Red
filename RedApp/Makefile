@@ -58,6 +58,7 @@ app:            $(APP)-server $(APP).app ../$(APP.jar) ; \
                 cp $(APP).plist         $(CONTAINER)/Info.plist; \
                 mkdir -p                $(JAVA); \
                 cp -p ../$(APP).jar     $(JAVA); \
+                cp -pr Bindings         $(RESOURCES); \
                 cp -pr Profiles         $(RESOURCES); \
                 cp -pr Shellscripts     $(RESOURCES); \
                 chmod +x $(APP)-server; \
