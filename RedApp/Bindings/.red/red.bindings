@@ -1,0 +1,16 @@
+include "symbols.bindings"
+# Diacriticals are generated on some OS/X keyboards by: 
+#     alt-e, alt-`, alt-u, alt-n
+#
+# 1. They are emitted before the character (if any) they will decorate
+# 2. They should be suppressed when generated
+#
+profiles OS/X Linux
+
+unless OS/X     text diacritical ""
+if     OS/X     text diacritical "´`^~¨"
+if     OS/X     show OS/X
+if     Linux    show Linux
+
+profiles+ DebugLatexBlocks
+if Latex latex blocks able baker footle figleaf

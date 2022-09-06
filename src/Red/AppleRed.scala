@@ -2,7 +2,7 @@ package Red
 
 import java.awt.Desktop
 import java.awt.desktop._
-import javax.swing.JFrame
+import scala.swing.FileChooser.Result.{Approve, Cancel}
 import scala.swing.Frame
 
 /**
@@ -143,7 +143,7 @@ object AppleRed extends Logging.Loggable {
     }
 
     val redLine = " « Red » " // "\uf8ff Red \uf8ff"
-    val mainFrame: MainFrame = new MainFrame() {
+    val mainFrame: MainFrame = new MainFrame() { thisMainFrame =>
         private val panel   = new BoxPanel(Orientation.Vertical) {
         private val user    = System.getProperty("user.name", "<no user>")
         private val role    =
@@ -151,9 +151,9 @@ object AppleRed extends Logging.Loggable {
              s"OS/X: AppleRed"
           else
           if (Red.Server.isServer && port!="")
-             s"Serving $port"
+             s"Servicing port $port"
           else
-             "(Standalone)"
+             "Standalone"
 
 
         private val labels  = new BoxPanel(Orientation.Vertical) {
@@ -163,21 +163,28 @@ object AppleRed extends Logging.Loggable {
         }
 
         private val buttons = new BoxPanel(Orientation.Horizontal) {
-          contents += But("Fresh", "Start editing a new document") {
-            Red.Server.process(Utils.freshDocumentName())
-          }
 
-          if (!Red.Server.isOSXApp)
-            contents += But("Quit", "Quit this server") {
-              if (Red.Sessions.canQuit) sys.exit(0)
+            /** A "resident" filechooser will remember the last choice */
+            private val fileChooser = new FileChooser(new java.io.File(Utils.homePath.toString))
+
+            contents += But("Edit", "Start editing an existing document") {
+                fileChooser.showOpenDialog(thisMainFrame) match {
+                  case Cancel  =>
+                  case Approve =>
+                    Red.Server.process(fileChooser.selectedFile.getAbsolutePath.toString)
+                }
             }
 
-          if (false && !Red.Server.isOSXApp)
-            contents += But("Serve", "Start a new appleredserver") {
-            Utils.startRedServerProcess(Red.Server.portName)
-          }
+            contents += But("New", "Start editing a new document") {
+                Red.Server.process(Utils.freshDocumentName())
+            }
+
+            contents += But("Quit", "Quit this server") {
+                if (Red.Sessions.canQuit) sys.exit(0)
+            }
 
         }
+
         contents  += labels
         contents  += buttons
         iconImage = Red.Utils.redImage
