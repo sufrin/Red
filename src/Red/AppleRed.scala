@@ -172,7 +172,7 @@ object AppleRed extends Logging.Loggable {
       }
       // Frame
 
-      val quitButton = But("Quit", "Quit this server") {
+      val quitButton = Item("Quit", "Quit all sessions if possible") {
         if (Red.Sessions.canQuit) sys.exit(0)
       }
 
