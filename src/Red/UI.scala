@@ -371,10 +371,10 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
       contents += Separator()
       contents += Separator()
 
-      contents += new CheckMenuItem("Selection typeover") {
+      contents += new Utils.CheckItem("Selection typeover") {
         tooltip  = "When enabled, the selection is cut when material is typed"
         font     = Utils.buttonFont
-        selected = Settings.typeOverSelection
+        // selected = Settings.typeOverSelection
         listenTo(this)
         reactions += {
           case event.ButtonClicked(_) =>
@@ -382,10 +382,10 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
         }
       }
 
-      contents += new CheckMenuItem("Select adjacent {...}") {
+      contents += new Utils.CheckItem("Select adjacent {...}") {
         tooltip  = "When enabled, a mouse-click adjacent to bracketed material selects that material"
         font     = Utils.buttonFont
-        selected = Settings.clickSelects
+        // selected = Settings.clickSelects
         listenTo(this)
         reactions += {
           case event.ButtonClicked(_) =>
@@ -393,10 +393,10 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
         }
       }
 
-      contents += new CheckMenuItem("Auto indent") {
+      contents += new Utils.CheckItem("Auto indent") {
         tooltip  = "When enabled, a newline is followed by enough spaces to align the cursor with the indentation of the current line"
         font     = Utils.buttonFont
-        selected = Settings.autoIndenting
+        // selected = Settings.autoIndenting
         listenTo(this)
         reactions += {
           case event.ButtonClicked(_) =>
@@ -418,13 +418,10 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
       }
 
       contents += new LazyDynamicMenu("Profile", {Bindings.profiles}) {
-        def component(title: String): Component =
-        {   val act = Action(title) {
-          Bindings.profile = title
-        }
-          new MenuItem(act) {
-            tooltip = s"Set profile to $title, then reimport bindings"
-          }
+        def component(profile: String): Component =
+        {   val act = Action(profile) { Bindings.profile = profile; feedbackPersistently(s"Profile: $profile") }
+            val tip = s"Change profile to $profile, then reimport bindings"
+            new MenuItem(act) { tooltip = tip }
         }
       }
 
@@ -436,11 +433,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
 
     contents += new Utils.Menu("File") {
 
-      contents += Item("New") {
-        openFileRequests.notify(s"${theSession.CWD.toString}/${Utils.freshDocumentName()}")
-      }
-
-      contents += Item("Open \u24b6") {
+      contents += Item("Open \u24b6", "Edit the document at the path specified by the \u24b6 field or by making a choice of path") {
         openArglinePath()
       }
 
@@ -448,7 +441,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
         saveOperation()
       }
 
-      contents += Item("Save as \u24b6") {
+      contents += Item("Save as \u24b6", "Save at the path specified by the \u24b6 field or by making a choice of path") {
         val text = argLine.text.trim
         if (text.isEmpty)
           { val chooser = fileChooser

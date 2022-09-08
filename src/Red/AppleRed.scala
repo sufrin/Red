@@ -1,5 +1,7 @@
 package Red
 
+import Red.Utils.Item
+
 import java.awt.Desktop
 import java.awt.desktop._
 import scala.swing.FileChooser.Result.{Approve, Cancel}
@@ -52,6 +54,7 @@ object AppleRed extends Logging.Loggable {
           case None       => null
           case Some(path) => Logging.logStream(Utils.expandHome(path), mustExist = true, append = true)
         }
+
     Logging.withConsole(logStream) {
       Logging.Default.info(s"\n**********\nAppleRed starting at ${Utils.dateString()}\n**********")
       Server.startServer()
@@ -59,7 +62,7 @@ object AppleRed extends Logging.Loggable {
       withDesktop {
         if (logging) fine(s"Server interface started")
         if (Red.Server.isOSXApp || Red.Server.isServer) {
-          scala.swing.Swing.onEDTWait { establishMainWindowFrame(Red.Server.portName) }
+          scala.swing.Swing.onEDTWait { establishMainWindowFrame(startIconified=args.nonEmpty, Red.Server.portName) }
         }
         if (logging) fine(s"Main window $mainWindowFrame")
         if (Red.Server.isServer && args.isEmpty) {
@@ -121,7 +124,7 @@ object AppleRed extends Logging.Loggable {
   private var mainWindowFrame: Frame = _
 
   /** Set up the window that's the representative for the app as a whole  */
-  def establishMainWindowFrame(port: String): Unit = {
+  def establishMainWindowFrame(startIconified: Boolean, port: String): Unit = {
     import scala.swing._
 
     /** @return a centred label */
@@ -162,35 +165,60 @@ object AppleRed extends Logging.Loggable {
           contents += Lab(role)
         }
 
-        private val buttons = new BoxPanel(Orientation.Horizontal) {
-
-            /** A "resident" filechooser will remember the last choice */
-            private val fileChooser = new FileChooser(new java.io.File(Utils.homePath.toString))
-
-            contents += But("Edit", "Start editing an existing document") {
-                fileChooser.showOpenDialog(thisMainFrame) match {
-                  case Cancel  =>
-                  case Approve =>
-                    Red.Server.process(fileChooser.selectedFile.getAbsolutePath.toString)
-                }
-            }
-
-            contents += But("New", "Start editing a new document") {
-                Red.Server.process(Utils.freshDocumentName())
-            }
-
-            contents += But("Quit", "Quit this server") {
-                if (Red.Sessions.canQuit) sys.exit(0)
-            }
-
-        }
 
         contents  += labels
-        contents  += buttons
         iconImage = Red.Utils.redImage
         border = javax.swing.BorderFactory.createEtchedBorder()
       }
       // Frame
+
+      val quitButton = But("Quit", "Quit this server") {
+        if (Red.Sessions.canQuit) sys.exit(0)
+      }
+
+      val buttons = new MenuBar {
+
+        val menuFont = quitButton.font
+
+        /** A "resident" filechooser will remember the last choice */
+        private val fileChooser = new FileChooser(new java.io.File(Utils.homePath.toString))
+
+
+        contents += new Utils.LazyDynamicMenu("File", { Utils.Recents.get } ) {
+          font = menuFont
+
+          def component (path: String): Component = {
+            if (path=="-")
+              But(s"""Forget recents""", "Forget recent paths") {
+                Utils.Recents.forget()
+              }
+            else
+            Item(s"""Open $path""", itemFont = menuFont) {
+              Red.Server.process(path)
+            }
+          }
+
+          suffix += But("Open ...", "Choose and edit an existing document") {
+            font = menuFont
+            fileChooser.showOpenDialog(thisMainFrame) match {
+              case Cancel  =>
+              case Approve =>
+                Red.Server.process(fileChooser.selectedFile.getAbsolutePath.toString)
+            }
+          }
+
+          suffix += But("New", "Start editing a new document") {
+            font = menuFont
+            Red.Server.process(Utils.freshDocumentName())
+          }
+
+        }
+
+        contents += quitButton
+
+      }
+
+      menuBar = buttons
       contents = panel
       title = s" $redLine "
       peer.pack()
@@ -199,7 +227,7 @@ object AppleRed extends Logging.Loggable {
       peer.setDefaultCloseOperation(javax.swing.WindowConstants.DO_NOTHING_ON_CLOSE)
       override def closeOperation(): Unit = { if (Red.Sessions.canQuit) sys.exit(0) }
       peer.setVisible(true)
-      peer.setExtendedState(java.awt.Frame.ICONIFIED)
+      if (startIconified) peer.setExtendedState(java.awt.Frame.ICONIFIED)
       //visible = true
       //iconify()
     }

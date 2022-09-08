@@ -219,8 +219,10 @@ object Personalised extends Logging.Loggable {
         }
         case ("profiles" :: rest) =>
           profiles = rest
-        case ("profiles+" :: profile :: Nil) =>
-          profiles = profiles ++ List(profile)
+        case ("profiles+" :: moreProfiles) =>
+          profiles = profiles ++ moreProfiles
+        case ("profiles*" :: moreProfiles) =>
+          profiles = (profiles ++ (for { p<-profiles; q<-moreProfiles} yield s"$p+$q")).toSet.toList
         case ("include" :: path :: Nil)  =>
           val exPath = toPath(context, path)
           if (exPath.toFile.exists() && exPath.toFile.canRead())
@@ -240,7 +242,7 @@ object Personalised extends Logging.Loggable {
         case ("latex"::"blocks"::abbrevs) =>
           personalBlockTypes.addAll(abbrevs)
         case ("show"::fields) =>
-          feedback.notify(fields.mkString("", " ", ""))
+          feedback.notify(fields.map{ case "$profile" => profile; case other => other }.mkString("", " ", ""))
         case ("text"::"diacritical" :: marks :: rest) =>
           AltKeyboard.macKeyboardDiacritical = marks
 

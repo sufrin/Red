@@ -7,7 +7,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import javax.swing.{Icon, SwingUtilities}
 import scala.collection.mutable.ListBuffer
-import scala.swing.{Action, Alignment, Button, Image, MenuItem}
+import scala.swing.{Action, Alignment, Button, CheckMenuItem, Image, MenuItem, event}
 import scala.sys.process.Process
 
 /** System wide default settings. These will eventually be treated as (dynamic)
@@ -100,11 +100,11 @@ object Utils {
     }
   }
 
-  def Item(name: String, toolTip: String = "")(act: => Unit): MenuItem =
+  def Item(name: String, toolTip: String = "", itemFont: Font = Utils.menuButtonFont)(act: => Unit): MenuItem =
     new MenuItem(Action(name) {
       act
     }) {
-      font = Utils.menuButtonFont
+      font = itemFont
       if (toolTip.nonEmpty) tooltip = toolTip
     }
 
@@ -361,5 +361,45 @@ object Utils {
         def doOffEDT(): Unit = (Process(cmd) #< stdin).!
       }
     offEDT.execute()
+  }
+
+  lazy val preferences = java.util.prefs.Preferences.userRoot()
+  lazy val appleRed    = preferences.node("/AppleRed")
+  lazy val appleRedUI  = appleRed.node("/UI")
+
+  object Recents {
+    lazy val paths       = collection.mutable.ListBuffer[String]()
+    lazy val recents     = appleRed.node("/recents")
+    lazy val count       = recents.getInt("count", 0)
+    locally { for { i <- 0 until count } paths.addOne(recents.get(s"$i", "")) }
+    def add(path: String): Unit = {
+      if (!paths.contains(path)) {
+        while (paths.length >= 5) paths.remove(0)
+        paths.addOne(path)
+        sync()
+      }
+    }
+    def get: Seq[String] = List("-") ++ paths.toList
+    def forget(): Unit = {
+      paths.clear()
+      sync()
+    }
+    def sync(): Unit = {
+      recents.putInt("count", paths.length)
+      for {i <- 0 until paths.length} recents.put(s"$i", paths(i))
+      recents.sync()
+    }
+  }
+
+  /**
+   *  A persistent `CheckMenuItem`
+   */
+  class CheckItem(name: String) extends CheckMenuItem(name) {
+    selected = appleRedUI.getBoolean(name, false)
+    reactions += {
+      case event.ButtonClicked(_) =>
+        appleRedUI.putBoolean(name, selected)
+        appleRedUI.sync()
+    }
   }
 }

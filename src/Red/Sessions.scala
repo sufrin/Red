@@ -77,6 +77,7 @@ object Sessions extends Logging.Loggable {
 
   def opened(red: Session): Unit = {
     activeReds += red.identity -> red
+    Utils.Recents.add(red.path.toAbsolutePath.toString)
   }
 
   /** Find an active `Red` for a file with the same name, if any. */

@@ -13,7 +13,7 @@ object Menus extends Logging.Loggable {
     var lastTitles: Seq[String] = List()
     def component(title: String): scala.swing.Component
     def content: Seq[scala.swing.Component] = lastTitles.map(component)
-
+    font = Utils.menuButtonFont
     override def popupMenuWillBecomeVisible(): Unit = {
       if (logging) finest(s"Peer popping up: $lastTitles => $titles")
       if (titles != lastTitles) {
