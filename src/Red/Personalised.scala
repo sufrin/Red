@@ -56,17 +56,22 @@ object Personalised extends Logging.Loggable {
   object Bindings {
     val feedback: Notifier[String] = new Notifier[String]("Personalised Feedback")
 
-    private var _profile: String = ""
+    val profileChanged: Notifier[String] = new Notifier[String]
+
+    private var _profile: String = Utils.appleRed.get("Profile", "No Profile")
     def profile: String = _profile
     def profile_=(profile: String): Unit = {
       _profile = profile
+      profileChanged.notify(profile)
+      Utils.appleRed.put("Profile", profile)
       reImportBindings()
     }
 
     private var _profiles: List[String] = List("OS/X", "Linux")
+
     def profiles: List[String] = _profiles
     def profiles_=(profiles: List[String]): Unit = {
-      _profiles = profiles
+      _profiles = profiles.sorted
     }
 
     private val trie = PrefixMap[String]()
@@ -217,6 +222,8 @@ object Personalised extends Logging.Loggable {
           //
           if (if (conditional == "if") cond else !cond) processFields(rest)
         }
+        case ("font" :: kind :: weight :: size :: roles) =>
+          for { role <-roles } Utils.setFont(role, kind, weight, size)
         case ("profiles" :: rest) =>
           profiles = rest
         case ("profiles+" :: moreProfiles) =>

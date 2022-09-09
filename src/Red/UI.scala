@@ -162,7 +162,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
       val metrics = peer.getFontMetrics(font)
       val labWidth = metrics.stringWidth(label)
       val charHeight = metrics.getHeight
-      preferredSize = new Dimension(labWidth, charHeight)
+      preferredSize = new Dimension(labWidth+4, charHeight+2)
     }
     if (toolTip.nonEmpty) tooltip=toolTip
   }
@@ -186,9 +186,9 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
    */
   private val history = new Command.StateChangeHistory(theSession)
   /** An undo button */
-  private val undoButton = SmallButton("\u2770", toolTip="Undo last edit") { UI_DO(history.UNDO) } //
+  private val undoButton = SmallButton(/*"\u2770"*/"<", toolTip="Undo last edit") { UI_DO(history.UNDO) } //
   /** A redo button */
-  private val redoButton = SmallButton("\u2771", toolTip="Redo last undone edit") { UI_DO(history.REDO) } //
+  private val redoButton = SmallButton(/*"\u2771"*/">", toolTip="Redo last undone edit") { UI_DO(history.REDO) } //
 
   locally {
     history.handleWith {
@@ -334,6 +334,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
   }
 
   // TODO: Eventually this should be a user-preference module
+  // DONE: Sept 2022
   private object Settings {
     var typeOverSelection: Boolean = false
     var clickSelects:      Boolean = true
@@ -436,6 +437,26 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
       contents += Item("Open \u24b6", "Edit the document at the path specified by the \u24b6 field or by making a choice of path") {
         openArglinePath()
       }
+
+      contents += new Utils.LazyDynamicMenu("Open recent", { Utils.Recents.get } ) {
+        def component (path: String): Component = {
+          if (path=="-")
+            Item(s"""(Forget recent paths)""", "Forget recent paths") {
+              Utils.Recents.forget()
+            }
+          else
+            Item(s"""Open $path""") {
+              Red.Server.process(path)
+            }
+        }
+      }
+
+      contents += Item("Open New", "Edit the document at the path specified by the \u24b6 field or by making a choice of path") {
+        Red.Server.process(Utils.freshDocumentName())
+      }
+
+      contents += Separator()
+      contents += Separator()
 
       contents += Item("Save") {
         saveOperation()

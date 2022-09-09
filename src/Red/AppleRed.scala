@@ -1,11 +1,12 @@
 package Red
 
-import Red.Utils.Item
+import Red.Personalised.Bindings
+import Red.Utils.LazyDynamicMenu
 
 import java.awt.Desktop
 import java.awt.desktop._
 import scala.swing.FileChooser.Result.{Approve, Cancel}
-import scala.swing.Frame
+import scala.swing.{BoxPanel, Button, Component, FileChooser, Frame, MainFrame, Orientation}
 
 /**
  * ==Red Application Main Program==
@@ -121,20 +122,12 @@ object AppleRed extends Logging.Loggable {
     body
   }
 
-  private var mainWindowFrame: Frame = _
+  /** A "resident" filechooser will remember the last choice */
+  private val fileChooser = new FileChooser(new java.io.File(Utils.homePath.toString))
 
-  /** Set up the window that's the representative for the app as a whole  */
-  def establishMainWindowFrame(startIconified: Boolean, port: String): Unit = {
-    import scala.swing._
-
-    /** @return a centred label */
-    def Lab(title: String): Component = {
-      new BoxPanel(Orientation.Horizontal) {
-        contents += Red.Glue.horizontal()
-        contents += new Label(title) // { font = Utils.buttonFont }
-        contents += Red.Glue.horizontal()
-      }
-    }
+  def fileMenu(parent: MainFrame) =  new scala.swing.Menu ("File") {
+    import Utils.{Item, menuFont}
+    font = Utils.menuFont
 
     /** @return a centred button */
     def But(title: String, tip: String="")(act: => Unit): Component = {
@@ -143,6 +136,57 @@ object AppleRed extends Logging.Loggable {
         contents += { val b = Button(title) { act }; b.tooltip=tip; b }
         contents += Red.Glue.horizontal()
       }
+    }
+
+    contents += new Utils.LazyDynamicMenu("Open recent", { Utils.Recents.get } ) {
+      def component(path: String): Component = {
+        if (path == "-")
+          Item(s"""(Forget recent paths)""", "Forget recent paths") {
+            Utils.Recents.forget()
+          }
+        else
+          Item(s"""$path""", itemFont = menuFont) {
+            Red.Server.process(path)
+          }
+      }
+    }
+
+    contents += Item("Open ...", "Choose and edit an existing document") {
+      fileChooser.showOpenDialog(parent) match {
+        case Cancel  =>
+        case Approve =>
+          Red.Server.process(fileChooser.selectedFile.getAbsolutePath.toString)
+      }
+    }
+
+    contents += Item("Open New", "Start editing a new document") {
+      font = menuFont
+      Red.Server.process(Utils.freshDocumentName())
+    }
+
+    contents += Separator()
+    contents += Separator()
+
+    contents += Item("Quit", "Quit all sessions if possible") {
+      if (Red.Sessions.canQuit) sys.exit(0)
+    }
+
+  }
+
+
+  private var mainWindowFrame: Frame = _
+
+  /** Set up the window that's the representative for the app as a whole  */
+  def establishMainWindowFrame(startIconified: Boolean, port: String): Unit = {
+    import scala.swing._
+
+    /** @return a centred label */
+    class CentredLabel(text: String) extends BoxPanel(Orientation.Horizontal) {
+      val theLabel = new Label(text) { font = Utils.widgetFont }
+      contents += Red.Glue.horizontal()
+      contents += theLabel
+      contents += Red.Glue.horizontal()
+      def reLabel(theText: String): Unit = theLabel.text=theText
     }
 
     val redLine = " « Red » " // "\uf8ff Red \uf8ff"
@@ -158,11 +202,20 @@ object AppleRed extends Logging.Loggable {
           else
              "Standalone"
 
+        private val profile = new CentredLabel(Personalised.Bindings.profile) { font = Utils.widgetFont }
+
+        locally {
+          Personalised.Bindings.reImportBindings()
+          Personalised.Bindings.profileChanged.handleWith {
+            case _profile => profile.reLabel(_profile)
+          }
+        }
 
         private val labels  = new BoxPanel(Orientation.Vertical) {
-          contents += Lab(redLine)
-          contents += Lab(user)
-          contents += Lab(role)
+          // contents += new CentredLabel(redLine)
+          contents += new CentredLabel(user)
+          contents += new CentredLabel(role)
+          contents += profile
         }
 
 
@@ -172,49 +225,19 @@ object AppleRed extends Logging.Loggable {
       }
       // Frame
 
-      val quitButton = Item("Quit", "Quit all sessions if possible") {
-        if (Red.Sessions.canQuit) sys.exit(0)
-      }
-
       val buttons = new MenuBar {
 
-        val menuFont = quitButton.font
+        font = Utils.menuFont
 
-        /** A "resident" filechooser will remember the last choice */
-        private val fileChooser = new FileChooser(new java.io.File(Utils.homePath.toString))
-
-
-        contents += new Utils.LazyDynamicMenu("File", { Utils.Recents.get } ) {
-          font = menuFont
-
-          def component (path: String): Component = {
-            if (path=="-")
-              But(s"""Forget recents""", "Forget recent paths") {
-                Utils.Recents.forget()
-              }
-            else
-            Item(s"""Open $path""", itemFont = menuFont) {
-              Red.Server.process(path)
-            }
+        contents += fileMenu(thisMainFrame)
+        contents += Glue.horizontal()
+        contents += new LazyDynamicMenu("Profile", {Bindings.profiles}) {
+          def component(profile: String): Component =
+          { val act = Action(profile) { Bindings.profile = profile }
+            val tip = s"Change profile to $profile, then reimport bindings"
+            new MenuItem(act) { tooltip = tip }
           }
-
-          suffix += But("Open ...", "Choose and edit an existing document") {
-            font = menuFont
-            fileChooser.showOpenDialog(thisMainFrame) match {
-              case Cancel  =>
-              case Approve =>
-                Red.Server.process(fileChooser.selectedFile.getAbsolutePath.toString)
-            }
-          }
-
-          suffix += But("New", "Start editing a new document") {
-            font = menuFont
-            Red.Server.process(Utils.freshDocumentName())
-          }
-
         }
-
-        contents += quitButton
 
       }
 

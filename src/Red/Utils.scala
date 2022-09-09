@@ -19,9 +19,33 @@ object Utils {
   var buttonFont: Font = new Font("Monospaced", Font.PLAIN, 18)
   var menuFont: Font = new Font("Monospaced", Font.PLAIN, 18)
   var menuButtonFont: Font = new Font("Monospaced", Font.PLAIN, 18)
-  var widgetFont: Font = new Font("Monospaced", Font.ITALIC, 18)
+  var widgetFont: Font = new Font("Monospaced", Font.BOLD, 16)
   var feedbackFont: Font = new Font("Monospaced", Font.PLAIN, 16)
   var feedbackColor: Color = Color.BLUE
+
+  def setFont(role: String, kind: String, weight: String, size: String): Unit = {
+    val k = "Monospaced"
+    val w = weight match {
+      case "plain"  => Font.PLAIN
+      case "bold"   => Font.BOLD
+      case "italic" => Font.ITALIC
+      case _ => Font.PLAIN
+    }
+    val s = if (size.matches("[0-9]+")) size.toInt else 16
+    val f = new Font(k, w, s)
+    role match {
+      case "default"      => defaultFont = f
+      case "button"       => buttonFont = f
+      case "button-small" => smallButtonFont = f
+      case "small-button" => smallButtonFont = f
+      case "menu"         => menuFont = f
+      case "button-menu"  => menuButtonFont = f
+      case "menu-button"  => menuButtonFont = f
+      case "widget"       => widgetFont = f
+      case "feedback"     => feedbackFont = f
+      case _              => defaultFont = f
+    }
+  }
 
   /** Miscellaneous utilities for manipulating images and icons */
   object ImageUtilities {
@@ -379,7 +403,7 @@ object Utils {
         sync()
       }
     }
-    def get: Seq[String] = List("-") ++ paths.toList
+    def get: Seq[String] = paths.toList ++ List("-")
     def forget(): Unit = {
       paths.clear()
       sync()
