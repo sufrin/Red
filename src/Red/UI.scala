@@ -424,6 +424,8 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
             val tip = s"Change profile to $profile, then reimport bindings"
             new MenuItem(act) { tooltip = tip }
         }
+        contents += Separator()
+        suffix += component(Bindings.defaultProfile)
       }
 
       contents += Separator()

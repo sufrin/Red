@@ -15,7 +15,7 @@ import java.awt.{Color, Graphics2D, RenderingHints}
   class DocumentView(val theSession: DocumentProvider,
                      _rows: Int=24,
                      _cols: Int=80,
-                     override val font: Font=Utils.defaultFont
+                     override val font: Font=Utils.documentViewFont
                     )
     extends InputPanel
   { override def toString: String = s"DocumentView($rows, $cols)"

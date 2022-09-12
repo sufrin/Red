@@ -1,12 +1,12 @@
 package Red
 
 import Red.Personalised.Bindings
-import Red.Utils.LazyDynamicMenu
+import Red.Utils.{CentredLabel, LazyDynamicMenu}
 
 import java.awt.Desktop
 import java.awt.desktop._
 import scala.swing.FileChooser.Result.{Approve, Cancel}
-import scala.swing.{BoxPanel, Button, Component, FileChooser, Frame, MainFrame, Orientation}
+import scala.swing.{Component, FileChooser, Frame, MainFrame}
 
 /**
  * ==Red Application Main Program==
@@ -126,32 +126,26 @@ object AppleRed extends Logging.Loggable {
   private val fileChooser = new FileChooser(new java.io.File(Utils.homePath.toString))
 
   def fileMenu(parent: MainFrame) =  new scala.swing.Menu ("File") {
-    import Utils.{Item, menuFont}
-    font = Utils.menuFont
+    import Utils.Item
+    font = Utils.rootFont
 
-    /** @return a centred button */
-    def But(title: String, tip: String="")(act: => Unit): Component = {
-      new BoxPanel(Orientation.Horizontal) {
-        contents += Red.Glue.horizontal()
-        contents += { val b = Button(title) { act }; b.tooltip=tip; b }
-        contents += Red.Glue.horizontal()
-      }
-    }
+
 
     contents += new Utils.LazyDynamicMenu("Open recent", { Utils.Recents.get } ) {
+      font = Utils.rootFont
       def component(path: String): Component = {
         if (path == "-")
-          Item(s"""(Forget recent paths)""", "Forget recent paths") {
+          Item(s"""(Forget recent paths)""", "Forget recent paths", itemFont=Utils.rootFont) {
             Utils.Recents.forget()
           }
         else
-          Item(s"""$path""", itemFont = menuFont) {
+          Item(s"""$path""", itemFont = Utils.rootFont) {
             Red.Server.process(path)
           }
       }
     }
 
-    contents += Item("Open ...", "Choose and edit an existing document") {
+    contents += Item("Open ...", "Choose and edit an existing document", itemFont=Utils.rootFont) {
       fileChooser.showOpenDialog(parent) match {
         case Cancel  =>
         case Approve =>
@@ -159,15 +153,14 @@ object AppleRed extends Logging.Loggable {
       }
     }
 
-    contents += Item("Open New", "Start editing a new document") {
-      font = menuFont
+    contents += Item("Open New", "Start editing a new document", itemFont=Utils.rootFont) {
       Red.Server.process(Utils.freshDocumentName())
     }
 
     contents += Separator()
     contents += Separator()
 
-    contents += Item("Quit", "Quit all sessions if possible") {
+    contents += Item("Quit", "Quit all sessions if possible", itemFont=Utils.rootFont) {
       if (Red.Sessions.canQuit) sys.exit(0)
     }
 
@@ -180,14 +173,6 @@ object AppleRed extends Logging.Loggable {
   def establishMainWindowFrame(startIconified: Boolean, port: String): Unit = {
     import scala.swing._
 
-    /** @return a centred label */
-    class CentredLabel(text: String) extends BoxPanel(Orientation.Horizontal) {
-      val theLabel = new Label(text) { font = Utils.widgetFont }
-      contents += Red.Glue.horizontal()
-      contents += theLabel
-      contents += Red.Glue.horizontal()
-      def reLabel(theText: String): Unit = theLabel.text=theText
-    }
 
     val redLine = " « Red » " // "\uf8ff Red \uf8ff"
     val mainFrame: MainFrame = new MainFrame() { thisMainFrame =>
@@ -198,16 +183,16 @@ object AppleRed extends Logging.Loggable {
              s"OS/X: AppleRed"
           else
           if (Red.Server.isServer && port!="")
-             s"Servicing port $port"
+             s"[Port $port]"
           else
-             "Standalone"
+             ""
 
-        private val profile = new CentredLabel(Personalised.Bindings.profile) { font = Utils.widgetFont }
+        val profile: CentredLabel = new CentredLabel(Personalised.Bindings.profile) { font = Utils.widgetFont }
 
         locally {
           Personalised.Bindings.reImportBindings()
           Personalised.Bindings.profileChanged.handleWith {
-            case _profile => profile.reLabel(_profile)
+            case _profile => profile.setText(_profile)
           }
         }
 
@@ -232,16 +217,19 @@ object AppleRed extends Logging.Loggable {
         contents += fileMenu(thisMainFrame)
         contents += Glue.horizontal()
         contents += new LazyDynamicMenu("Profile", {Bindings.profiles}) {
+          font = Utils.rootFont
           def component(profile: String): Component =
           { val act = Action(profile) { Bindings.profile = profile }
             val tip = s"Change profile to $profile, then reimport bindings"
-            new MenuItem(act) { tooltip = tip }
+            new MenuItem(act) { tooltip = tip; font = Utils.rootFont }
           }
+          suffix += Separator()
+          suffix += component(Bindings.defaultProfile)
         }
 
       }
 
-      menuBar = buttons
+      menuBar  = buttons
       contents = panel
       title = s" $redLine "
       peer.pack()

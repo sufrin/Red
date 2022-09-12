@@ -67,7 +67,8 @@ object Personalised extends Logging.Loggable {
       reImportBindings()
     }
 
-    private var _profiles: List[String] = List("OS/X", "Linux")
+    val defaultProfile: String = sys.props.getOrElse("os.name", "unix").replaceAll("^[mM][aA][cC]","").replaceAll("""\s+""", "")
+    private var _profiles: List[String] = List(defaultProfile)
 
     def profiles: List[String] = _profiles
     def profiles_=(profiles: List[String]): Unit = {
@@ -229,7 +230,9 @@ object Personalised extends Logging.Loggable {
         case ("profiles+" :: moreProfiles) =>
           profiles = profiles ++ moreProfiles
         case ("profiles*" :: moreProfiles) =>
-          profiles = (profiles ++ (for { p<-profiles; q<-moreProfiles} yield s"$p+$q")).toSet.toList
+          profiles = (profiles ++ (for { p<-profiles; q<-moreProfiles} yield s"$p$q")).toSet.toList
+        case ("*profiles" :: moreProfiles) =>
+          profiles = (profiles ++ (for { p<-profiles; q<-moreProfiles} yield s"$q$p")).toSet.toList
         case ("include" :: path :: Nil)  =>
           val exPath = toPath(context, path)
           if (exPath.toFile.exists() && exPath.toFile.canRead())

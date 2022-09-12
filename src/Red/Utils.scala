@@ -1,24 +1,25 @@
 package Red
 
-import java.awt.{Color, Component, Font, Graphics}
+import java.awt.{Color, Font, Graphics}
 import java.io.File
 import java.nio.file.attribute.FileTime
 import java.text.SimpleDateFormat
 import java.util.Date
 import javax.swing.{Icon, SwingUtilities}
 import scala.collection.mutable.ListBuffer
-import scala.swing.{Action, Alignment, Button, CheckMenuItem, Image, MenuItem, event}
+import scala.swing.{Action, Alignment, BoxPanel, Button, CheckMenuItem, Component, Image, Label, MenuItem, Orientation, event}
 import scala.sys.process.Process
 
 /** System wide default settings. These will eventually be treated as (dynamic)
   * preferences.
   */
 object Utils {
-  var defaultFont: Font = new Font("Monospaced", Font.PLAIN, 18)
+  val rootFont: Font = new Font("Monospaced", Font.PLAIN, 16)
+  var documentViewFont: Font = new Font("Monospaced", Font.PLAIN, 18)
   var smallButtonFont: Font = new Font("Monospaced", Font.BOLD, 24)
-  var buttonFont: Font = new Font("Monospaced", Font.PLAIN, 18)
-  var menuFont: Font = new Font("Monospaced", Font.PLAIN, 18)
-  var menuButtonFont: Font = new Font("Monospaced", Font.PLAIN, 18)
+  var buttonFont: Font = documentViewFont
+  var menuFont: Font = documentViewFont
+  var menuButtonFont: Font = documentViewFont
   var widgetFont: Font = new Font("Monospaced", Font.BOLD, 16)
   var feedbackFont: Font = new Font("Monospaced", Font.PLAIN, 16)
   var feedbackColor: Color = Color.BLUE
@@ -34,7 +35,7 @@ object Utils {
     val s = if (size.matches("[0-9]+")) size.toInt else 16
     val f = new Font(k, w, s)
     role match {
-      case "default"      => defaultFont = f
+      case "default"      => documentViewFont = f
       case "button"       => buttonFont = f
       case "button-small" => smallButtonFont = f
       case "small-button" => smallButtonFont = f
@@ -43,7 +44,7 @@ object Utils {
       case "menu-button"  => menuButtonFont = f
       case "widget"       => widgetFont = f
       case "feedback"     => feedbackFont = f
-      case _              => defaultFont = f
+      case _              => documentViewFont = f
     }
   }
 
@@ -67,11 +68,10 @@ object Utils {
 
     class ColoredIcon(h: Int, w: Int, color: java.awt.Color) extends Icon {
       def getIconHeight: Int = h
-
       def getIconWidth: Int = w
 
       override def paintIcon(
-          c: Component,
+          c: java.awt.Component,
           g: Graphics,
           x: Int,
           y: Int
@@ -141,6 +141,25 @@ object Utils {
       horizontalAlignment = Alignment.Center
       verticalAlignment = Alignment.Center
     }
+
+  /** @return a centred label */
+  class CentredLabel(var _text: String) extends BoxPanel(Orientation.Horizontal) {
+    val theLabel = new Label(_text) { font = Utils.rootFont }
+    contents += Red.Glue.horizontal()
+    contents += theLabel
+    contents += Red.Glue.horizontal()
+    def text_=(_text: String): Unit = theLabel.text=_text
+    def setText(_text: String): Unit = theLabel.text=_text
+  }
+
+  /** @return a centred button */
+  def CentredButton(title: String, tip: String="")(act: => Unit): Component = {
+    new BoxPanel(Orientation.Horizontal) {
+      contents += Red.Glue.horizontal()
+      contents += { val b = Button(title) { act }; b.tooltip=tip; b.font=font; b }
+      contents += Red.Glue.horizontal()
+    }
+  }
 
   //private val fileSeparator: String = System.getProperty("file.separator")
 
