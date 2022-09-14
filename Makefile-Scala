@@ -64,8 +64,15 @@ $(SCRIPT):  ; \
 
 DEPS:       $(JAR); jdeps -R -verbose:class -apionly -q   $(JAR)  | egrep -v 'anon|java|scala' | sed -e"s/[ ]*.jar//" > DEPS
 
-.PHONY:     clean ANNOUNCE
+.PHONY:     clean ANNOUNCE list
 clean:      ; cleandir; rm -rf CLASSES .classes $(DOC) $(JAR) 
 
 
 $(DOC):     $(SOURCE); mkdir -p $(DOC) ; $(SCALADOC) -dependencyfile $@.DEP -cp $(CP) -d $(DOC) $(SOURCE) ; touch $@
+
+# Make a printable/maintainable listing 
+LISTING.pdf: $(SOURCE); @ [ -e LISTING.pdf ] && \
+                        listing +c `find src -name '*.scala' -newer LISTING.pdf | sort` || \
+                        listing +c `find src -name '*.scala' | sort`
+
+list:       LISTING.pdf
