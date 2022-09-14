@@ -225,6 +225,11 @@ object AppleRed extends Logging.Loggable {
             val tip = s"Change profile to $profile, then reimport bindings"
             new MenuItem(act) { tooltip = tip; font = Utils.rootFont }
           }
+
+          prefix += new MenuItem(Action("Reimport bindings"){ Personalised.Bindings.reImportBindings() }) {
+             tooltip = "Reimport all the bindings without changing the profile"
+          }
+          prefix += Separator()
           suffix += Separator()
           suffix += component(Bindings.defaultProfile)
         }
