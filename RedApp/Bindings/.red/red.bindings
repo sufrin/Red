@@ -1,16 +1,31 @@
-include "symbols.bindings"
 # Diacriticals are generated on some OS/X keyboards by: 
 #     alt-e, alt-`, alt-u, alt-n
 #
 # 1. They are emitted before the character (if any) they will decorate
 # 2. They should be suppressed when generated
 #
-profiles OS/X Linux
+profiles OSX Linux 
 
-unless OS/X     text diacritical ""
-if     OS/X     text diacritical "´`^~¨"
-if     OS/X     show OS/X
-if     Linux    show Linux
+unless OSX     text diacritical ""
+if     OSX     text diacritical "´`^~¨"
+if     OSX     show OS/X
 
-profiles+ DebugLatexBlocks
-if Latex latex blocks able baker footle figleaf
+# Decorate existing profiles with sizes and boldness
+profiles* .14 .16 .18 .14.b .16.b .18.b
+if .14 font _ _ 14 widget default feedback button small-button menu menu-button widget default
+if .16 font _ _ 16 widget default feedback button small-button menu menu-button
+if .18 font _ _ 16 feedback 
+if .18 font _ _ 18 widget default button small-button menu menu-button 
+if .14.b font _ bold 14 widget default
+if .16.b font _ bold 16 widget default
+if .18.b font _ bold 18 widget default
+
+# Decorating the existing profiles with "+DebugLatex"
+# (this is a good way to add a named feature)
+# profiles* DebugLatex 
+# if DebugLatex latex blocks able baker footle figleaf
+
+include "symbols.bindings"
+
+
+

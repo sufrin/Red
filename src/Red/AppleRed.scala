@@ -3,7 +3,7 @@ package Red
 import Red.Personalised.Bindings
 import Red.Utils.{CentredLabel, LazyDynamicMenu}
 
-import java.awt.Desktop
+import java.awt.{Color, Desktop}
 import java.awt.desktop._
 import scala.swing.FileChooser.Result.{Approve, Cancel}
 import scala.swing.{Component, FileChooser, Frame, MainFrame}
@@ -173,8 +173,8 @@ object AppleRed extends Logging.Loggable {
   def establishMainWindowFrame(startIconified: Boolean, port: String): Unit = {
     import scala.swing._
 
-
-    val redLine = " « Red » " // "\uf8ff Red \uf8ff"
+    val isMac   = sys.props.getOrElse("os.name", "").startsWith("Mac")
+    val redLine = if (isMac) "\uf8ff Red \uf8ff" else " « Red » " //
     val mainFrame: MainFrame = new MainFrame() { thisMainFrame =>
         private val panel   = new BoxPanel(Orientation.Vertical) {
         private val user    = System.getProperty("user.name", "<no user>")
@@ -187,7 +187,9 @@ object AppleRed extends Logging.Loggable {
           else
              ""
 
-        val profile: CentredLabel = new CentredLabel(Personalised.Bindings.profile) { font = Utils.widgetFont }
+        private val bg = Color.lightGray
+
+        val profile: CentredLabel = new CentredLabel(Personalised.Bindings.profile) { background = bg; font = Utils.widgetFont }
 
         locally {
           Personalised.Bindings.reImportBindings()
@@ -197,16 +199,16 @@ object AppleRed extends Logging.Loggable {
         }
 
         private val labels  = new BoxPanel(Orientation.Vertical) {
-          // contents += new CentredLabel(redLine)
-          contents += new CentredLabel(user)
-          contents += new CentredLabel(role)
+          contents += new CentredLabel(redLine) { background = bg }
+          contents += new CentredLabel(user) { background = bg }
+          contents += new CentredLabel(role) { background = bg }
           contents += profile
         }
 
 
         contents  += labels
         iconImage = Red.Utils.redImage
-        border = javax.swing.BorderFactory.createEtchedBorder()
+        border    = javax.swing.BorderFactory.createMatteBorder(5, 5, 5, 5, bg)
       }
       // Frame
 

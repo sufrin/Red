@@ -1,7 +1,7 @@
 package Red
 
-import java.awt.{Color, Font, Graphics}
-import java.io.File
+import java.awt.{Color, Font, FontFormatException, Graphics}
+import java.io.{File, IOException}
 import java.nio.file.attribute.FileTime
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -14,37 +14,45 @@ import scala.sys.process.Process
   * preferences.
   */
 object Utils {
-  val rootFont: Font = new Font("Monospaced", Font.PLAIN, 16)
-  var documentViewFont: Font = new Font("Monospaced", Font.PLAIN, 18)
-  var smallButtonFont: Font = new Font("Monospaced", Font.BOLD, 24)
-  var buttonFont: Font = documentViewFont
-  var menuFont: Font = documentViewFont
-  var menuButtonFont: Font = documentViewFont
-  var widgetFont: Font = new Font("Monospaced", Font.BOLD, 16)
-  var feedbackFont: Font = new Font("Monospaced", Font.PLAIN, 16)
-  var feedbackColor: Color = Color.BLUE
+  val rootFont: Font          = new Font("Dialog",     Font.PLAIN, 16)
+  var documentViewFont: Font  = new Font("Monospaced", Font.PLAIN, 18)
+  var smallButtonFont: Font   = new Font("Monospaced", Font.BOLD,  24)
+  var buttonFont: Font        = documentViewFont
+  var menuFont: Font          = documentViewFont
+  var menuButtonFont: Font    = documentViewFont
+  var widgetFont: Font        = new Font("Monospaced", Font.BOLD,  16)
+  var feedbackFont: Font      = new Font("Monospaced", Font.PLAIN, 16)
+  var feedbackColor: Color    = Color.BLUE
 
-  def setFont(role: String, kind: String, weight: String, size: String): Unit = {
-    val k = "Monospaced"
-    val w = weight match {
-      case "plain"  => Font.PLAIN
-      case "bold"   => Font.BOLD
-      case "italic" => Font.ITALIC
-      case _ => Font.PLAIN
+  def setFont(_kind: String, style: String, _size: String, roles: Seq[String]): Unit = {
+    val kind = if (_kind=="_") "Monospaced" else _kind
+    val st = style match {
+      case "plain"        => Font.PLAIN
+      case "bold"         => Font.BOLD
+      case "italic"       => Font.ITALIC
+      case "bold+italic"  => Font.ITALIC+Font.BOLD
+      case _              => Font.PLAIN
     }
-    val s = if (size.matches("[0-9]+")) size.toInt else 16
-    val f = new Font(k, w, s)
-    role match {
-      case "default"      => documentViewFont = f
-      case "button"       => buttonFont = f
-      case "button-small" => smallButtonFont = f
-      case "small-button" => smallButtonFont = f
-      case "menu"         => menuFont = f
-      case "button-menu"  => menuButtonFont = f
-      case "menu-button"  => menuButtonFont = f
-      case "widget"       => widgetFont = f
-      case "feedback"     => feedbackFont = f
-      case _              => documentViewFont = f
+    val size = if (_size.matches("[0-9]+")) _size.toInt else 16
+    val font = if (kind.endsWith(".ttf")) try {
+               import java.awt.Font
+               Font.createFont(Font.TRUETYPE_FONT, new File(kind)).deriveFont(st, size.toFloat)
+            } catch {
+              case exn: IOException         => Logging.Default.warn(s"Font $kind $style $size -- $exn"); new Font("Monospaced", st, size)
+              case exn: FontFormatException => Logging.Default.warn(s"Font $kind $style $size -- $exn"); new Font("Monospaced", st, size)
+            }
+            else new Font(kind, st, size)
+    for { role<-roles} role match {
+      case "default"      => documentViewFont = font
+      case "button"       => buttonFont       = font
+      case "button-small" => smallButtonFont  = font
+      case "small-button" => smallButtonFont  = font
+      case "menu"         => menuFont         = font
+      case "button-menu"  => menuButtonFont   = font
+      case "menu-button"  => menuButtonFont   = font
+      case "widget"       => widgetFont       = font
+      case "feedback"     => feedbackFont     = font
+      case _              => documentViewFont = font
     }
   }
 

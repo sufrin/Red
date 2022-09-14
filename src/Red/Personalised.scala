@@ -223,8 +223,8 @@ object Personalised extends Logging.Loggable {
           //
           if (if (conditional == "if") cond else !cond) processFields(rest)
         }
-        case ("font" :: kind :: weight :: size :: roles) =>
-          for { role <-roles } Utils.setFont(role, kind, weight, size)
+        case ("font" :: kind :: style :: size :: roles) =>
+          Utils.setFont(kind, style, size, roles)
         case ("profiles" :: rest) =>
           profiles = rest
         case ("profiles+" :: moreProfiles) =>

@@ -158,10 +158,45 @@ text    abbrev Chi      \u03A7
 text    abbrev Psi      \u03A8
 text    abbrev Omega    \u03A9
 
+text    abbrev _n       \u207F # 
+text    abbrev _0       \u2080 # ₀
+text    abbrev _1       \u2081 # ₁
+text    abbrev _2       \u2082 # ₂
+text    abbrev _3       \u2083 # ₃ 
+text    abbrev _4       \u2084 # ₄
+text    abbrev _5       \u2085 # ₅
+text    abbrev _6       \u2086 # ₆
+text    abbrev _7       \u2087 # ₇
+text    abbrev _8       \u2088 # ₈
+text    abbrev _9       \u2089 # ₉
+text    abbrev _+       \u208A # ₊ foo₊
+text    abbrev _-       \u208B # ₋
+text    abbrev _=       \u208C # ₌
+text    abbrev _(       \u208D # ₍
+text    abbrev _)       \u208E # ₎
+
+text    abbrev (c)       \u00a9 # ©
+text    abbrev ><        \u00d7 # ×
+text    abbrev O/        \u00D8 # Ø
+text    abbrev <<        \u00AB # «
+text    abbrev >>        \u00BB # »
+
+text    abbrev So        \u2042 # ⁂
+text    abbrev --        \u2014 # — (wide minus)
+text    abbrev [[        \u27e6 # ⟦ 
+text    abbrev ]]        \u27e7 # ⟧
+
+
+############################################
+
+
+
 #
 # These are right-to-left characters that confuse the view algorithm
 # right now...
 #
+
+# profiles+ RTL
 if RTL text    abbrev alef     \u05D0 #
 if RTL text    abbrev beth     \u05D1 #
 if RTL text    abbrev gimel    \u05D2
@@ -189,38 +224,6 @@ if RTL text    abbrev qof      \u05E7
 if RTL text    abbrev resh     \u05E8
 if RTL text    abbrev shin     \u05E9
 if RTL text    abbrev tav      \u05EA
-
-
-text    abbrev _n       \u207F # 
-text    abbrev _0       \u2080 # ₀
-text    abbrev _1       \u2081 # ₁
-text    abbrev _2       \u2082 # ₂
-text    abbrev _3       \u2083 # ₃ 
-text    abbrev _4       \u2084 # ₄
-text    abbrev _5       \u2085 # ₅
-text    abbrev _6       \u2086 # ₆
-text    abbrev _7       \u2087 # ₇
-text    abbrev _8       \u2088 # ₈
-text    abbrev _9       \u2089 # ₉
-text    abbrev _+       \u208A # ₊
-text    abbrev _-       \u208B # ₋
-text    abbrev _=       \u208C # ₌
-text    abbrev _(       \u208D # ₍
-text    abbrev _)       \u208E # ₎
-
-text    abbrev (c)       \u00a9 # ©
-text    abbrev ><        \u00d7 # ×
-text    abbrev O/        \u00D8 # Ø
-text    abbrev <<        \u00AB # «
-text    abbrev >>        \u00BB # »
-
-text    abbrev So        \u2042 # ⁂
-text    abbrev --        \u2014 # — (wide minus)
-text    abbrev [[        \u27e6 # ⟦ 
-text    abbrev ]]        \u27e7 # ⟧
-
-
-############################################
 
 
 
