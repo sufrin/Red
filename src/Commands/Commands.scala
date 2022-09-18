@@ -5,14 +5,14 @@ package Commands
   /**
    *     Suppose a (mutable) object `target: T` is in state `s`.
    *
-   *     If `DO(target)` succeeds, thereby changing the state of
-   *     target to `s'`, then it must yield `Some(change)` such that
-   *     henceforth, whenever target is in state `s'`, `change.undo()`
-   *     will drive it back to state `s`; and whenever target is in state
-   *     `s`, `change.redo()` will drive target back to state `s'`.
+   *     If `DO(target)` succeeds, thereby changing the state of target to
+   *     `s'`, then it must yield `Some(change)` such that henceforth,
+   *     whenever target is in state `s'`, `change.undo()` will drive
+   *     it back to state `s`; and whenever target is in state `s`,
+   *     `change.redo()` will drive target back to state `s'`.
    *
-   *     If `DO(target)` fails, or is otherwise non-applicable, then
-   *     it must yield `None`, and must not change the state of target.
+   *     If `DO(target)` fails, or is otherwise non-applicable, then it
+   *     must yield `None`, and must not change the state of target.
    */
   trait Command[T] {
     def DO(target: T): Option[StateChange]
@@ -22,24 +22,28 @@ package Commands
 
   /**
    *      A `StateChange` captures the state of a target on which a
-   *      `Command` has just been `DO`d successfully. Invoking
-   *      `undo()` restores the target's state to what it was just
-   *      before the `DO`; whilst `redo()` restores the target's
-   *      state to what it was just before the `undo`
+   *      `Command` has just been `DO`d successfully. Invoking `undo()`
+   *      restores the target's state to what it was just before the
+   *      `DO`; whilst `redo()` restores the target's state to what it
+   *      was just before the `undo`
    *
-   *      ''Merging'':
-   *       In some applications it makes sense to 'merge' two adjoining
-   *       successful `Command`s for the purposes of undoing and
-   *       redoing, and this is handled by offering the `StateChange` of
-   *       the second command, `next` to the `merge` of the first.
    */
+   
   trait StateChange  {
     def undo(): Unit
     def redo(): Unit
     /**
-     *          If `merge(next)` yields `None`, then `next` cannot be
-     *          merged with this `StateChange`.  If `merge(next)` yields
-     *          `Some(merged)`, then `merged` is the sequential
+     *      === Merging
+     *
+     *          In some applications it makes sense to 'merge' two
+     *          adjoining successful `Command`s for the purposes of
+     *          undoing and redoing, and this is handled by offering
+     *          the `StateChange` of the second command, `next` to the
+     *          `merge` of the first.
+     *
+     *          If `merge(next)` yields `None`, then `next` cannot
+     *          be merged with this `StateChange`.  If `merge(next)`
+     *          yields `Some(merged)`, then `merged` is the sequential
      *          composition of this `StateChange` and next, and this
      *          `StateChange` should be replaced by it.
      *
@@ -47,19 +51,25 @@ package Commands
      *          `StateChange`s with the the same (non-default) `kind`
      *          string  are merged; and this may be enough to achieve the
      *          sort of functionality that appears in editors, 'etc',
-     *          though in our experience some degree of dynamic choice by
-     *          the user can be beneficial in some kinds of system.  We
-     *          have made no attempt to make the default implementation
-     *          space-efficient. The default `kind` of a `StateChange` is
-     *          `"Nothing"`.
+     *          though in our experience some degree of dynamic choice
+     *          by the user can be beneficial in some kinds of system.
+     *          We have made no attempt to make the default implementation
+     *          space-efficient. The default `kind` of a `StateChange`
+     *          is `"Nothing"`.
+     *
+     *          The type of `kind` is `Any` in order to facilitate a
+     *          redefinition (by overriding) of `merge` in more complex
+     *          applications; though I've never experienced the need for
+     *          this.
      */
+     
     def merge(next: StateChange): Option[StateChange] =
       if (this.kind!="Nothing" && this.kind==next.kind )
         Some(StateChange.compose(this, next))
       else
         None
 
-    val kind: String = "Nothing"
+    val kind: Any = "Nothing"
   }
 
   object StateChange {
@@ -77,7 +87,7 @@ package Commands
       }
 
       override
-      val kind: String = u2.kind
+      val kind: Any = u2.kind
 
       override
       def toString: String= s"StateChange.compose($u1,  $u2)"
@@ -91,7 +101,7 @@ package Commands
      * state changes, if they are successful in sequence; otherwise it
      * yields `None` and has no effect on the target.
      */
-    def andThen[T](c1: Command[T], c2: Command[T]): Command[T] = new Command[T] {
+    private def andThen[T](c1: Command[T], c2: Command[T]): Command[T] = new Command[T] {
       def DO(target: T): Option[StateChange] =
         c1.DO(target) match {
           case Some(u1) =>
@@ -110,7 +120,7 @@ package Commands
      * execution, if 'that' is successful, otherwise it yields `None`
      * and has no effect on the target.
      */
-    def orElse[T](c1: Command[T], c2: Command[T]): Command[T] = new Command[T] {
+    private def orElse[T](c1: Command[T], c2: Command[T]): Command[T] = new Command[T] {
       def DO(target: T): Option[StateChange] =
         c1.DO(target) match {
           case None     => c2.DO(target)

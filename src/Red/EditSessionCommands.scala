@@ -514,7 +514,7 @@ object EditSessionCommands extends Logging.Loggable {
   }
 
 
-  val clearAll: SessionCommand = Command.andThen(selectAll, cut)
+  val clearAll: SessionCommand = selectAll &&& cut
 
   def exchangeCut: SessionCommand = new SessionCommand {
     def DO(session: EditSession): StateChangeOption = {
