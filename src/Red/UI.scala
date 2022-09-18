@@ -155,17 +155,22 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
     focusable     = true
   }
 
-  def SmallButton(label: String, toolTip: String="")(act: => Unit): Button = new Button(new Action(label) { def apply(): Unit = act } ) {
-    font = Utils.smallButtonFont
-    focusable = false
-    if (true) {
-      val metrics = peer.getFontMetrics(font)
-      val labWidth = metrics.stringWidth(label)
-      val charHeight = metrics.getHeight
-      preferredSize = new Dimension(labWidth+4, charHeight+2)
-    }
-    if (toolTip.nonEmpty) tooltip=toolTip
+  class  SmallButton(val label: String, toolTip: String="", act: => Unit) extends Button() {
+      action = new Action(label) { def apply(): Unit = act }
+      font = Utils.smallButtonFont
+      focusable = false
+      def setLabel(newLabel: String) {
+        val metrics = peer.getFontMetrics(font)
+        val labWidth = metrics.stringWidth("MMMMMM")
+        val charHeight = metrics.getHeight
+        preferredSize = new Dimension(labWidth+4, charHeight+2)
+        action.text = newLabel
+      }
+      if (toolTip.nonEmpty) tooltip=toolTip
+      setLabel(label)
   }
+
+  def smallButton(label: String, toolTip: String="")(act: => Unit): SmallButton = new SmallButton(label, toolTip, act)
 
   def Button(label: String, toolTip: String="")(act: => Unit): Button = new Button(new Action(label) { def apply(): Unit = act } ) {
     font = Utils.menuButtonFont
@@ -186,15 +191,17 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
    */
   private val history = new Command.StateChangeHistory(theSession)
   /** An undo button */
-  private val undoButton = SmallButton(/*"\u2770"*/"<", toolTip="Undo last edit") { UI_DO(history.UNDO) } //
+  private val undoButton = smallButton(/*"\u2770"*/"<", toolTip="Undo last edit") { UI_DO(history.UNDO) } //
   /** A redo button */
-  private val redoButton = SmallButton(/*"\u2771"*/">", toolTip="Redo last undone edit") { UI_DO(history.REDO) } //
+  private val redoButton = smallButton(/*"\u2771"*/">", toolTip="Redo last undone edit") { UI_DO(history.REDO) } //
 
   locally {
     history.handleWith {
       case (done, undone) =>
+        undoButton.setLabel(if (done>0) s"$done<" else " < ")
         undoButton.enabled = done > 0
         redoButton.enabled = undone > 0
+        redoButton.setLabel(if (undone>0) s"$undone>" else  "> ")
     }
     undoButton.enabled = false
     redoButton.enabled = false
@@ -677,11 +684,15 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
     contents = thePanel
     if (isFileEditor) menuBar = theMenuBar
 
-    /** Mouse down and (maybe) select an adjacent bracketed text */
+    /**
+     *  Mouse down and (maybe) select an adjacent bracketed text:   a single command goes into the history
+     *  NB: the expedient way of doing this: by executing the session commands with separate `DO`s puts
+     *  two commands in the history which is confusing for users trying to undo their last "click". 
+     *  (Indeed I only spotted this myself very late in development)
+     */
     val mouseDown: UserInputHandler = {
       case MousePressed(row, col, 1, Button1) =>
-        UI_DO(EditSessionCommands.setCursorAndMark(row, col))
-        if (Settings.clickSelects) UI_DO(EditSessionCommands.selectMatching)
+        UI_DO(EditSessionCommands.setCursorAndMark(row, col) &&& EditSessionCommands.selectMatching.when(_ => Settings.clickSelects))
     }
 
     val indentKeys: UserInputHandler = {

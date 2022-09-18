@@ -18,6 +18,7 @@ package Commands
     def DO(target: T): Option[StateChange]
     def &&&(that: Command[T]): Command[T] = Command.andThen(this, that)
     def |||(that: Command[T]): Command[T] = Command.orElse(this, that)
+    def when(condition: T => Boolean): Command[T] = Command.when(condition, this)
   }
 
   /**
@@ -145,6 +146,10 @@ package Commands
         def DO(target: T): Option[StateChange] = Some(undoNothing)
     }
 
+    /**
+     *  All the component commands of a transaction must succeed
+     *  in order for the transaction to succeed.
+     */
     def transaction[T](cmds: Iterable[Command[T]]): Command[T] = {
       if (cmds.isEmpty)
         doNothing[T]
@@ -155,6 +160,10 @@ package Commands
       }
     }
 
+    /**
+     *  A command that behaves as `command(t)` when `condition(t)` holds,
+     *  but otherwise just succeeds, having done nothing to the target `t`.
+     */
     def when[T](condition: T => Boolean, command: Command[T]): Command[T] = new Command[T] {
       def DO(target: T): Option[StateChange] = {
         if (condition(target))
@@ -164,6 +173,10 @@ package Commands
       }
     }
 
+    /**
+     *  A command that behaves as `command(t)` when `condition(t)` holds,
+     *  but otherwise fails.
+     */
     def guarded[T](condition: T => Boolean, command: Command[T]): Command[T] = new Command[T] {
       def DO(target: T): Option[StateChange] = {
         if (condition(target)) command.DO(target) else None

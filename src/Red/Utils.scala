@@ -16,7 +16,7 @@ import scala.sys.process.Process
 object Utils {
   val rootFont: Font          = new Font("Dialog",     Font.PLAIN, 16)
   var documentViewFont: Font  = new Font("Monospaced", Font.PLAIN, 18)
-  var smallButtonFont: Font   = new Font("Monospaced", Font.BOLD,  24)
+  var smallButtonFont: Font   = new Font("Monospaced", Font.BOLD,  14)
   var buttonFont: Font        = documentViewFont
   var menuFont: Font          = documentViewFont
   var menuButtonFont: Font    = documentViewFont
