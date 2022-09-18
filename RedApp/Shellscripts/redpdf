@@ -13,7 +13,7 @@ inputfile=${1%%.tex}.tex
 pdffile=${inputfile%%.tex}.pdf
 line="${2-0}"
 editing="${3-$inputfile}"
-cwd=$(dirname $inputfile)
+cwd=$(dirname "$inputfile")
 export TEXINPUTS=.:$HOME/Tex//:
 export TEXFONTS=$TEXINPUTS
 echo "++++++++++++ REDPPDF ++++++++++"
@@ -31,7 +31,7 @@ then
   #echo linedisplay $line $pdffile $editing
   #linedisplay $line $pdffile $editing
   evince $pdffile
-  evince-synctex sync $pdffile $editing $line
+  evince-synctex sync "$pdffile" "$editing" $line
   echo "Start redsync for red synchronisation with evince (ctrl-click)"
 else
 # Assuming Darwin aka OS/X
@@ -39,7 +39,7 @@ else
  /Library/TeX/texbin/pdflatex -shell-escape -file-line-error -recorder -synctex=1 -interaction=errorstopmode "$inputfile")    
     # Displayline invokes Skim 
     echo skimdisplayline $line $pdffile $editing
-    skimdisplayline $line $pdffile $editing
+    skimdisplayline $line "$pdffile" "$editing"
     exit
     
     echo open -a Skim $pdffile
