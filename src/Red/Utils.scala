@@ -422,10 +422,11 @@ object Utils {
     lazy val paths       = collection.mutable.ListBuffer[String]()
     lazy val recents     = appleRed.node("/recents")
     lazy val count       = recents.getInt("count", 0)
+    lazy val limit       = recents.getInt("limit", 10) // TODO: preference.
     locally { for { i <- 0 until count } paths.addOne(recents.get(s"$i", "")) }
     def add(path: String): Unit = {
       if (!paths.contains(path)) {
-        while (paths.length >= 5) paths.remove(0)
+        while (paths.length >= limit) paths.remove(0)
         paths.addOne(path)
         sync()
       }
