@@ -103,6 +103,8 @@ import scala.swing.{Component, Container}
  *                        `Notifier`.
  *
  *
+ *  TODO: solve the "force focus here" problem. THis is likely to be
+ *        a systemic problem that cannot be solved locally.
  *
  */
 

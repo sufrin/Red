@@ -13,6 +13,12 @@ import scala.sys.process.{Process, ProcessLogger}
  *   Commands are constants, except for those that
  *   are parameterised by characters (to insert), strings
  *   (for find/replace) or document positions.
+ *
+ *   TODO:  1. abstract patterns where possible
+ *          2. (?) dictionary for constant session commands and maybe for
+ *          mouse-invoked session commands.
+ *          3. Build the dictionary by annotations?
+ *
  */
 object EditSessionCommands extends Logging.Loggable {
 
