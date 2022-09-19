@@ -5,6 +5,7 @@ import Red.Personalised.Bindings
 import Red.UserInputDetail.Key
 import Red.UserInputDetail.Modifiers._
 import Red.UserInputHandlers._
+import Red.Utils.{CentredLabel, relativeToHome}
 
 import java.awt.Color
 import java.nio.file.{Files, Path, Paths}
@@ -97,9 +98,10 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
   def feedback(message: String): Unit = {
     val (row, col) = theSession.getCursorPosition
     val changed = if (hasChanged) " (✖) " else " (✓) "
+    val wd = if (theSession.CWD==Utils.homePath) "[~]" else if (theSession.CWD==theSession.parentPath) "[+]" else ""
     if (delayFeedback<=0)
       theFeedback.text =
-      s"$message ${theSession.displayPath}@${row+1}:$col $changed [${theSession.cursor}/${theSession.document.textLength}]"
+      s"$wd $message ${theSession.displayPath}@${row+1}:$col $changed [${theSession.cursor}/${theSession.document.textLength}]"
     delayFeedback -= 1
     if (top != null) top.title = s"Red: ${theSession.displayPath} ${changed}"
   }
@@ -119,7 +121,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
   }
 
   def feedbackWD(wd: String) = {
-    theFeedback.text = s"cwd: $wd"
+    theFeedback.text = s"CWD: $wd"
   }
 
   def longFeedback(msg: String): Unit = {
@@ -361,21 +363,40 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
 
     contents += new Utils.Menu("Red") {
 
-      contents += Item("cd \u24b6", toolTip = "Change working directory using dialogue or nonempty \u24b6 field") {
-        var text = argLine.text.trim
-        if (text.isEmpty) {
-          val chooser = dirChooser
-          chooser.showOpenDialog(top) match {
-            case Approve => text = chooser.selectedFile.toString
-            case Cancel  => text = ""
-          }
-        }
-        if (text.nonEmpty) theSession.CWD=Utils.toPath(text)
-        feedbackWD(theSession.CWD.toString)
-      }
-      contents += Item("cd +", toolTip = "Change working directory to parent of this file")      { theSession.CWD=theSession.parentPath; feedbackWD(theSession.CWD.toString) }
-      contents += Item("cd ~", toolTip = "Change working directory to user's home directory")    { theSession.CWD=Utils.homePath; feedbackWD(theSession.CWD.toString) }
+      contents += new Utils.DynamicMenu("cd ") {
+        def theLabel():  Component  = new CentredLabel(s"  CWD: ${relativeToHome(theSession.CWD)}  ")      { font = Utils.buttonFont; background = Color.lightGray }
+        def theParent(): Component  = new CentredLabel(s"  +: ${relativeToHome(theSession.parentPath)}  ") { font = Utils.buttonFont; background = Color.lightGray }
 
+        def selectTheParent(): Component = Item("cd +", toolTip = s"Change working directory to ${relativeToHome(theSession.parentPath)}") {
+          theSession.CWD = theSession.parentPath;
+          feedbackWD(theSession.CWD.toString)
+        }
+
+        def dynamic = List ( theLabel(), theParent(), Separator(), selectTheParent())
+
+        suffix += Item("cd ~", toolTip = "Change working directory to user's home directory") {
+          theSession.CWD = Utils.homePath;
+          feedbackWD(theSession.CWD.toString)
+        }
+
+        suffix += Item("cd \u24b6", toolTip = "Change working directory using dialogue or nonempty \u24b6 field") {
+          var text = argLine.text.trim
+          if (text.isEmpty) {
+            val chooser = dirChooser
+            chooser.showOpenDialog(top) match {
+              case Approve => text = chooser.selectedFile.toString
+              case Cancel  => text = ""
+            }
+          }
+          if (text.nonEmpty) theSession.CWD = Utils.toPath(text)
+          feedbackWD(theSession.CWD.toString)
+        }
+
+
+
+        contents += Separator()
+
+      }
       contents += Separator()
       contents += Separator()
 
@@ -687,7 +708,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
     /**
      *  Mouse down and (maybe) select an adjacent bracketed text:   a single command goes into the history
      *  NB: the expedient way of doing this: by executing the session commands with separate `DO`s puts
-     *  two commands in the history which is confusing for users trying to undo their last "click". 
+     *  two commands in the history which is confusing for users trying to undo their last "click".
      *  (Indeed I only spotted this myself very late in development)
      */
     val mouseDown: UserInputHandler = {
