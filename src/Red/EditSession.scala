@@ -744,7 +744,7 @@ class EditSession(val document: DocumentInterface, private var _path: String)
   def parentPath: Path = Utils.toPath(path).getParent
 
   // Current working directory
-  private var _CWD: Path = Utils.homePath
+  private var _CWD: Path = parentPath // Utils.homePath
 
   def CWD_=(path: Path) = {
     _CWD = path

@@ -161,7 +161,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
       action = new Action(label) { def apply(): Unit = act }
       font = Utils.smallButtonFont
       focusable = false
-      def setLabel(newLabel: String) {
+      def setLabel(newLabel: String): Unit = {
         val metrics = peer.getFontMetrics(font)
         val labWidth = metrics.stringWidth("MMMMMM")
         val charHeight = metrics.getHeight
@@ -364,7 +364,11 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
     contents += new Utils.Menu("Red") {
 
       contents += new Utils.DynamicMenu("cd ") {
-        def theLabel():  Component  = new CentredLabel(s"  CWD: ${relativeToHome(theSession.CWD)}  ")      { font = Utils.buttonFont; background = Color.lightGray }
+        def theLabel():  Component  = {
+          val cwd = if (theSession.CWD==theSession.parentPath) "+" else relativeToHome(theSession.CWD)
+          new CentredLabel(s"  CWD: ${cwd}  ")  { font = Utils.buttonFont; background = Color.lightGray }
+        }
+
         def theParent(): Component  = new CentredLabel(s"  +: ${relativeToHome(theSession.parentPath)}  ") { font = Utils.buttonFont; background = Color.lightGray }
 
         def selectTheParent(): Component = Item("cd +", toolTip = s"Change working directory to ${relativeToHome(theSession.parentPath)}") {
@@ -400,8 +404,8 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
       contents += Separator()
       contents += Separator()
 
-      contents += new Utils.CheckItem("Selection typeover") {
-        tooltip  = "When enabled, the selection is cut when material is typed"
+      contents += new Utils.CheckItem("Typeover") {
+        tooltip  = "When this is enabled, the selection is automatically cut when material is typed"
         font     = Utils.buttonFont
         // selected = Settings.typeOverSelection
         listenTo(this)
@@ -411,8 +415,8 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
         }
       }
 
-      contents += new Utils.CheckItem("Select adjacent {...}") {
-        tooltip  = "When enabled, a mouse-click adjacent to bracketed material selects that material"
+      contents += new Utils.CheckItem("Select {...}") {
+        tooltip  = "When this enabled, a mouse-click adjacent to bracketed material of any kind selects that material"
         font     = Utils.buttonFont
         // selected = Settings.clickSelects
         listenTo(this)
@@ -423,7 +427,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
       }
 
       contents += new Utils.CheckItem("Auto indent") {
-        tooltip  = "When enabled, a newline is followed by enough spaces to align the cursor with the indentation of the current line"
+        tooltip  = "When this is enabled, a newline is followed by enough spaces to align the cursor (and non-space material to its right) with the indentation of the current line"
         font     = Utils.buttonFont
         // selected = Settings.autoIndenting
         listenTo(this)
@@ -436,13 +440,13 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
       if (theSession.hasCutRing) {
         contents += Separator()
         contents += Separator()
-        contents += Item("Show Cut Ring") {
+        contents += Item("Cut Ring", toolTip = "Show the cut-ring control window") {
           CutRingUI.refreshIfVisible()
         }
       }
 
       contents += Separator()
-      contents += Item("Reimport bindings", toolTip = "Reimport bindings from scratch")  {
+      contents += Item("Bindings", toolTip = "Reimport bindings from scratch")  {
         Personalised.Bindings.reImportBindings()
       }
 
@@ -458,7 +462,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
 
       contents += Separator()
 
-      contents += Item("Quit")  { top.closeOperation() }
+      contents += Item("Quit", toolTip = "Quit now if there are no unsaved document sessions; else ask each unsaved document session what to do")  { top.closeOperation() }
 
     }
 
