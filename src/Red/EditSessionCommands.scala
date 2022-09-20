@@ -117,16 +117,16 @@ object EditSessionCommands extends Logging.Loggable {
     }
   }
 
-  def formatter(arg: String): SessionCommand = {
+  def formatter(arg: String, program: String="fmt", unchecked: List[String]=List()): SessionCommand = {
     def numOrSwitch(arg: String): Boolean = {
-      arg.startsWith("-") || arg.matches("[0-9]+")
+      arg.startsWith("-") || arg.matches("[0-9]+") || unchecked.contains(arg)
     }
     def checkArgs(args: Seq[String]): Option[String] =
       if (args.tail forall numOrSwitch)
          None
       else
          Some("fmt arguments in \u24b6 must be numbers or -switches")
-      pipeThrough(s"fmt $arg", checkArgs(_))
+      pipeThrough(s"$program $arg", checkArgs(_))
   }
 
 

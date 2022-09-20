@@ -520,15 +520,13 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
     } // File Menu
 
     contents += new Utils.Menu("Edit") {
-        contents += Item("Replace \u24bb with \u24c7 in the selection") {
-          val asRegex = regexCheck.selected
-          UI_DO(EditSessionCommands.replaceAllInSelection(findLine.text, replLine.text, asRegex))
-        }
-
-        contents += Separator()
 
         contents += Item("fmt ...") {
           withFilterWarnings("fmt ") { UI_DO(EditSessionCommands.formatter(argLine.text)) }
+        }
+
+        contents += Item("fmt /* ...") {
+          withFilterWarnings("fmt ") { UI_DO(EditSessionCommands.formatter(argLine.text, "gfmt -p *", List("*"))) }
         }
 
         contents += Item("LowerCase") {
@@ -538,6 +536,14 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
         contents += Item("UpperCase") {
           UI_DO(EditSessionCommands.upperCaseFilter)
         }
+
+      contents += Separator()
+
+      contents += Item("Replace \u24bb with \u24c7 in the selection") {
+        val asRegex = regexCheck.selected
+        UI_DO(EditSessionCommands.replaceAllInSelection(findLine.text, replLine.text, asRegex))
+      }
+
 
 
     } // Edit Menu
