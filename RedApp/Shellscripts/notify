@@ -1,0 +1,8 @@
+#!/bin/bash
+#
+# Usage: notify "bold text argument" [args] -- bring up a notification box
+# 
+title="$1"
+shift
+message="$@"
+osascript -e "display notification \"$message\" with title \"$title\""

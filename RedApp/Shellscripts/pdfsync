@@ -1,0 +1,9 @@
+# pdfsync %file %line 
+# pdflatex outputs synctex file
+# skim invokes pdfsync %file %line at the right gesture (CMD-SHIFT-Point)
+file=$1
+line=$2
+# notify "Source Position" $file $line
+/Users/sufrin/bin/red $file@$line
+
+

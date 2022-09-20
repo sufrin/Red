@@ -16,7 +16,6 @@
 PROFILE=$HOME/.AppleRed.profile
 [ -e $PROFILE ] && . $PROFILE
 
-
 #### 
 #### 
 #### Locate the resources needed to start the java command
@@ -34,12 +33,15 @@ MODE=${REDMODE-application}
 PROFILE=$HOME/.AppleRed-${MODE}.profile
 [ -e $PROFILE ] && . $PROFILE
 
+LOCK=/tmp/AppleRed-$REDPORT
+
 #### Set the appropriate dock features (OS/X)
 if [ "$MODE" = "client"  ]
 then 
   REDICON="$Resources/AppleCred.png"
   DOCKNAME="AppleRed-Standalone"
-else 
+else
+  touch $LOCK
   REDICON="$Resources/AppleRed.png"
   DOCKNAME="AppleRed-ClientServer"
 fi
@@ -47,7 +49,7 @@ fi
 
 #### 
 #### 
-#### If started from the OS/X app change directory to something sensible
+#### If started from the OS/X app change directory to something sensible, pro-tem
 #### 
 #### 
 
@@ -62,18 +64,17 @@ fi
 ##         -DRed.AppleRed.level=all \
 ##         -DJed.UDPServer=all\
 
-
 if [ `uname` = Darwin ] 
 then
-    exec java  \
+    java  \
          -Xdock:icon="$REDICON"  \
          -Xdock:name="$DOCKNAME" \
          -DLogging.Default.level=error \
          -jar $Java/AppleRed.jar "$@"
 else
-    exec java  \
+    java  \
          -DLogging.Default.level=error \
          -jar $Java/AppleRed.jar "$@"
 fi 
-
+rm -f $LOCK
 
