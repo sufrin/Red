@@ -1,9 +1,34 @@
-# Client-server invocation of Red from command-line
-
-export REDMODE=server
-
-# This for when the application is installed in ~/Applications 
-export REDCONTAINER=$HOME/Applications/AppleRed.app/Contents
-Java=${REDCONTAINER}/Java
-exec $Java/AppleRed-server $REDCONTAINER $@ &
-
+#!/bin/bash
+#
+#  a very fast way of invoking an already-running AppleRed server,
+#  or starting one if there isn't one running.
+#
+#  See also the script AppleRed-server which does the locking/unlocking
+#  around the invocation of the AppleRed JVM invocation. 
+#
+. ~/.AppleRed-server.profile
+#
+#
+LOCK=/tmp/AppleRed-$REDPORT
+#
+#
+if [ ! -f $LOCK ]
+then
+    echo "Starting AppleRed [Port $REDPORT]" 
+    # Client-server invocation of Red from command-line
+    
+    export REDMODE=server
+    
+    # This for when the application is installed in ~/Applications 
+    export REDCONTAINER=$HOME/Applications/AppleRed.app/Contents
+    Java=${REDCONTAINER}/Java
+    $Java/AppleRed-server $REDCONTAINER $@ &   
+else
+   for f in "$@"
+   do
+    case "${f}" in
+         (~/* | /*) echo -n "${f}"        | nc  -u localhost $REDPORT > /dev/null;;
+         (*)        echo -n "$(pwd)/${f}" | nc -u localhost $REDPORT > /dev/null;;
+    esac
+   done
+fi
