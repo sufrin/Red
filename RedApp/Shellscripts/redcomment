@@ -1,0 +1,9 @@
+# Format input as a scala comment using whatever resource is available
+# gfmt is the name used by brew to import the standard gnome text tool fmt
+if  [ $(uname) = "Linux" ]
+then
+    exec /usr/bin/fmt -p '*' "$@"
+else
+    exec ~/bin/gfmt -p '*' "$@"
+fi
+    
