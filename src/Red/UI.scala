@@ -318,7 +318,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
 
   private val regexCheck: CheckBox = new CheckBox("") {
     focusable = false
-    tooltip  = "Treat \u24bb pattern as regular expression (or literal)" // (F)
+    tooltip  = "When enabled, treat \u24bb pattern as regular expression, and \u24c7 as a regular expression template" // (F)
   }
 
   /**
@@ -336,7 +336,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
       findLine.text = ""
     } // (F)
     contents += findLine
-    contents += Button("\u24c7", toolTip = "Clear the adjacent replacement pattern") {
+    contents += Button("\u24c7", toolTip = "Clear the adjacent replacement template") {
       replLine.text = ""
     } // (R)
     contents += replLine
@@ -512,8 +512,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
         top.saveAs(Utils.localizePath(text, theSession.CWD, Utils.toParentPath(theSession.path)))
       }
 
-      contents += Item("Save & Quit") {
-        tooltip = "Save the document if it needs saving; then close this session."
+      contents += Item("Save & Quit", "Save the document if it needs saving; then close this session.") {
         close()
       }
 
@@ -521,14 +520,16 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
 
     contents += new Utils.Menu("Edit") {
 
-        contents += Item("fmt ...") {
-          tooltip = "Format the selection using the fmt program"
+        contents += Item("fmt ...", "Format the selection using the fmt program") {
           withFilterWarnings("fmt ") { UI_DO(EditSessionCommands.formatter(argLine.text)) }
         }
 
-        contents += Item("fmt /* ...") {
-          tooltip = "Format the selection as a comment using the redcomment program"
-          withFilterWarnings("fmt /* ") { UI_DO(EditSessionCommands.formatter(argLine.text, "redcomment")) }
+        contents += Item("fmt /* ...", "Format the selection as a /* ... */ comment using the redformat program") {
+          withFilterWarnings("fmt /* ") { UI_DO(EditSessionCommands.formatter(argLine.text, "redformat '*'", List("*"))) }
+        }
+
+        contents += Item("fmt \"|...",  "Format the selection as a multiline string using the redformat program") {
+          withFilterWarnings("fmt ") { UI_DO(EditSessionCommands.formatter(argLine.text, "redformat '|'", List("|"))) }
         }
 
       contents += Separator()
@@ -543,12 +544,10 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
 
       contents += Separator()
 
-      contents += Item("Replace \u24bb with \u24c7 in the selection") {
+      contents += Item("\u24bb -> \u24c7", "Replace \u24bb with \u24c7 throughout the selection, using the current find/replace mode") {
         val asRegex = regexCheck.selected
         UI_DO(EditSessionCommands.replaceAllInSelection(findLine.text, replLine.text, asRegex))
       }
-
-
 
     } // Edit Menu
 

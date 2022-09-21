@@ -1,9 +1,11 @@
 # Format input as a scala comment using whatever resource is available
 # gfmt is the name used by brew to import the standard gnome text tool fmt
+lead=${1-"*"}
+shift
 if  [ $(uname) = "Linux" ]
 then
-    exec /usr/bin/fmt -p '*' "$@"
+    exec /usr/bin/fmt -p "$lead" "$@"
 else
-    exec ~/bin/gfmt -p '*' "$@"
+    exec ~/bin/gfmt -p "$lead" "$@"
 fi
     

@@ -5,15 +5,27 @@ package Commands
   /**
    *     Suppose a (mutable) object `target: T` is in state `s`.
    *
-   *     If `DO(target)` succeeds, thereby changing the state of target to
-   *     `s'`, then it must yield `Some(change)` such that henceforth,
-   *     whenever target is in state `s'`, `change.undo()` will drive
-   *     it back to state `s`; and whenever target is in state `s`,
-   *     `change.redo()` will drive target back to state `s'`.
+   *     If `DO(target)` succeeds, thereby changing the state of target to `s'`, then it must yield `Some(change)` such that henceforth, whenever target is in state `s'`, `change.undo()`
+   *     will drive it back to state `s`; and whenever target is in state `s`, `change.redo()` will drive target back to state `s'`.
    *
-   *     If `DO(target)` fails, or is otherwise non-applicable, then it
-   *     must yield `None`, and must not change the state of target.
+   *     If `DO(target)` fails, or is otherwise non-applicable, then it must yield `None`, and must not change the state of target.
    */
+
+   val foo = """able
+        | total 1256
+        |-rw-r--r--@ 1 sufrin  staff    8788 21 Sep 13:31 Commands.scala -rw-r--r--  1 sufrin  staff   33004 20 Sep 17:54 L03.log
+        |-rw-r--r--  1 sufrin  staff   58662 20 Sep 17:54 L03.synctex.gz -rw-r--r--@ 1 sufrin  staff  335239 20 Sep 17:54 L03.pdf
+        |-rw-r--r--  1 sufrin  staff   25540 20 Sep 17:54 L03.fls -rw-r--r--  1 sufrin  staff     476 20 Sep 17:54 L03.nop -rw-r--r--
+        |1 sufrin  staff    3478 20 Sep 17:54 L03.aux -rw-r--r--  1 sufrin  staff   12695 20 Sep 17:54 L03.not -rw-r--r--  1 sufrin
+        |staff     300 20 Sep 17:54 L03.con -rw-r--r--  1 sufrin  staff       0 20 Sep 17:54 L03.gitdate -rw-r--r--  1 sufrin  staff
+        |8415 20 Sep 16:15 L03.tex.texlog -rw-r--r--@ 1 sufrin  staff   18333  5 Sep 17:10 L03.tex -rw-r--r--  1 sufrin  staff    2236
+        |9 Jul 12:39 formattingtest.tex -rw-r--r--  1 sufrin  staff    3115  9 Jul 12:39 Span.html -rw-r--r--  1 sufrin  staff   69026
+        |9 Jul 12:39 02-Patterns.tex -rw-r--r--  1 sufrin  staff     881  8 Jul 20:57 texput.log -rw-r--r--  1 sufrin  staff     225
+        |8 Jul 20:57 texput.fls -rw-r--r--@ 1 sufrin  staff     240 29 Mar 14:19 L01.tex -rw-r--r--@ 1 sufrin  staff     194 29 Mar
+        |14:19 L02.tex -rw-r--r--@ 1 sufrin  staff      27 29 Mar 14:19 master.tex -rw-r--r--@ 1 sufrin  staff      66 29 Mar 14:19
+        |term.date -rw-r--r--@ 1 sufrin  staff      33 29 Mar 14:19 xyzzy
+        """
+   
   trait Command[T] {
     def DO(target: T): Option[StateChange]
     def &&&(that: Command[T]): Command[T] = Command.andThen(this, that)
