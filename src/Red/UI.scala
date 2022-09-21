@@ -522,18 +522,22 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
     contents += new Utils.Menu("Edit") {
 
         contents += Item("fmt ...") {
+          tooltip = "Format the selection using the fmt program"
           withFilterWarnings("fmt ") { UI_DO(EditSessionCommands.formatter(argLine.text)) }
         }
 
         contents += Item("fmt /* ...") {
-          withFilterWarnings("fmt ") { UI_DO(EditSessionCommands.formatter(argLine.text, "gfmt -p *", List("*"))) }
+          tooltip = "Format the selection as a comment using the redcomment program"
+          withFilterWarnings("fmt /* ") { UI_DO(EditSessionCommands.formatter(argLine.text, "redcomment")) }
         }
 
-        contents += Item("LowerCase") {
+      contents += Separator()
+
+      contents += Item("ABC -> abc") {
           UI_DO(EditSessionCommands.lowerCaseFilter)
         }
 
-        contents += Item("UpperCase") {
+        contents += Item("abc -> ABC") {
           UI_DO(EditSessionCommands.upperCaseFilter)
         }
 

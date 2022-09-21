@@ -125,7 +125,7 @@ object EditSessionCommands extends Logging.Loggable {
       if (args.tail forall numOrSwitch)
          None
       else
-         Some("fmt arguments in \u24b6 must be numbers or -switches")
+         Some("formatter arguments in \u24b6 must be numbers or -switches")
       pipeThrough(s"$program $arg", checkArgs(_))
   }
 
