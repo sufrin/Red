@@ -304,7 +304,9 @@ class EditSession(val document: DocumentInterface, private var _path: String)
   def clear(): Unit = {
     document.delete(0, document.textLength)
     cursor = 0
-    //insert("\n")
+    selection = NoSelection
+    forceRefresh = true
+    insert("\n") // was commented out
     notifyHandlers()
   }
 
