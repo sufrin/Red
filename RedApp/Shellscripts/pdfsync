@@ -4,6 +4,6 @@
 file=$1
 line=$2
 # notify "Source Position" $file $line
-/Users/sufrin/bin/red $file@$line
+$HOME/bin/red $file@$line
 
 
