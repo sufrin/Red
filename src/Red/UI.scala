@@ -354,11 +354,36 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
     font = Utils.menuFont
 
     def Item(name: String, toolTip: String = "")(act: => Unit): MenuItem =
-      new MenuItem(Action(name) {
-      act
-    }) {
-      font = Utils.menuButtonFont
-      if (toolTip.nonEmpty) tooltip = toolTip
+      new MenuItem(Action(name) { act }) {
+        font = Utils.menuButtonFont
+        if (toolTip.nonEmpty) tooltip = toolTip
+      }
+
+    abstract class Group(_value: String = "") extends ButtonGroup() { group =>
+      /** The current value of the selected item */
+      var value: String = _value
+
+      /** Invoked when an item is selected whose `value` is the given value */
+      def select(value: String): Unit
+
+      def Item(name: String, value: String, toolTip: String = ""): MenuItem = {
+        val it =
+          new Utils.CheckItem(name) {
+            font = Utils.menuButtonFont
+            if (toolTip.nonEmpty) tooltip = toolTip
+            listenTo(this)
+            reactions += {
+              case event.ButtonClicked(_) =>
+                if (selected) {
+                  group.value = value
+                  select(value)
+                }
+            }
+          }
+        group.buttons += it
+        if (value==group.value) group.select(it)
+        it
+      }
     }
 
     contents += new Utils.Menu("Red") {
@@ -395,8 +420,6 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
           if (text.nonEmpty) theSession.CWD = Utils.toPath(text)
           feedbackWD(theSession.CWD.toString)
         }
-
-
 
         contents += Separator()
 
@@ -518,36 +541,49 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
 
     } // File Menu
 
+    /** A group that generates menu items for managing formatting options  */
+    val formatting = new Group() {
+
+      def select(value: String): Unit = {
+        if (value == "")
+          UI_DO(EditSessionCommands.formatter(argLine.text, "fmt"))
+        else
+          withFilterWarnings("fmt ") {
+            UI_DO(EditSessionCommands.formatter(argLine.text, s"redformat '$value'", List(value)))
+          }
+      }
+    }
+
     contents += new Utils.Menu("Edit") {
 
-        contents += Item("fmt ...", "Format the selection using the fmt program") {
-          withFilterWarnings("fmt ") { UI_DO(EditSessionCommands.formatter(argLine.text)) }
+          contents += Item("fmt ...", "Format the selection with the current mode") {
+             withFilterWarnings("fmt ") { formatting.select(formatting.value) }
+          }
+
+          contents += Separator()
+
+          contents += Item("ABC -> abc") {
+            UI_DO(EditSessionCommands.lowerCaseFilter)
+          }
+
+          contents += Item("abc -> ABC") {
+            UI_DO(EditSessionCommands.upperCaseFilter)
+          }
+
+        contents += Separator()
+
+        contents += Item("\u24bb -> \u24c7", "Replace \u24bb with \u24c7 throughout the selection, using the current find/replace mode") {
+          val asRegex = regexCheck.selected
+          UI_DO(EditSessionCommands.replaceAllInSelection(findLine.text, replLine.text, asRegex))
         }
 
-        contents += Item("fmt /* ...", "Format the selection as a /* ... */ comment using the redformat program") {
-          withFilterWarnings("fmt /* ") { UI_DO(EditSessionCommands.formatter(argLine.text, "redformat '*'", List("*"))) }
-        }
+        contents += Separator()
 
-        contents += Item("fmt \"|...",  "Format the selection as a multiline string using the redformat program") {
-          withFilterWarnings("fmt ") { UI_DO(EditSessionCommands.formatter(argLine.text, "redformat '|'", List("|"))) }
-        }
-
-      contents += Separator()
-
-      contents += Item("ABC -> abc") {
-          UI_DO(EditSessionCommands.lowerCaseFilter)
-        }
-
-        contents += Item("abc -> ABC") {
-          UI_DO(EditSessionCommands.upperCaseFilter)
-        }
-
-      contents += Separator()
-
-      contents += Item("\u24bb -> \u24c7", "Replace \u24bb with \u24c7 throughout the selection, using the current find/replace mode") {
-        val asRegex = regexCheck.selected
-        UI_DO(EditSessionCommands.replaceAllInSelection(findLine.text, replLine.text, asRegex))
-      }
+        contents += formatting.Item(" ...", "", "Format the selection with fmt in non-prefix mode, and set mode to non-prefix")
+        contents += formatting.Item(" -p * ...", "*", "Format the selection with redformat -p * and set mode to -p *")
+        contents += formatting.Item(" -p | ...", "|", "Format the selection with redformat -p | and set mode to -p |")
+        contents += formatting.Item(" -p # ...", "#", "Format the selection with redformat -p # and set mode to -p #")
+        contents += formatting.Item(" -p -- ...", "--", "Format the selection with redformat -p -- and set mode to -p --")
 
     } // Edit Menu
 
@@ -556,20 +592,20 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
       var augmentSelection: Boolean = false
 
       // Pipe the selection through ...
-      contents += Item("\u24b6  < ...") {
+      contents += Item("\u24b6  < ...", "Pipe the selection through the shell command \u24b6 (see also \"Append Selection\")") {
         withFilterWarnings("\u24b6  < ...") { UI_DO(EditSessionCommands.pipeThrough(argLine.text, replaceSelection = !augmentSelection)) }
       }
 
       for { program <- Personalised.pipeNames } {
-        contents += Item(s"$program < ...") {
+        contents += Item(s"$program < ...", s"Pipe the selection through the shell command \"$program\" (see also \"Append Selection\")") {
           withFilterWarnings(s"$program < ...") { UI_DO(EditSessionCommands.pipeThrough(program, replaceSelection = !augmentSelection)) }
         }
       }
 
       contents += Separator()
 
-      contents += new CheckMenuItem("Append selection to piped output") {
-        tooltip  = "When enabled the piped output is supplemented with the original selection"
+      contents += new CheckMenuItem("Append selection") {
+        tooltip  = "When enabled, the original selection is appended to the piped output from the above commands."
         font     = Utils.buttonFont
         selected = augmentSelection
         listenTo(this)
@@ -736,12 +772,14 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
            UI_DO(EditSessionCommands.undentSelectionBy(argLine.text))
     }
 
+
     theView.keystrokeInput.handleWith {
         indentKeys        orElse
         mouseDown         orElse
         handlers.mouse    orElse
         findreplHandler   orElse
         handlers.keyboard orElse {
+        case Instruction(Key.P, _, Control) => UI_DO(EditSessionCommands.selectParagraph &&& EditSessionCommands.formatter(argLine.text, "fmt"))
         case Instruction(Key.Z, _, ControlShift) => UI_DO(history.REDO)
         case Instruction(Key.Z, _, Control) => UI_DO(history.UNDO)
         case Instruction(Key.Q, _, Control) =>
@@ -750,6 +788,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
           saveOperation()
         case Diacritical(mark: Char) =>
           feedback(s"[$mark]")
+
         case other: UserInput =>
           Logging.Default.info(s"Unhandled user input [[$other]] ")
       }

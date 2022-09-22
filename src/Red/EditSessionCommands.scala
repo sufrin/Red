@@ -129,7 +129,6 @@ object EditSessionCommands extends Logging.Loggable {
       pipeThrough(s"$program $arg", checkArgs(_))
   }
 
-
   def pipeThrough(arg: String, errorCheck: Seq[String]=>Option[String] = { args => None }, replaceSelection: Boolean = true): SessionCommand = new Filter {
     protected override def transform(input: String, cwd: Path): Option[String] = {
       val args = FilterUtilities.parseArguments(arg)
@@ -259,6 +258,7 @@ object EditSessionCommands extends Logging.Loggable {
       else None
     }
   }
+
   val nextChar: SessionCommand = new SessionCommand {
     def DO(session: EditSession): StateChangeOption = {
       if (session.nextChar()) Some {
@@ -269,6 +269,19 @@ object EditSessionCommands extends Logging.Loggable {
         }
       }
       else None
+    }
+  }
+
+  val selectParagraph: SessionCommand = new SessionCommand {
+    def DO(session: EditSession): StateChangeOption = {
+      val oldCursor = session.cursor
+      val oldSelection = session.selection
+      session.selectParagraph()
+        Some(new StateChange {
+          def undo(): Unit = { session.selection = oldSelection; session.cursor = oldCursor }
+          def redo(): Unit = session.selectParagraph()
+          override val kind: String = "->"
+        })
     }
   }
 

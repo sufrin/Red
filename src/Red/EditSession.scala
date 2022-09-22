@@ -1,5 +1,7 @@
 package Red
 
+import sufrin.regex.Regex
+
 import java.nio.file.Path
 
 /**
@@ -502,38 +504,40 @@ class EditSession(val document: DocumentInterface, private var _path: String)
     val rightPara : Regex   = Regex("\n\\s*(\n|$)")
   }
 
+  def selectParagraph(): Unit = selectChunkMatching(cursor, Boundaries.leftPara, Boundaries.rightPara, 1, 1)
+
+  def selectChunkMatching(startingCursor: Int, left: Regex, right: Regex, adjl: Int, adjr: Int): Unit =
+    left.findSuffix(document.characters, 0, startingCursor) match {
+      case None =>
+      case Some(leftp) =>
+        if (logging) finest(s"leftp=${(leftp.start, leftp.end)} (${leftp})")
+        right.findPrefix(document.characters, leftp.end, document.characters.length) match {
+          case None =>
+            if (logging) finest(s"NO RIGHT MATCH FOR $right ${leftp.end}..${document.characters.length}") // (**)
+          case Some(rightp) =>
+            if (logging) finest(s"rightp=${(rightp.start, rightp.end)} ($rightp)")
+            val (start, end) = (if (leftp.start == 0) leftp.start else leftp.start + adjl, rightp.end - adjr)
+            if (logging) finest(s"(start, end)=${(start, end)}")
+            if (startingCursor - start > end - startingCursor) {
+              cursor = end
+              setMark(start)
+            }
+            else {
+              cursor = start
+              setMark(end)
+            }
+        }
+    }
+
   /** `2 <= clicks <= 5` */
   def selectChunk(row: Int, col: Int, clicks: Int): Unit = {
-    import sufrin.regex.Regex
     val startingCursor = document.coordinatesToPosition(row, col)
 
-    def selectChunkMatching(left: Regex, right: Regex, adjl: Int, adjr: Int): Unit =
-      left.findSuffix(document.characters, 0, startingCursor) match {
-        case None =>
-        case Some(leftp) =>
-          if (logging) finest(s"leftp=${(leftp.start, leftp.end)} (${leftp})")
-          right.findPrefix(document.characters, leftp.end, document.characters.length) match {
-            case None =>
-              if (logging) finest(s"NO RIGHT MATCH FOR $right ${leftp.end}..${document.characters.length}") // (**)
-            case Some(rightp) =>
-              if (logging) finest(s"rightp=${(rightp.start, rightp.end)} ($rightp)")
-              val (start, end) = (if (leftp.start == 0) leftp.start else leftp.start + adjl, rightp.end - adjr)
-              if (logging) finest(s"(start, end)=${(start, end)}")
-              if (startingCursor - start > end - startingCursor) {
-                cursor = end
-                setMark(start)
-              }
-              else {
-                cursor = start
-                setMark(end)
-              }
-          }
-      }
     import Boundaries._
     clicks match {
-      case 2 => selectChunkMatching(leftWord, rightWord, 1, 1) // word
-      case 3 => selectChunkMatching(leftLine, rightLine, 1, 0) // line
-      case 4 => selectChunkMatching(leftPara, rightPara, 1, 1) // para
+      case 2 => selectChunkMatching(startingCursor, leftWord, rightWord, 1, 1) // word
+      case 3 => selectChunkMatching(startingCursor, leftLine, rightLine, 1, 0) // line
+      case 4 => selectChunkMatching(startingCursor, leftPara, rightPara, 1, 1) // para
       case 5 => // select the closest balanced \begin/\end block ending below the click position
                 // If the button was clicked nearer to the start of the block than to the end
                 // then the cursor and mark are placed at start/end of the selection
