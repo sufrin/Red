@@ -7,7 +7,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import javax.swing.{Icon, SwingUtilities}
 import scala.collection.mutable.ListBuffer
-import scala.swing.{Action, Alignment, BoxPanel, Button, CheckMenuItem, Component, Image, Label, MenuItem, Orientation, event}
+import scala.swing.{Action, Alignment, BoxPanel, Button, ButtonGroup, CheckMenuItem, Component, Image, Label, MenuItem, Orientation, event}
 import scala.sys.process.Process
 
 /** System wide default settings. These will eventually be treated as (dynamic)
@@ -446,12 +446,65 @@ object Utils {
   /**
    *  A persistent `CheckMenuItem`
    */
-  class CheckItem(name: String) extends CheckMenuItem(name) {
-    selected = appleRedUI.getBoolean(name, false)
+  class PersistentCheckItem(title: String, persistentName: String, default: => Boolean) extends CheckMenuItem(title) {
+    selected = appleRedUI.getBoolean(persistentName, default)
     reactions += {
       case event.ButtonClicked(_) =>
-        appleRedUI.putBoolean(name, selected)
+        appleRedUI.putBoolean(persistentName, selected)
         appleRedUI.sync()
     }
   }
+
+
+  /**
+   *   A group of mutually-exclusive (menu-)items: each has a name and a value
+   *   and (possibly) a tooltip. The group has an associated value, which
+   *   is set whenever one of the group items is set.
+   *
+   *   @param _value the initial value associated with the group. The initially
+   *                 selected item of the group is one of those, if any,
+   *                 with this value.
+   */
+  abstract class Group(_value: String = "") extends ButtonGroup() { group =>
+    /** The current value of the selected item */
+    var value: String = _value
+
+    /**
+     *  Invoked whenever an item from this group is selected.
+     *  @param value will be the `value` of the selected menu item.
+     */
+    protected def select(value: String): Unit
+
+    /**
+     *  Invoke the select method ''as if'' the currently-selected item had been clicked.
+     */
+    def select(): Unit = select(value)
+
+    /**
+     *   Construct a menu item that is part of the group, and whose value is assigned to the
+     *   group's value when it is clicked. The item '''must''' be added to a menu.
+     *   It is customary, though not mandatory, for all the menu items in a group to be
+     *   added to the same menu.
+     */
+    def Item(name: String, value: String, toolTip: String = ""): MenuItem = {
+      val it =
+        new CheckMenuItem(name) {
+          selected = false
+          font = Utils.menuButtonFont
+          if (toolTip.nonEmpty) tooltip = toolTip
+          listenTo(this)
+          reactions += {
+            case event.ButtonClicked(_) =>
+              if (selected) {
+                group.value = value
+                select(value)
+              }
+          }
+        }
+      group.buttons += it
+      if (value==group.value) group.select(it)
+      it
+    }
+  }
+
 }

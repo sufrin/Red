@@ -53,6 +53,12 @@ object Personalised extends Logging.Loggable {
       )
   }
 
+  object Settings {
+    var typeOverSelection: Boolean = true
+    var clickSelects:      Boolean = true
+    var autoIndenting:     Boolean = true
+  }
+
   object Bindings {
     val feedback: Notifier[String] = new Notifier[String]("Personalised Feedback")
 
@@ -267,6 +273,17 @@ object Personalised extends Logging.Loggable {
           for { map <- pairs if map.length>=2 }
             AltKeyboard.mapTo(map(0).toUpper, map(1), shift=false)
 
+        case (variable :: "is" :: value :: Nil) =>
+             try {
+               variable match {
+                 case "typeover"   => Settings.typeOverSelection = value.toBoolean
+                 case "autoselect" => Settings.clickSelects = value.toBoolean
+                 case "autoindent" => Settings.autoIndenting = value.toBoolean
+               }
+             } catch {
+               case exn: Throwable => warning(profile, fields.mkString("Erroneous variable setting:\n", " ", s"\n($context@$lineNumber)"))
+             }
+
         case other =>
           warning(profile, other.mkString("Erroneous binding declaration:\n", " ", s"\n($context@$lineNumber)"))
       }
@@ -340,22 +357,4 @@ object Personalised extends Logging.Loggable {
 
 
   }
-
-  /*
-  locally {
-    import java.util.prefs.Preferences
-    val
-    val root = Preferences.userRoot()
-
-    val redPrefs = root.node("red")
-    val latexPrefs = root.node("red/latex")
-    val pipePrefs = root.node("red/pipe")
-    pipePrefs.put("wc", "")
-    pipePrefs.put("ls", "-lt")
-    for {block <- latexBlockTypes} latexPrefs.put(block, "")
-    val dump = new FileOutputStream("./.RedPrefs.xml")
-    redPrefs.exportSubtree(dump)
-    dump.close()
-  }
-  */
 }

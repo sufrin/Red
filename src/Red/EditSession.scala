@@ -188,8 +188,9 @@ class EditSession(val document: DocumentInterface, private var _path: String)
   /////////////////////////// Editing Command implementations ///////////////////////
   //////////////////////////////////////////////////////////////////////////////////
 
-  var typeOverSelection: Boolean = false
-  var autoIndenting:     Boolean = true
+  var typeOverSelection: Boolean = Personalised.Settings.typeOverSelection
+  var autoIndenting:     Boolean = Personalised.Settings.autoIndenting
+  var clickSelects:      Boolean = Personalised.Settings.clickSelects
 
   /** Remove the mark
    *  (OPTIONAL PRACTICAL: cut the selection if in typeover mode)

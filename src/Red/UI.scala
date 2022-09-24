@@ -342,49 +342,21 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
     contents += replLine
   }
 
-  // TODO: Eventually this should be a user-preference module
-  // DONE: Sept 2022
-  private object Settings {
-    var typeOverSelection: Boolean = false
-    var clickSelects:      Boolean = true
-    var autoIndenting:     Boolean = true
-  }
+
 
   private val theMenuBar: MenuBar = new MenuBar {
     font = Utils.menuFont
 
-    def Item(name: String, toolTip: String = "")(act: => Unit): MenuItem =
+    def menuButton(name: String, toolTip: String = "", centred: Boolean = false)(act: => Unit): MenuItem =
       new MenuItem(Action(name) { act }) {
         font = Utils.menuButtonFont
+        if (centred) {
+          xLayoutAlignment = 0.5
+          horizontalAlignment = Alignment.Center
+        }
         if (toolTip.nonEmpty) tooltip = toolTip
       }
 
-    abstract class Group(_value: String = "") extends ButtonGroup() { group =>
-      /** The current value of the selected item */
-      var value: String = _value
-
-      /** Invoked when an item is selected whose `value` is the given value */
-      def select(value: String): Unit
-
-      def Item(name: String, value: String, toolTip: String = ""): MenuItem = {
-        val it =
-          new Utils.CheckItem(name) {
-            font = Utils.menuButtonFont
-            if (toolTip.nonEmpty) tooltip = toolTip
-            listenTo(this)
-            reactions += {
-              case event.ButtonClicked(_) =>
-                if (selected) {
-                  group.value = value
-                  select(value)
-                }
-            }
-          }
-        group.buttons += it
-        if (value==group.value) group.select(it)
-        it
-      }
-    }
 
     contents += new Utils.Menu("Red") {
 
@@ -396,19 +368,19 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
 
         def theParent(): Component  = new CentredLabel(s"  +: ${relativeToHome(theSession.parentPath)}  ") { font = Utils.buttonFont; background = Color.lightGray }
 
-        def selectTheParent(): Component = Item("cd +", toolTip = s"Change working directory to ${relativeToHome(theSession.parentPath)}") {
+        def selectTheParent(): Component = menuButton("cd +", toolTip = s"Change working directory to ${relativeToHome(theSession.parentPath)}") {
           theSession.CWD = theSession.parentPath;
           feedbackWD(theSession.CWD.toString)
         }
 
         def dynamic = List ( theLabel(), theParent(), Separator(), selectTheParent())
 
-        suffix += Item("cd ~", toolTip = "Change working directory to user's home directory") {
+        suffix += menuButton("cd ~", toolTip = "Change working directory to user's home directory") {
           theSession.CWD = Utils.homePath;
           feedbackWD(theSession.CWD.toString)
         }
 
-        suffix += Item("cd \u24b6", toolTip = "Change working directory using dialogue or nonempty \u24b6 field") {
+        suffix += menuButton("cd \u24b6", toolTip = "Change working directory using dialogue or nonempty \u24b6 field") {
           var text = argLine.text.trim
           if (text.isEmpty) {
             val chooser = dirChooser
@@ -427,10 +399,9 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
       contents += Separator()
       contents += Separator()
 
-      contents += new Utils.CheckItem("Typeover") {
+      contents += new Utils.PersistentCheckItem("Typeover", "typeover", Personalised.Settings.typeOverSelection) {
         tooltip  = "When this is enabled, the selection is automatically cut when material is typed"
         font     = Utils.buttonFont
-        // selected = Settings.typeOverSelection
         listenTo(this)
         reactions += {
           case event.ButtonClicked(_) =>
@@ -438,21 +409,19 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
         }
       }
 
-      contents += new Utils.CheckItem("Select {...}") {
+      contents += new Utils.PersistentCheckItem("Select {...}", "autoselect", Personalised.Settings.clickSelects) {
         tooltip  = "When this enabled, a mouse-click adjacent to bracketed material of any kind selects that material"
         font     = Utils.buttonFont
-        // selected = Settings.clickSelects
         listenTo(this)
         reactions += {
           case event.ButtonClicked(_) =>
-            Settings.clickSelects = selected
+            theSession.clickSelects = selected
         }
       }
 
-      contents += new Utils.CheckItem("Auto indent") {
-        tooltip  = "When this is enabled, a newline is followed by enough spaces to align the cursor (and non-space material to its right) with the indentation of the current line"
+      contents += new Utils.PersistentCheckItem("Auto indent", "autoindent", Personalised.Settings.autoIndenting) {
+        tooltip  = "When this is enabled, the insertion of a newline will align the cursor (and any non-space material to its right) with the indentation of the current line"
         font     = Utils.buttonFont
-        // selected = Settings.autoIndenting
         listenTo(this)
         reactions += {
           case event.ButtonClicked(_) =>
@@ -463,13 +432,13 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
       if (theSession.hasCutRing) {
         contents += Separator()
         contents += Separator()
-        contents += Item("Cut Ring", toolTip = "Show the cut-ring control window") {
+        contents += menuButton("Cut Ring", toolTip = "Show the cut-ring control window") {
           CutRingUI.refreshIfVisible()
         }
       }
 
       contents += Separator()
-      contents += Item("Bindings", toolTip = "Reimport bindings from scratch")  {
+      contents += menuButton("Bindings", toolTip = "Reimport bindings from scratch")  {
         Personalised.Bindings.reImportBindings()
       }
 
@@ -485,41 +454,41 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
 
       contents += Separator()
 
-      contents += Item("Quit", toolTip = "Quit now if there are no unsaved document sessions; else ask each unsaved document session what to do")  { top.closeOperation() }
+      contents += menuButton("Quit", toolTip = "Quit now if there are no unsaved document sessions; else ask each unsaved document session what to do")  { top.closeOperation() }
 
     }
 
     contents += new Utils.Menu("File") {
 
-      contents += Item("Open \u24b6", "Edit the document at the path specified by the \u24b6 field or by making a choice of path") {
+      contents += menuButton("Open \u24b6", "Edit the document at the path specified by the \u24b6 field or by making a choice of path") {
         openArglinePath()
       }
 
       contents += new Utils.LazyDynamicMenu("Open recent", { Utils.Recents.get } ) {
         def component (path: String): Component = {
           if (path=="-")
-            Item(s"""(Forget recent paths)""", "Forget recent paths") {
+            menuButton(s""" (Forget recent paths) """, "Forget recent paths", centred=true) {
               Utils.Recents.forget()
             }
           else
-            Item(s"""Open $path""") {
+            menuButton(s"""Open $path""") {
               Red.Server.process(path)
             }
         }
       }
 
-      contents += Item("Open New", "Edit the document at the path specified by the \u24b6 field or by making a choice of path") {
+      contents += menuButton("Open New", "Edit the document at the path specified by the \u24b6 field or by making a choice of path") {
         Red.Server.process(Utils.freshDocumentName())
       }
 
       contents += Separator()
       contents += Separator()
 
-      contents += Item("Save") {
+      contents += menuButton("Save") {
         saveOperation()
       }
 
-      contents += Item("Save as \u24b6", "Save at the path specified by the \u24b6 field or by making a choice of path") {
+      contents += menuButton("Save as \u24b6", "Save at the path specified by the \u24b6 field or by making a choice of path") {
         val text = argLine.text.trim
         if (text.isEmpty)
           { val chooser = fileChooser
@@ -535,15 +504,14 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
         top.saveAs(Utils.localizePath(text, theSession.CWD, Utils.toParentPath(theSession.path)))
       }
 
-      contents += Item("Save & Quit", "Save the document if it needs saving; then close this session.") {
+      contents += menuButton("Save & Quit", "Save the document if it needs saving; then close this session.") {
         close()
       }
 
     } // File Menu
 
     /** A group that generates menu items for managing formatting options  */
-    val formatting = new Group() {
-
+    val formatting = new Utils.Group() {
       def select(value: String): Unit = {
         if (value == "")
           UI_DO(EditSessionCommands.formatter(argLine.text, "fmt"))
@@ -556,30 +524,35 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
 
     contents += new Utils.Menu("Edit") {
 
-          contents += Item("fmt ...", "Format the selection with the current mode") {
-             withFilterWarnings("fmt ") { formatting.select(formatting.value) }
+          contents += menuButton("format ...", "Format the selection using the current mode") {
+             withFilterWarnings("format") { formatting.select() }
           }
 
           contents += Separator()
 
-          contents += Item("ABC -> abc") {
+          contents += menuButton("ABC -> abc", "Make the selection lowercase", centred = true) {
             UI_DO(EditSessionCommands.lowerCaseFilter)
           }
 
-          contents += Item("abc -> ABC") {
+          contents += menuButton("abc -> ABC", "Make the selection uppercase", centred = true) {
             UI_DO(EditSessionCommands.upperCaseFilter)
           }
 
         contents += Separator()
 
-        contents += Item("\u24bb -> \u24c7", "Replace \u24bb with \u24c7 throughout the selection, using the current find/replace mode") {
+        contents += menuButton("\u24bb -> \u24c7", "Replace \u24bb with \u24c7 throughout the selection, using the current find/replace mode", centred = true) {
           val asRegex = regexCheck.selected
           UI_DO(EditSessionCommands.replaceAllInSelection(findLine.text, replLine.text, asRegex))
         }
 
         contents += Separator()
+        contents += Separator()
 
-        contents += formatting.Item(" ...", "", "Format the selection with fmt in non-prefix mode, and set mode to non-prefix")
+        contents += new Label(" format modes ") {
+          font = Utils.menuButtonFont
+          xLayoutAlignment = 0.5
+        }
+        contents += formatting.Item(" ...", "", "Format the selection in non-prefix mode, and set mode to non-prefix")
         contents += formatting.Item(" -p * ...", "*", "Format the selection with redformat -p * and set mode to -p *")
         contents += formatting.Item(" -p | ...", "|", "Format the selection with redformat -p | and set mode to -p |")
         contents += formatting.Item(" -p # ...", "#", "Format the selection with redformat -p # and set mode to -p #")
@@ -592,12 +565,12 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
       var augmentSelection: Boolean = false
 
       // Pipe the selection through ...
-      contents += Item("\u24b6  < ...", "Pipe the selection through the shell command \u24b6 (see also \"Append Selection\")") {
+      contents += menuButton("\u24b6  < ...", "Pipe the selection through the shell command \u24b6 (see also \"Append Selection\")") {
         withFilterWarnings("\u24b6  < ...") { UI_DO(EditSessionCommands.pipeThrough(argLine.text, replaceSelection = !augmentSelection)) }
       }
 
       for { program <- Personalised.pipeNames } {
-        contents += Item(s"$program < ...", s"Pipe the selection through the shell command \"$program\" (see also \"Append Selection\")") {
+        contents += menuButton(s"$program < ...", s"Pipe the selection through the shell command \"$program\" (see also \"Append Selection\")") {
           withFilterWarnings(s"$program < ...") { UI_DO(EditSessionCommands.pipeThrough(program, replaceSelection = !augmentSelection)) }
         }
       }
@@ -625,7 +598,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
     }
 
     contents += new LazyDynamicMenu("\\begin{...}", { Red.Personalised.latexBlockTypes }) {
-      prefix += Item("%%%%%%%%") {
+      prefix += menuButton("%%%%%%%%") {
         val header =
           """%%%%%%%%%%%%%%%%%%%%%%%%
             |%%%%%%%%%%%%%%%%%%%%%%%%
@@ -640,17 +613,17 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
         if (block == "-")
           Separator()
         else
-          Item(s"""\\begin{$block}""") { UI_DO(EditSessionCommands.latexBlock(block)) }
+          menuButton(s"""\\begin{$block}""") { UI_DO(EditSessionCommands.latexBlock(block)) }
       }
 
       // contents ++= dynamic
 
       suffix += Separator()
-      suffix += Item("\\begin{\u24b6}", "Embed selection in latex block named in \u24b6") {
+      suffix += menuButton("\\begin{\u24b6}", "Embed selection in latex block named in \u24b6") {
         UI_DO(EditSessionCommands.latexBlock(argLine.text.trim))
       }
 
-      suffix += Item("""\begin{...}->...""", "Extract content of selected latex block") {
+      suffix += menuButton("""\begin{...}->...""", "Extract content of selected latex block") {
         UI_DO(EditSessionCommands.latexUnblock)
       }
 
@@ -660,7 +633,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
       suffix += new Menu("Class") {
 
 
-        contents += Item("\\documentclass{article}") {
+        contents += menuButton("\\documentclass{article}") {
           val up = "\\usepackage[]{}"
           val header =
             s"""\\documentclass[11pt,a4paper]{article}
@@ -679,7 +652,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
           UI_DO(EditSessionCommands.latexInsert(header))
         }
 
-        contents += Item("\\documentclass{letter}") {
+        contents += menuButton("\\documentclass{letter}") {
           val header =
             s"""\\documentclass[12pt,lab|wor|home|magd,bernard|sufrin]{letter} %
                |\\To{lines\\\\of\\\\mailing address}
@@ -697,7 +670,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
         contents += Separator()
         contents += Separator()
 
-        contents += Item("Tex source := \u24b6", toolTip = "Change default tex source using dialogue or nonempty \u24b6 field") {
+        contents += menuButton("Tex source := \u24b6", toolTip = "Change default tex source using dialogue or nonempty \u24b6 field") {
           var text = argLine.text.trim
           if (text.isEmpty) {
             val chooser = fileChooser
@@ -710,7 +683,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
           feedbackPersistently(s"Tex source: ${theSession.TEX.toString}")
         }
 
-        contents += Item(s"Default tex source := ${theSession.path}", toolTip = "Change default latex source to current file") {
+        contents += menuButton(s"Default tex source := ${theSession.path}", toolTip = "Change default latex source to current file") {
           theSession.TEX=Utils.toPath(theSession.path)
           feedbackPersistently(s"Tex source: ${theSession.TEX.toString}")
         }
@@ -754,28 +727,15 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
     contents = thePanel
     if (isFileEditor) menuBar = theMenuBar
 
-    /**
-     *  Mouse down and (maybe) select an adjacent bracketed text:   a single command goes into the history
-     *  NB: the expedient way of doing this: by executing the session commands with separate `DO`s puts
-     *  two commands in the history which is confusing for users trying to undo their last "click".
-     *  (Indeed I only spotted this myself very late in development)
-     */
-    val mouseDown: UserInputHandler = {
-      case MousePressed(row, col, 1, Button1) =>
-        UI_DO(EditSessionCommands.setCursorAndMark(row, col) &&& EditSessionCommands.selectMatching.when(_ => Settings.clickSelects))
-    }
-
     val indentKeys: UserInputHandler = {
       case Instruction(Key.Tab, _, Alt)       =>
-           UI_DO(EditSessionCommands.indentSelectionBy(argLine.text))
+        UI_DO(EditSessionCommands.indentSelectionBy(argLine.text))
       case Instruction(Key.Tab, _, AltShift)  =>
-           UI_DO(EditSessionCommands.undentSelectionBy(argLine.text))
+        UI_DO(EditSessionCommands.undentSelectionBy(argLine.text))
     }
-
 
     theView.keystrokeInput.handleWith {
         indentKeys        orElse
-        mouseDown         orElse
         handlers.mouse    orElse
         findreplHandler   orElse
         handlers.keyboard orElse {
