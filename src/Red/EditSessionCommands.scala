@@ -717,6 +717,24 @@ object EditSessionCommands extends Logging.Loggable {
    *  replace that abbreviation with the text it abbreviates. Unicode
    *  sequences of the form `\uxxxx` are taken to be abbreviations for
    *  the characters they encode.
+   *
+   *  TODO: Unify the idea of an abbreviation and the Latex-\begin
+   *  block specifictions:
+   *
+   *        1. a simble abbr / block should be as now -- literal back-find
+   *           to literal replace
+   *
+   *        2. a template abbr / block should treat the replacement text
+   *           as a template, substituting for variables/expressions within
+   *           it. For example, `${(F)}`, `${(R)}``${(A)}` could mean
+   *           the content of the find pattern, replace, and argument
+   *           fiels of the current session. The question remains:
+   *           should it be possible to refer to the ''selection''
+   *           in an ''abbreviation'' template invoked from the
+   *           keyboard? Probably not: an abbreviation is "usually"
+   *           typed just before the ABBREVIATE key, and the typing
+   *           would eliminate the selection.
+  *
    */
   val abbreviate: SessionCommand = new SessionCommand {
     def DO(session: EditSession): StateChangeOption = {
