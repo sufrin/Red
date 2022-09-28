@@ -238,19 +238,19 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
     case Instruction(Key.R,  _, mods) => replace(findLine.text, replLine.text, backwards = mods.hasShift)
 
     case Instruction(Key.Decimal, _, mods) if (mods.hasControl) =>
-      replLine.peer.grabFocus()
+      replLine.requestFocusInWindow()
       replLine.text=""
 
     case Instruction(Key.Decimal, _, mods) =>
       replace(findLine.text, replLine.text, backwards = mods.hasShift)
 
     case Instruction(Key.Numpad0, _, mods) if (mods.hasControl) =>
-      findLine.peer.grabFocus()
+      findLine.requestFocusInWindow()
       findLine.text = ""
 
     case Instruction(Key.Enter, _, mods) if (mods.hasControl) =>
-      findLine.peer.grabFocus()
-      findLine.text = ""
+      argLine.requestFocusInWindow()
+      argLine.text = ""
 
     case Instruction(Key.Numpad0, _, mods)  =>
       if (mods.hasAlt && theSession.hasSelection) {
@@ -329,15 +329,21 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
   private val theWidgets = new BoxPanel(Orientation.Horizontal) {
     contents += Button("\u24b6", toolTip = "(Clear) the \u24b6 field \u2191") {
       argLine.text = ""
+      argLine.requestFocusInWindow()
+      // TODO: make this button drop down a menu of recents
     } // (A)
     contents += argLine
     contents += regexCheck
     contents += Button("\u24bb", toolTip = "Clear the adjacent find pattern") {
       findLine.text = ""
+      findLine.requestFocusInWindow()
+      // TODO: make this button drop down a menu of recents
     } // (F)
     contents += findLine
     contents += Button("\u24c7", toolTip = "Clear the adjacent replacement template") {
       replLine.text = ""
+      replLine.requestFocusInWindow()
+      // TODO: make this button drop down a menu of recents
     } // (R)
     contents += replLine
   }
@@ -713,7 +719,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
 
   def find(thePattern: String, backwards: Boolean): Unit = {
     val asRegex = regexCheck.selected
-    UI_DO(EditSessionCommands.find(thePattern, backwards, asRegex))
+    UI_DO(EditSessionCommands.find(thePattern, backwards, asRegex){ theView.requestFocusInWindow() })
   }
 
   def replace(thePattern: String, theReplacement: String, backwards: Boolean): Unit = {

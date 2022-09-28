@@ -549,14 +549,16 @@ object EditSessionCommands extends Logging.Loggable {
     }
   }
 
-  def find(thePattern: String, backwards: Boolean, asRegex: Boolean): SessionCommand = new SessionCommand {
+  def find(thePattern: String, backwards: Boolean, asRegex: Boolean)(onFind: => Unit): SessionCommand = new SessionCommand {
     def DO(session: EditSession): StateChangeOption = {
         val oldSelection = session.selection
         val oldCursor = session.cursor
-        if (session.find(thePattern, backwards, asRegex)) Some (new StateChange {
+        if (session.find(thePattern, backwards, asRegex)) {
+          onFind
+          Some (new StateChange {
            def undo(): Unit = { session.cursor=oldCursor; session.selection = oldSelection}
            def redo(): Unit = session.find(thePattern, backwards, asRegex)
-        }) else None
+        })} else None
     }
   }
 

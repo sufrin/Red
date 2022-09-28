@@ -1,6 +1,7 @@
 package Red
 
 import Red.EditSessionCommands.{SessionCommand, StateChangeOption}
+import Red.InputPanel.{finer, logging}
 import Red.UserInputHandlers._
 
 import scala.swing._
@@ -56,6 +57,11 @@ class TextLine(cols: Int, toolTip: String = "") extends BoxPanel(Orientation.Hor
   protected val session: EditSession            = new EditSession(doc, "") with LFPlugin
   protected val view     = new DocumentView(session, 1, cols, font=Utils.widgetFont) {
     override def mouseExited(): Unit = TextLine.this.mouseExited()
+  }
+
+  override def requestFocusInWindow(): Boolean = {
+    val r = view.requestFocusInWindow()
+    r
   }
 
   def mouseExited(): Unit = {}

@@ -1,9 +1,8 @@
 package Red
 
+import java.awt.Cursor
 import java.awt.event.KeyEvent._
 import java.awt.event._
-import java.awt.{Cursor, KeyboardFocusManager}
-import javax.swing.KeyStroke
 import scala.swing.event.{FocusGained, FocusLost}
 import scala.swing.{Component, Container}
 
@@ -310,6 +309,13 @@ abstract class InputPanel(val numPadAsCommand: Boolean = true,
     Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR)
   }
 
+  override def requestFocusInWindow(): Boolean = {
+    peer.grabFocus()
+    val r = peer.requestFocusInWindow()
+    if (logging) finer(s"requestFocusinWindow()=$r")
+    r
+  }
+
   /** Invoked when this component gains (or loses)
    * the input focus. The standard response to these events is
    * to repaint the component after setting the cursor image
@@ -323,7 +329,7 @@ abstract class InputPanel(val numPadAsCommand: Boolean = true,
     hasFocus match {
       case true  =>
         // Technicality: grab focus-changing keystrokes (TAB/BACKTAB)
-        //peer.setFocusTraversalKeysEnabled(false)
+        peer.setFocusTraversalKeysEnabled(false)
         // Show the text-editing cursor image )(
         peer.setCursor(FocussedCursorImage)
         repaint()
@@ -331,7 +337,7 @@ abstract class InputPanel(val numPadAsCommand: Boolean = true,
       // This component lost the keyboard/mouse focus to another or to the system
       case false =>
         // Technicality: relinquish focus-changing keystrokes (TAB/BACKTAB)
-        //peer.setFocusTraversalKeysEnabled(true)
+        peer.setFocusTraversalKeysEnabled(true)
         // Show the generic cursor image
         peer.setCursor(UnfocussedCursorImage)
         repaint()
@@ -339,6 +345,11 @@ abstract class InputPanel(val numPadAsCommand: Boolean = true,
   }
 
   locally {
+    /*
+       Swing KeyboardFocus should let this component request focus,
+       but should ignore focus traversal keys
+    */
+
     listenTo(this)
     reactions += {
       case FocusGained(self, other, temp) => {
@@ -350,23 +361,9 @@ abstract class InputPanel(val numPadAsCommand: Boolean = true,
         //if (logging) finer(s"FocusLost($self, $other, $temp)")
       }
     }
-
-      /*
-         Swing KeyboardFocus should let this component request focus,
-         but should ignore focus traversal keys
-      */
-
-      if (true) // [Copied from Dred: not functioning]
-      { val empty = new java.util.HashSet[KeyStroke]()
-        val fwd = new java.util.HashSet[KeyStroke]()
-        fwd.add(KeyStroke.getKeyStroke("control TAB")) //TODO: UNDO
-        peer.setFocusTraversalKeys(KeyboardFocusManager.FORWARD_TRAVERSAL_KEYS,  fwd);
-        peer.setFocusTraversalKeys(KeyboardFocusManager.BACKWARD_TRAVERSAL_KEYS, empty);
-        peer.setFocusTraversalKeys(KeyboardFocusManager.UP_CYCLE_TRAVERSAL_KEYS, empty);
-        peer.setFocusable(true);
-        peer.setRequestFocusEnabled(true);
-      }
-    }
+    peer.setFocusable(true);
+    peer.setRequestFocusEnabled(true);
+  }
   
   /** (Defined in subclasses): map the location of a mouse event
    *  relative to this component, to its  `(row, col)` coordinates
