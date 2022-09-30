@@ -189,7 +189,11 @@ object AppleRed extends Logging.Loggable {
 
         private val bg = Color.lightGray
 
-        val profile: CentredLabel = new CentredLabel(Personalised.Bindings.profile) { background = bg; font = Utils.widgetFont }
+        val profile: CentredLabel =
+           if (true)
+             new CentredLabel(Features.profile) { background = bg; font = Utils.widgetFont }
+           else
+             new CentredLabel(Personalised.Bindings.profile) { background = bg; font = Utils.widgetFont }
 
         locally {
           Personalised.Bindings.reImportBindings()
@@ -218,6 +222,9 @@ object AppleRed extends Logging.Loggable {
 
         contents += fileMenu(thisMainFrame)
         contents += Glue.horizontal()
+        if (true)
+          contents += Features.menu
+        else
         contents += new LazyDynamicMenu("Profile", {Bindings.profiles}) {
           font = Utils.rootFont
           def component(profile: String): Component =

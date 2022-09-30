@@ -148,8 +148,8 @@ object EditSessionCommands extends Logging.Loggable {
    *   if the session is in type-over-selection mode and there is a selection.
    *   Otherwise the result simply succeeds having done nothing.
    */
-  def whenInTypeoverMode(command: SessionCommand): SessionCommand =
-    Command.when((s: EditSession) => s.typeOverMode&&s.hasSelection, command)
+  def ifTypeOver(command: SessionCommand): SessionCommand =
+    Command.when((s: EditSession) => s.typeOverMode && s.hasSelection && !s.selection.indicative, command)
 
   /**  A utility command that always succeeds after notifying the
    *   session's handlers that something in the session (may have) changed.
@@ -167,9 +167,10 @@ object EditSessionCommands extends Logging.Loggable {
 
   /**
    * An insertion from the keyboard that cuts the selection first if
-   * the session is in type-over-selection mode.
+   * the session is in type-over-selection mode, and the selection
+   * isn't indicative.
    */
-  def insertCommand(ch: Char): SessionCommand = whenInTypeoverMode(cut &&& notifyNow) &&& insert(ch)
+  def insertCommand(ch: Char): SessionCommand = ifTypeOver(cut &&& notifyNow) &&& insert(ch)
 
   def insert (ch: Char): SessionCommand = {
       if (ch == '\n') autoIndentNL else new SessionCommand {

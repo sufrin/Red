@@ -128,7 +128,9 @@ object Personalised extends Logging.Loggable {
     /** Read the top-level bindings file (unconditionally) */
     def reImportBindings(): Unit = {
       lastImportTime = 0
+      clearBindings()
       importBindings()
+      print(Features.profile)
     }
     /**
      *  Read a single preferences file:
@@ -220,8 +222,10 @@ object Personalised extends Logging.Loggable {
     def processLine(profile: String, depth: Int, context: Path, lineNumber: Int, line: String): Unit = if (line.nonEmpty) {
       def processFields(fields: List[String]): Unit = fields match {
 
+        case "skip" :: _ =>
+
         case (conditional :: pattern :: rest) if conditional=="if" || conditional=="unless" || conditional=="ifnot" => {
-          val cond = try profile.matches(s".*$pattern.*") catch {
+          val cond = try Features.profile.matches(s".*$pattern.*") catch {
             case exn: Error =>
               warning(profile, fields.mkString("Erroneous declaration:\n", " ", s"\n($context@$lineNumber)\nSuspect pattern: $pattern"))
               false
@@ -231,6 +235,13 @@ object Personalised extends Logging.Loggable {
         }
         case ("font" :: kind :: style :: size :: roles) =>
           Utils.setFont(kind, style, size, roles)
+
+        case ("feature" :: name :: kind :: attrs) =>
+             Features.add(name, kind, attrs) match {
+               case Some(error) => warning(profile, fields.mkString("Erroneous declaration:\n", " ", s"\n($context@$lineNumber)\n$error"))
+               case None =>
+             }
+
         case ("profiles" :: rest) =>
           profiles = rest
         case ("profiles+" :: moreProfiles) =>
@@ -239,6 +250,7 @@ object Personalised extends Logging.Loggable {
           profiles = (profiles ++ (for { p<-profiles; q<-moreProfiles} yield s"$p$q")).toSet.toList
         case ("*profiles" :: moreProfiles) =>
           profiles = (profiles ++ (for { p<-profiles; q<-moreProfiles} yield s"$q$p")).toSet.toList
+
         case ("include" :: path :: Nil)  =>
           val exPath = toPath(context, path)
           if (exPath.toFile.exists() && exPath.toFile.canRead())

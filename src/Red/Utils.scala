@@ -7,7 +7,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import javax.swing.{Icon, SwingUtilities}
 import scala.collection.mutable.ListBuffer
-import scala.swing.{Action, Alignment, BoxPanel, Button, ButtonGroup, CheckMenuItem, Component, Image, Label, MenuItem, Orientation, event}
+import scala.swing.{Action, Alignment, BoxPanel, Button, ButtonGroup, CheckMenuItem, Component, Image, Label, MenuItem, Orientation, RadioButton, event}
 import scala.sys.process.Process
 
 /** System wide default settings. These will eventually be treated as (dynamic)
@@ -486,9 +486,10 @@ object Utils {
      *   It is customary, though not mandatory, for all the menu items in a group to be
      *   added to the same menu.
      */
-    def Item(name: String, value: String, toolTip: String = ""): MenuItem = {
+    def CheckBox(name: String, value: String, toolTip: String = ""): Component = {
       val it =
-        new CheckMenuItem(name) {
+        new RadioButton(name) {
+          xLayoutAlignment = 0.0
           selected = false
           font = Utils.menuButtonFont
           if (toolTip.nonEmpty) tooltip = toolTip
@@ -504,6 +505,17 @@ object Utils {
       group.buttons += it
       if (value==group.value) group.select(it)
       it
+    }
+  }
+
+  abstract class CheckBox(name: String, value: String, toolTip: String = "") extends RadioButton(name) {
+    def click(): Unit
+    selected = false
+    font = Utils.menuButtonFont
+    if (toolTip.nonEmpty) tooltip = toolTip
+    listenTo(this)
+    reactions += {
+      case event.ButtonClicked(_) => click()
     }
   }
 
