@@ -2,7 +2,7 @@ package Red
 
 import Red.Utils.DynamicMenu
 
-import scala.swing.Label
+import scala.swing.{Action, Component, Label, MenuItem}
 
 object Features {
   /**
@@ -56,6 +56,22 @@ object Features {
       def makeFeature(_name: String, _kind: String, _attributes: Seq[String]): Either[Feature, String] = {
         var error: Option[String] = None
         val feature: Feature = _kind.toLowerCase() match {
+          case "env" | "environment" =>
+            _attributes match {
+              case List(s"$${$variable=$default}") =>
+                val value = sys.env.getOrElse(variable, default)
+                OneOfFeature(_name, List(value)).withValue(value)
+
+              case variable :: values =>
+                sys.env.get(variable) match {
+                  case Some(value) => OneOfFeature (_name, values ++ (if (values.contains(value)) Nil else List(value))) . withValue (value)
+                  case None => AnyOfFeature (_name, values)
+                }
+
+              case _ =>
+                error = Some(s"Env feature must have one name, and possibly a default value")
+                null
+            }
           case "bool" | "boolean" =>
             _attributes match {
               case Nil => BoolFeature(_name)
@@ -74,9 +90,9 @@ object Features {
                   null
                 }
                 else
-                OneOfFeature(_name, pre.toSet.toList).withValue(if (post.nonEmpty) post(0) else "")
+                OneOfFeature(_name, pre.toList.reverse).withValue(if (post.nonEmpty) post(0) else "")
               case Nil => error = Some(s"OneOf feature must have some potential values"); null
-              case attrs => OneOfFeature(_name, attrs.toSet.toList)
+              case attrs => OneOfFeature(_name, attrs.toList.reverse)
             }
           case "anyof" | "any" =>
             _attributes match {
@@ -87,10 +103,11 @@ object Features {
                   null
                 }
                 else
-                   AnyOfFeature(_name, pre.toSet.toList).withValue(post.toSet.toList)
+                   AnyOfFeature(_name, pre.toList.reverse).withValue(post.toList)
               case Nil => error = Some(s"AnyOf feature must have some potential values"); null
-              case attrs => AnyOfFeature(_name, attrs.toSet.toList)
+              case attrs => AnyOfFeature(_name, attrs.toList.reverse)
             }
+          case other => error = Some(s"Feature type must be bool(ean), one(of), or any(of)"); null
         }
         if (error.isEmpty) return Left(feature) else return Right(error.get)
       }
@@ -106,18 +123,20 @@ object Features {
 
       def clear(): Unit = features.clear()
 
-      def Lab(name: String): Label = new Label(name) { font = Utils.menuButtonFont }
+      def Lab(name: String): Component = new Label(s"  $name") {
+          font = Utils.menuButtonFont
+      }
 
       def makeFeatureMenu(f: Feature): List[scala.swing.Component] =
         f match {
           case f @ BoolFeature(name) =>
             val item =
-            new Utils.CheckBox(name, name) {
+            new Utils.CheckBox(s"$name", name) {
               font = Utils.menuButtonFont
               selected = f.value
               def click(): Unit = f.value = selected
             }
-            List(item, Separator())
+            List(Separator(), Separator(), item)
 
 
           case f @ OneOfFeature(name, attrs) =>
@@ -126,7 +145,7 @@ object Features {
                    value = f.value
                 }
             val menu = for { attr <- attrs.toList.reverse }  yield group.CheckBox(attr, attr)
-                Separator() :: Lab(name) :: Separator() ::  menu
+                Separator() :: Separator() :: Lab(s"$name:") ::  menu
           }
 
           case f @ AnyOfFeature(name, attrs) =>
@@ -140,20 +159,45 @@ object Features {
                       if (selected) f.value = attr :: f.value.toList else f.value = f.value.filter(_.!=(attr))
                   }
                 }
-            Separator() :: Lab(name) :: Separator() ::  menu
+            Separator() :: Separator() :: Lab(s"$name::") ::  menu
             }
           }
 
-      def menu: DynamicMenu = new DynamicMenu("Features") {
+      def menu: DynamicMenu = new DynamicMenu("Profile") {
         def dynamic: Seq[scala.swing.Component] = {
           val components = new collection.mutable.ListBuffer[scala.swing.Component]
+          components += new MenuItem(Action("Bindings"){ Personalised.Bindings.reImportBindings() }) {
+            font = Utils.menuButtonFont
+            tooltip = "Reimport all bindings"
+          }
+
           for { feature <- features }
             for { component <- makeFeatureMenu(feature) }
                   components.addOne(component)
+
           components.toSeq
+        }
+
+        var oldProfile = profile
+
+        override def popupMenuWillBecomeVisible(): Unit = {
+          oldProfile = profile
+          super.popupMenuWillBecomeVisible()
+        }
+
+        override def popupMenuWillBecomeInvisible(): Unit = {
+          // reimport bindings if the profile has changed
+          if (oldProfile != profile) {
+            Personalised.Bindings.reImportBindings()
+            profileChanged.notify(profile)
+          }
+          super.popupMenuWillBecomeInvisible()
         }
       }
 
+      val profileChanged: Notifier[String] = new Notifier[String]
+
+      /** The profile is the concatenated representations of the features  */
       def profile: String = {
         features.map(_.mkString).mkString("", " ", "")
       }

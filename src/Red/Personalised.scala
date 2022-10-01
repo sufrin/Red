@@ -62,24 +62,9 @@ object Personalised extends Logging.Loggable {
   object Bindings {
     val feedback: Notifier[String] = new Notifier[String]("Personalised Feedback")
 
-    val profileChanged: Notifier[String] = new Notifier[String]
+    val profileChanged: Notifier[String] = Features.profileChanged
 
-    private var _profile: String = Utils.appleRed.get("Profile", "No Profile")
-    def profile: String = _profile
-    def profile_=(profile: String): Unit = {
-      _profile = profile
-      profileChanged.notify(profile)
-      Utils.appleRed.put("Profile", profile)
-      reImportBindings()
-    }
-
-    val defaultProfile: String = sys.props.getOrElse("os.name", "unix").replaceAll("^[mM][aA][cC]","").replaceAll("""\s+""", "")
-    private var _profiles: List[String] = List(defaultProfile)
-
-    def profiles: List[String] = _profiles
-    def profiles_=(profiles: List[String]): Unit = {
-      _profiles = profiles.sorted
-    }
+    def profile: String = Features.profile
 
     private val trie = PrefixMap[String]()
     def clearMapping(): Unit = trie.clear()
@@ -130,7 +115,6 @@ object Personalised extends Logging.Loggable {
       lastImportTime = 0
       clearBindings()
       importBindings()
-      print(Features.profile)
     }
     /**
      *  Read a single preferences file:
@@ -222,17 +206,20 @@ object Personalised extends Logging.Loggable {
     def processLine(profile: String, depth: Int, context: Path, lineNumber: Int, line: String): Unit = if (line.nonEmpty) {
       def processFields(fields: List[String]): Unit = fields match {
 
-        case "skip" :: _ =>
+        case "--" :: _ =>
 
-        case (conditional :: pattern :: rest) if conditional=="if" || conditional=="unless" || conditional=="ifnot" => {
+        case "??" :: _ => println(Features.profile)
+
+        case (conditional :: pattern :: rest) if conditional=="if" || conditional=="&&" || conditional=="unless" || conditional=="ifnot" => {
           val cond = try Features.profile.matches(s".*$pattern.*") catch {
             case exn: Error =>
-              warning(profile, fields.mkString("Erroneous declaration:\n", " ", s"\n($context@$lineNumber)\nSuspect pattern: $pattern"))
+              warning(Features.profile, fields.mkString("Erroneous declaration:\n", " ", s"\n($context@$lineNumber)\nSuspect pattern: $pattern"))
               false
           }
           //
-          if (if (conditional == "if") cond else !cond) processFields(rest)
+          if (if (conditional == "if" || conditional=="&&") cond else !cond) processFields(rest)
         }
+
         case ("font" :: kind :: style :: size :: roles) =>
           Utils.setFont(kind, style, size, roles)
 
@@ -241,15 +228,6 @@ object Personalised extends Logging.Loggable {
                case Some(error) => warning(profile, fields.mkString("Erroneous declaration:\n", " ", s"\n($context@$lineNumber)\n$error"))
                case None =>
              }
-
-        case ("profiles" :: rest) =>
-          profiles = rest
-        case ("profiles+" :: moreProfiles) =>
-          profiles = profiles ++ moreProfiles
-        case ("profiles*" :: moreProfiles) =>
-          profiles = (profiles ++ (for { p<-profiles; q<-moreProfiles} yield s"$p$q")).toSet.toList
-        case ("*profiles" :: moreProfiles) =>
-          profiles = (profiles ++ (for { p<-profiles; q<-moreProfiles} yield s"$q$p")).toSet.toList
 
         case ("include" :: path :: Nil)  =>
           val exPath = toPath(context, path)
@@ -265,8 +243,6 @@ object Personalised extends Logging.Loggable {
           mapTo(abbr, text)
         case ("pipes"::abbrevs) =>
           personalPipeNames.addAll(abbrevs)
-        case ("latex"::"blocks+"::block::Nil) =>
-          personalBlockTypes += block
         case ("latex"::"blocks"::abbrevs) =>
           personalBlockTypes.addAll(abbrevs)
         case ("show"::fields) =>

@@ -7,7 +7,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import javax.swing.{Icon, SwingUtilities}
 import scala.collection.mutable.ListBuffer
-import scala.swing.{Action, Alignment, BoxPanel, Button, ButtonGroup, CheckMenuItem, Component, Image, Label, MenuItem, Orientation, RadioButton, event}
+import scala.swing.{Action, Alignment, BoxPanel, Button, ButtonGroup, CheckMenuItem, Component, Image, Label, MenuItem, Orientation, event}
 import scala.sys.process.Process
 
 /** System wide default settings. These will eventually be treated as (dynamic)
@@ -150,12 +150,17 @@ object Utils {
       verticalAlignment = Alignment.Center
     }
 
-  /** @return a centred label */
+  /** @return a centred label
+   *  TODO: Make this more efficient. It is only
+   *        a composite because layout parameters in swing are
+   *        confusing
+   */
   class CentredLabel(var _text: String) extends BoxPanel(Orientation.Horizontal) {
     val theLabel = new Label(_text) { font = Utils.rootFont }
     contents += Red.Glue.horizontal()
     contents += theLabel
     contents += Red.Glue.horizontal()
+    override def font_=(font: Font): Unit = { theLabel.font=font }
     def text_=(_text: String): Unit = theLabel.text=_text
     def setText(_text: String): Unit = theLabel.text=_text
   }
@@ -488,8 +493,7 @@ object Utils {
      */
     def CheckBox(name: String, value: String, toolTip: String = ""): Component = {
       val it =
-        new RadioButton(name) {
-          xLayoutAlignment = 0.0
+        new scala.swing.CheckBox(name) {
           selected = false
           font = Utils.menuButtonFont
           if (toolTip.nonEmpty) tooltip = toolTip
@@ -508,7 +512,7 @@ object Utils {
     }
   }
 
-  abstract class CheckBox(name: String, value: String, toolTip: String = "") extends RadioButton(name) {
+  abstract class CheckBox(name: String, value: String, toolTip: String = "") extends scala.swing.CheckBox(name) {
     def click(): Unit
     selected = false
     font = Utils.menuButtonFont

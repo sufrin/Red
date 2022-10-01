@@ -1,10 +1,9 @@
 package Red
 
-import Red.Personalised.Bindings
-import Red.Utils.{CentredLabel, LazyDynamicMenu}
+import Red.Utils.CentredLabel
 
-import java.awt.{Color, Desktop}
 import java.awt.desktop._
+import java.awt.{Color, Desktop}
 import scala.swing.FileChooser.Result.{Approve, Cancel}
 import scala.swing.{Component, FileChooser, Frame, MainFrame}
 
@@ -189,26 +188,15 @@ object AppleRed extends Logging.Loggable {
 
         private val bg = Color.lightGray
 
-        val profile: CentredLabel =
-           if (true)
-             new CentredLabel(Features.profile) { background = bg; font = Utils.widgetFont }
-           else
-             new CentredLabel(Personalised.Bindings.profile) { background = bg; font = Utils.widgetFont }
-
         locally {
           Personalised.Bindings.reImportBindings()
-          Personalised.Bindings.profileChanged.handleWith {
-            case _profile => profile.setText(_profile)
-          }
         }
 
         private val labels  = new BoxPanel(Orientation.Vertical) {
           contents += new CentredLabel(redLine) { background = bg }
           contents += new CentredLabel(user) { background = bg }
           contents += new CentredLabel(role) { background = bg }
-          contents += profile
         }
-
 
         contents  += labels
         iconImage = Red.Utils.redImage
@@ -217,30 +205,10 @@ object AppleRed extends Logging.Loggable {
       // Frame
 
       val buttons = new MenuBar {
-
         font = Utils.menuFont
-
         contents += fileMenu(thisMainFrame)
         contents += Glue.horizontal()
-        if (true)
-          contents += Features.menu
-        else
-        contents += new LazyDynamicMenu("Profile", {Bindings.profiles}) {
-          font = Utils.rootFont
-          def component(profile: String): Component =
-          { val act = Action(profile) { Bindings.profile = profile }
-            val tip = s"Change profile to $profile, then reimport bindings"
-            new MenuItem(act) { tooltip = tip; font = Utils.rootFont }
-          }
-
-          prefix += new MenuItem(Action("Reimport bindings"){ Personalised.Bindings.reImportBindings() }) {
-             tooltip = "Reimport all the bindings without changing the profile"
-          }
-          prefix += Separator()
-          suffix += Separator()
-          suffix += component(Bindings.defaultProfile)
-        }
-
+        contents += Features.menu
       }
 
       menuBar  = buttons

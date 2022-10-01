@@ -1,7 +1,6 @@
 package Red
 
 import Commands._
-import Red.Personalised.Bindings
 import Red.UserInputDetail.Key
 import Red.UserInputDetail.Modifiers._
 import Red.UserInputHandlers._
@@ -448,18 +447,9 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
         Personalised.Bindings.reImportBindings()
       }
 
-      if (true)
-        contents += Features.menu
-      else
-        contents += new LazyDynamicMenu("Profile", {Bindings.profiles}) {
-          def component(profile: String): Component =
-          {   val act = Action(profile) { Bindings.profile = profile; feedbackPersistently(s"Profile: $profile") }
-              val tip = s"Change profile to $profile, then reimport bindings"
-              new MenuItem(act) { tooltip = tip }
-          }
-          contents += Separator()
-          suffix += component(Bindings.defaultProfile)
-        }
+
+      contents += Features.menu
+
 
       contents += Separator()
 
@@ -556,17 +546,15 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
         }
 
         contents += Separator()
-        contents += Separator()
 
-        contents += new Label(" format modes ") {
+        contents += new Utils.Menu(" Formats ") {
           font = Utils.menuButtonFont
-          xLayoutAlignment = 0.5
+          contents += formatting.CheckBox(" ...", "", "Format the selection in non-prefix mode, and set mode to non-prefix")
+          contents += formatting.CheckBox(" -p * ...", "*", "Format the selection with redformat -p * and set mode to -p *")
+          contents += formatting.CheckBox(" -p | ...", "|", "Format the selection with redformat -p | and set mode to -p |")
+          contents += formatting.CheckBox(" -p # ...", "#", "Format the selection with redformat -p # and set mode to -p #")
+          contents += formatting.CheckBox(" -p -- ...", "--", "Format the selection with redformat -p -- and set mode to -p --")
         }
-        contents += formatting.CheckBox(" ...", "", "Format the selection in non-prefix mode, and set mode to non-prefix")
-        contents += formatting.CheckBox(" -p * ...", "*", "Format the selection with redformat -p * and set mode to -p *")
-        contents += formatting.CheckBox(" -p | ...", "|", "Format the selection with redformat -p | and set mode to -p |")
-        contents += formatting.CheckBox(" -p # ...", "#", "Format the selection with redformat -p # and set mode to -p #")
-        contents += formatting.CheckBox(" -p -- ...", "--", "Format the selection with redformat -p -- and set mode to -p --")
 
     } // Edit Menu
 
