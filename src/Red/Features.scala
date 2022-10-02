@@ -2,6 +2,7 @@ package Red
 
 import Red.Utils.DynamicMenu
 
+import scala.collection.mutable
 import scala.swing.{Action, Component, Label, MenuItem}
 
 object Features {
@@ -11,6 +12,7 @@ object Features {
    trait Feature {
      val name:     String
      def mkString: String
+     def process(parameters: List[String], action: (Boolean, List[String]) => Unit): Option[String]
    }
 
   /**
@@ -22,26 +24,44 @@ object Features {
    *           noDuplicates(attributes)
    *      }}}
    *   The feature `kind` determines how it is shown in a menu.
-   *    -  A `BoolFeature`  feature can be true or false.
-   *    -  A `OneOfFeature`   feature can have exactly one of the attributes.
-   *    -  An `AnyOfFeature`  feature can have zero or more of the attributes.
+   *    -  A `Bool`  feature can be true or false.
+   *    -  A `OneOf`   feature can have exactly one of the attributes.
+   *    -  An `AnyOf`  feature can have zero or more of the attributes.
    */
-    case class BoolFeature(name: String) extends Feature  {
+    case class Bool(name: String, attributes: Seq[String] = List("true", "false")) extends Feature  {
       var value: Boolean = false
       def withValue(v: Boolean): this.type = { value=v; this }
-      def mkString: String = if (value) name else ""
+      def mkString: String = if (value) attributes(0) else attributes(1)
+      def process(parameters: List[String], action: (Boolean, List[String])=>Unit): Option[String] =
+        { action(value, parameters)
+          None
+        }
     }
 
-    case class OneOfFeature(name: String, attributes: Seq[String])   extends Feature
+    case class OneOf(name: String, attributes: Seq[String])   extends Feature
     { var value: String = ""
       def withValue(v: String): this.type = { value=v; this }
-      def mkString: String = if (value=="") "" else s"$name=$value"
+      def mkString: String = value
+      def process(parameters: List[String], action: (Boolean, List[String])=>Unit): Option[String] = {
+        parameters match {
+          case "==" :: pat :: rest => action(value==pat, rest); None
+          case "!=" :: pat :: rest => action(value!=pat, rest); None
+          case "??" :: pat :: rest => action(value.matches(pat), rest); None
+          case other => Some(s"invalid operator for a OneOf: $other")
+        }
+      }
     }
 
-    case class AnyOfFeature(name: String, attributes: Seq[String]) extends Feature {
+    case class AnyOf(name: String, attributes: Seq[String]) extends Feature {
       var value: List[String] = Nil
       def withValue(v: List[String]): this.type = { value=v; this }
-      def mkString: String = s"$name=${value.mkString("(","/",")")}"
+      def mkString: String = value.mkString("("," ",")")
+      def process(parameters: List[String], action: (Boolean, List[String])=>Unit): Option[String] = {
+        parameters match {
+          case "??" :: pat :: rest => action((value.mkString(""," ", "").matches(pat)), rest); None
+          case other => Some(s"invalid operator for an AnyOf: $other")
+        }
+      }
     }
 
 
@@ -50,35 +70,35 @@ object Features {
      *  ===invariant: no two features have the same name
      *    {{{ noDuplicates(_features map _.name) }}}
      */
-     private val features: collection.mutable.ListBuffer[Feature]= new collection.mutable.ListBuffer()
+     val features: collection.mutable.Map[String,Feature]= new mutable.LinkedHashMap[String,Feature]
 
       /** Construct a feature, `f`, from a declaration, and return `Left(f)` otherwise return `Right(errorDescription)` if the declaration is unsound  */
       def makeFeature(_name: String, _kind: String, _attributes: Seq[String]): Either[Feature, String] = {
         var error: Option[String] = None
         val feature: Feature = _kind.toLowerCase() match {
-          case "env" | "environment" =>
+          case "eval" =>
             _attributes match {
-              case List(s"$${$variable=$default}") =>
+              case s"$${$variable-$default}" :: values =>
                 val value = sys.env.getOrElse(variable, default)
-                OneOfFeature(_name, List(value)).withValue(value)
+                OneOf(_name, values ++ (if (values.contains(value)) Nil else List(value))).withValue(value)
 
-              case variable :: values =>
+              case s"$$$variable" :: values =>
                 sys.env.get(variable) match {
-                  case Some(value) => OneOfFeature (_name, values ++ (if (values.contains(value)) Nil else List(value))) . withValue (value)
-                  case None => AnyOfFeature (_name, values)
+                  case Some(value) => OneOf (_name, values ++ (if (values.contains(value)) Nil else List(value))) . withValue (value)
+                  case None => AnyOf (_name, values)
                 }
 
               case _ =>
-                error = Some(s"Env feature must have one name, and possibly a default value")
+                error = Some(s"Eval feature must have one name, and possibly some alternate value")
                 null
             }
           case "bool" | "boolean" =>
             _attributes match {
-              case Nil => BoolFeature(_name)
-              case List("=", v) if v.toLowerCase().matches("true|on") => BoolFeature(_name).withValue(true)
-              case List("=", v) if v.toLowerCase().matches("false|off") => BoolFeature(_name).withValue(false)
+              case Nil => Bool(_name)
+              case List("=", v) if v.toLowerCase().matches("true|false") => Bool(_name).withValue(v.toBoolean)
+              case List(on, off, "=", v) if v.toLowerCase().matches("true|false") => Bool(_name, List(on, off)).withValue(v.toBoolean)
               case _ =>
-                error = Some(s"Boolean features must be set = true/on or = false/off")
+                error = Some(s"Boolean feature notation: Bool or Bool = True | False or Bool onvalue offvalue = True | False")
                 null
             }
           case "oneof" | "one" =>
@@ -90,9 +110,9 @@ object Features {
                   null
                 }
                 else
-                OneOfFeature(_name, pre.toList.reverse).withValue(if (post.nonEmpty) post(0) else "")
+                OneOf(_name, pre.toList.reverse).withValue(if (post.nonEmpty) post(0) else "")
               case Nil => error = Some(s"OneOf feature must have some potential values"); null
-              case attrs => OneOfFeature(_name, attrs.toList.reverse)
+              case attrs => OneOf(_name, attrs.toList.reverse)
             }
           case "anyof" | "any" =>
             _attributes match {
@@ -103,9 +123,9 @@ object Features {
                   null
                 }
                 else
-                   AnyOfFeature(_name, pre.toList.reverse).withValue(post.toList)
+                   AnyOf(_name, pre.toList.reverse).withValue(post.toList)
               case Nil => error = Some(s"AnyOf feature must have some potential values"); null
-              case attrs => AnyOfFeature(_name, attrs.toList.reverse)
+              case attrs => AnyOf(_name, attrs.toList.reverse)
             }
           case other => error = Some(s"Feature type must be bool(ean), one(of), or any(of)"); null
         }
@@ -116,8 +136,10 @@ object Features {
         makeFeature(_name: String, _kind: String, _attributes) match {
           case Left(theFeature) =>
             // redefinitions of features are ignored silently
-            if (!features.exists(f => f.name == _name)) features += theFeature
-            None
+            features.get(_name) match {
+              case None                  => features(_name) = theFeature; None
+              case Some(originalFeature) => None
+            }
           case Right(theError)  => Some(theError)
         }
 
@@ -129,7 +151,7 @@ object Features {
 
       def makeFeatureMenu(f: Feature): List[scala.swing.Component] =
         f match {
-          case f @ BoolFeature(name) =>
+          case f @ Bool(name, _) =>
             val item =
             new Utils.CheckBox(s"$name", name) {
               font = Utils.menuButtonFont
@@ -139,7 +161,7 @@ object Features {
             List(Separator(), Separator(), item)
 
 
-          case f @ OneOfFeature(name, attrs) =>
+          case f @ OneOf(name, attrs) =>
           { val group = new Utils.Group() {
                    def select(value: String): Unit = { f.value = value }
                    value = f.value
@@ -148,7 +170,7 @@ object Features {
                 Separator() :: Separator() :: Lab(s"$name:") ::  menu
           }
 
-          case f @ AnyOfFeature(name, attrs) =>
+          case f @ AnyOf(name, attrs) =>
           {
             val menu =
               for { attr <- attrs.toList.reverse } yield
@@ -171,7 +193,7 @@ object Features {
             tooltip = "Reimport all bindings"
           }
 
-          for { feature <- features }
+          for { (_, feature) <- features }
             for { component <- makeFeatureMenu(feature) }
                   components.addOne(component)
 
@@ -195,11 +217,23 @@ object Features {
         }
       }
 
+  /** Evaluate a feature name */
+  def eval(feature: String): Feature = features.getOrElse(feature, throw new NoSuchElementException(feature))
+
+  /** Evaluate a feature  */
+  def eval(feature: String, default: String): String =
+    feature match {
+      case s"$${$featureId=$default}" =>
+        try eval(featureId).mkString catch { case _ : NoSuchElementException => default}
+      case s"$$$featureId" => eval(featureId).mkString
+      case other           => default
+    }
+
       val profileChanged: Notifier[String] = new Notifier[String]
 
-      /** The profile is the concatenated representations of the features  */
+      /** The profile is the concatenated representations of the features: pro-tem */
       def profile: String = {
-        features.map(_.mkString).mkString("", " ", "")
+        features.values.map(_.mkString).mkString("", " ", "")
       }
 
   }

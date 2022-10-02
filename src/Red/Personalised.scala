@@ -4,6 +4,7 @@ import Useful.PrefixMap
 
 import java.io.FileInputStream
 import java.nio.file.{Path, Paths}
+import java.util.NoSuchElementException
 import scala.swing.Dialog
 
 /**
@@ -204,24 +205,27 @@ object Personalised extends Logging.Loggable {
      *
      */
     def processLine(profile: String, depth: Int, context: Path, lineNumber: Int, line: String): Unit = if (line.nonEmpty) {
+      def whenTrue (cond: Boolean, fields: List[String]): Unit = if (cond) processFields(fields)
+      def whenFalse(cond: Boolean, fields: List[String]): Unit = if (!cond) processFields(fields)
+      def maybeWarn(result: Option[String]): Unit = result match {
+        case None =>
+        case Some(error) => warning(profile, s"Erroneous conditional declaration:\n($context@$lineNumber)\n$error")
+      }
+
       def processFields(fields: List[String]): Unit = fields match {
 
         case "--" :: _ =>
+        case "??" :: rest =>
+          for { (_, feature) <- Features.features}  println(s"$feature = ${feature.mkString}")
+          for { fid <- rest } println(s"$fid = ${Features.eval(fid, fid) }")
 
-        case "??" :: _ => println(Features.profile)
-
-        case (conditional :: pattern :: rest) if conditional=="if" || conditional=="&&" || conditional=="unless" || conditional=="ifnot" => {
-          val cond = try Features.profile.matches(s".*$pattern.*") catch {
-            case exn: Error =>
-              warning(Features.profile, fields.mkString("Erroneous declaration:\n", " ", s"\n($context@$lineNumber)\nSuspect pattern: $pattern"))
-              false
-          }
-          //
-          if (if (conditional == "if" || conditional=="&&") cond else !cond) processFields(rest)
-        }
+        case ("if" :: feature :: rest)       =>  maybeWarn(Features.eval(feature).process(rest, whenTrue))
+        case ("&&" :: feature :: rest)       =>  maybeWarn(Features.eval(feature).process(rest, whenTrue))
+        case ("then" :: feature :: rest)     =>  maybeWarn(Features.eval(feature).process(rest, whenTrue))
+        case ("unless" :: feature :: rest)   =>  maybeWarn(Features.eval(feature).process(rest, whenFalse))
 
         case ("font" :: kind :: style :: size :: roles) =>
-          Utils.setFont(kind, style, size, roles)
+          Utils.setFont(kind, Features.eval(style, style), Features.eval(size, size), roles)
 
         case ("feature" :: name :: kind :: attrs) =>
              Features.add(name, kind, attrs) match {
@@ -275,7 +279,9 @@ object Personalised extends Logging.Loggable {
         case other =>
           warning(profile, other.mkString("Erroneous binding declaration:\n", " ", s"\n($context@$lineNumber)"))
       }
-      processFields(Lexical.scan(line))
+      try processFields(Lexical.scan(line)) catch {
+        case exn: NoSuchElementException => warning(profile, s"Conditional declaration with undefined feature: ${exn.getMessage}\n($context@$lineNumber)")
+      }
     }
 
     def stripComments(line: String): String = {
