@@ -4,6 +4,7 @@ import Red.Menus.DynamicMenu
 
 import scala.collection.mutable
 import scala.swing.{Action, Component, Label, MenuItem}
+import Buttons._
 
 object Features {
   /**
@@ -157,7 +158,7 @@ object Features {
         f match {
           case f @ Bool(name, _) =>
             val item =
-            new Utils.CheckBox(s"$name", name) {
+            new Buttons.CheckBox(s"$name", name) {
               font = Utils.menuButtonFont
               selected = f.value
               def click(): Unit = f.value = selected
@@ -166,7 +167,7 @@ object Features {
 
 
           case f @ OneOf(name, attrs) =>
-          { val group = new Utils.Group() {
+          { val group = new Buttons.Group() {
                    def select(value: String): Unit = { f.value = value }
                    value = f.value
                 }
@@ -178,7 +179,7 @@ object Features {
           {
             val menu =
               for { attr <- attrs.toList.reverse } yield
-                new Utils.CheckBox(attr, attr) {
+                new Buttons.CheckBox(attr, attr) {
                   font = Utils.menuButtonFont
                   selected = f.value.contains(attr)
                   def click(): Unit = {
@@ -214,6 +215,7 @@ object Features {
 
         override def popupMenuWillBecomeInvisible(): Unit = {
           // reimport bindings if the profile has changed
+          // but wait until the menu has actually gone
           if (oldProfile != profile) Utils.invokeLater {
             Personalised.Bindings.reImportBindings()
             profileChanged.notify(profile)

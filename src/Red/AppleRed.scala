@@ -1,7 +1,6 @@
 package Red
 
-import Red.Utils.CentredLabel
-import Red.Menus.EmbeddedDynamicMenu
+import Menus.EmbeddedDynamicMenu
 
 import java.awt.desktop._
 import java.awt.{Color, Desktop}
@@ -126,7 +125,7 @@ object AppleRed extends Logging.Loggable {
   private val fileChooser = new FileChooser(new java.io.File(Utils.homePath.toString))
 
   def fileMenu(parent: MainFrame) =  new scala.swing.Menu ("File") {
-    import Utils.Item
+    import Buttons.Item
     font = Utils.rootFont
 
 
@@ -194,9 +193,9 @@ object AppleRed extends Logging.Loggable {
         }
 
         private val labels  = new BoxPanel(Orientation.Vertical) {
-          contents += new CentredLabel(redLine) { background = bg }
-          contents += new CentredLabel(user) { background = bg }
-          contents += new CentredLabel(role) { background = bg }
+          contents += new Buttons.CentredLabel(redLine) { background = bg }
+          contents += new Buttons.CentredLabel(user)    { background = bg }
+          contents += new Buttons.CentredLabel(role)    { background = bg }
         }
 
         contents  += labels

@@ -4,7 +4,7 @@ import Commands._
 import Red.UserInputDetail.Key
 import Red.UserInputDetail.Modifiers._
 import Red.UserInputHandlers._
-import Red.Utils.{CentredLabel, relativeToHome}
+import Red.Utils.relativeToHome
 
 import java.awt.Color
 import java.nio.file.{Files, Path, Paths}
@@ -351,17 +351,9 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
 
 
   private val theMenuBar: MenuBar = new MenuBar {
+    import Buttons.menuButton
     font = Utils.menuFont
 
-    def menuButton(name: String, toolTip: String = "", centred: Boolean = false)(act: => Unit): MenuItem =
-      new MenuItem(Action(name) { act }) {
-        font = Utils.menuButtonFont
-        if (centred) {
-          xLayoutAlignment = 0.5
-          horizontalAlignment = Alignment.Center
-        }
-        if (toolTip.nonEmpty) tooltip = toolTip
-      }
 
 
     contents += new Utils.Menu("Red") {
@@ -371,10 +363,13 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
 
         def theLabel():  Component  = {
           val cwd = if (theSession.CWD==theSession.parentPath) "+" else relativeToHome(theSession.CWD)
-          new CentredLabel(s"  CWD: ${cwd}  ")  { font = Utils.buttonFont; background = Color.lightGray }
+          new Buttons.CentredLabel(s"  CWD: ${cwd}  ")  { font = Utils.buttonFont; background = Color.lightGray }
         }
 
-        def theParent(): Component  = new CentredLabel(s"  +: ${relativeToHome(theSession.parentPath)}  ") { font = Utils.buttonFont; background = Color.lightGray }
+        def theParent(): Component  = new Buttons.CentredLabel(s"  +: ${relativeToHome(theSession.parentPath)}  ") {
+          font = Utils.buttonFont
+          background = Color.lightGray
+        }
 
         def selectTheParent(): Component = menuButton("cd +", toolTip = s"Change working directory to ${relativeToHome(theSession.parentPath)}") {
           theSession.CWD = theSession.parentPath;
@@ -407,7 +402,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
       contents += Separator()
       contents += Separator()
 
-      contents += new Utils.PersistentCheckItem("Typeover", "typeover", Personalised.Settings.typeOverSelection) {
+      contents += new Buttons.PersistentCheckItem("Typeover", "typeover", Personalised.Settings.typeOverSelection) {
         tooltip  = "When this is enabled, the selection is automatically cut when material is typed"
         font     = Utils.buttonFont
         listenTo(this)
@@ -417,7 +412,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
         }
       }
 
-      contents += new Utils.PersistentCheckItem("Select {...}", "autoselect", Personalised.Settings.clickSelects) {
+      contents += new Buttons.PersistentCheckItem("Select {...}", "autoselect", Personalised.Settings.clickSelects) {
         tooltip  = "When this enabled, a mouse-click adjacent to bracketed material of any kind selects that material"
         font     = Utils.buttonFont
         listenTo(this)
@@ -427,7 +422,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
         }
       }
 
-      contents += new Utils.PersistentCheckItem("Auto indent", "autoindent", Personalised.Settings.autoIndenting) {
+      contents += new Buttons.PersistentCheckItem("Auto indent", "autoindent", Personalised.Settings.autoIndenting) {
         tooltip  = "When this is enabled, the insertion of a newline will align the cursor (and any non-space material to its right) with the indentation of the current line"
         font     = Utils.buttonFont
         listenTo(this)
@@ -467,18 +462,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
         openArglinePath()
       }
 
-      contents += new EmbeddedDynamicMenu("Open recent", { Utils.Recents.get } ) {
-        def component (path: String): Component = {
-          if (path=="-")
-            menuButton(s""" (Forget recent paths) """, "Forget recent paths", centred=true) {
-              Utils.Recents.forget()
-            }
-          else
-            menuButton(s"""Open $path""") {
-              Red.Server.process(path)
-            }
-        }
-      }
+      contents += Utils.Recents.menu()
 
       contents += menuButton("Open New", "Edit the document at the path specified by the \u24b6 field or by making a choice of path") {
         Red.Server.process(Utils.freshDocumentName())
@@ -514,7 +498,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
     } // File Menu
 
     /** A group that generates menu items for managing formatting options  */
-    val formatting = new Utils.Group() {
+    val formatting = new Buttons.Group() {
       def select(value: String): Unit = {
         if (value == "")
           UI_DO(EditSessionCommands.formatter(argLine.text, "fmt"))
