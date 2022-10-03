@@ -402,34 +402,19 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
       contents += Separator()
       contents += Separator()
 
-      contents += new Buttons.PersistentCheckItem("Typeover", "typeover", Personalised.Settings.typeOverSelection) {
+      contents += new Buttons.PersistentCheckItem("Typeover", "typeover", theSession.typeOverSelection_=(_), Personalised.Settings.typeOverSelection) {
         tooltip  = "When this is enabled, the selection is automatically cut when material is typed"
         font     = Utils.buttonFont
-        listenTo(this)
-        reactions += {
-          case event.ButtonClicked(_) =>
-            theSession.typeOverSelection = selected
-        }
       }
 
-      contents += new Buttons.PersistentCheckItem("Select {...}", "autoselect", Personalised.Settings.clickSelects) {
+      contents += new Buttons.PersistentCheckItem("Select {...}", "autoselect", theSession.clickSelects_=(_), Personalised.Settings.clickSelects) {
         tooltip  = "When this enabled, a mouse-click adjacent to bracketed material of any kind selects that material"
         font     = Utils.buttonFont
-        listenTo(this)
-        reactions += {
-          case event.ButtonClicked(_) =>
-            theSession.clickSelects = selected
-        }
       }
 
-      contents += new Buttons.PersistentCheckItem("Auto indent", "autoindent", Personalised.Settings.autoIndenting) {
+      contents += new Buttons.PersistentCheckItem("Auto indent", "autoindent", theSession.autoIndenting=(_), Personalised.Settings.autoIndenting) {
         tooltip  = "When this is enabled, the insertion of a newline will align the cursor (and any non-space material to its right) with the indentation of the current line"
         font     = Utils.buttonFont
-        listenTo(this)
-        reactions += {
-          case event.ButtonClicked(_) =>
-            theSession.autoIndenting = selected
-        }
       }
 
       if (theSession.hasCutRing) {

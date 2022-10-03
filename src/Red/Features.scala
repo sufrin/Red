@@ -1,20 +1,29 @@
 package Red
 
 import Red.Menus.DynamicMenu
+import Red.Personalised.Bindings.AbortBindings
 
 import scala.collection.mutable
 import scala.swing.{Action, Component, Label, MenuItem}
-import Buttons._
 
 object Features {
+
+  lazy val appleRedFeatures = Utils.appleRed.node("Features")
+
   /**
    * Every feature has a kind -- akin to a type
    */
    trait Feature {
+     /** The feature's name */
      val name:     String
+     /** The feature's value, as a string */
      def valueString: String
+     /** The feature's `name=value` string */
      def profileString: String
-     def process(parameters: List[String], action: (Boolean, List[String]) => Unit): Option[String]
+     /**
+      *  Conditionally continue to process the rest of a declaration starting with this feature
+      */
+     def processConditional(tail: List[String], process: List[String] => Unit, ifSo: Boolean=>Boolean): Unit
    }
 
   /**
@@ -30,14 +39,14 @@ object Features {
    *    -  A `OneOf`   feature can have exactly one of the attributes.
    *    -  An `AnyOf`  feature can have zero or more of the attributes.
    */
+
     case class Bool(name: String, attributes: Seq[String] = List("true", "false")) extends Feature  {
       var value: Boolean = false
       def withValue(v: Boolean): this.type = { value=v; this }
       def valueString: String = if (value) attributes(0) else attributes(1)
       def profileString: String = s"$name=$valueString"
-      def process(parameters: List[String], action: (Boolean, List[String])=>Unit): Option[String] =
-        { action(value, parameters)
-          None
+      def processConditional(tail: List[String], process: List[String]=>Unit, ifSo: Boolean=>Boolean): Unit =
+        { if (ifSo(value)) process(tail)
         }
     }
 
@@ -46,12 +55,12 @@ object Features {
       def withValue(v: String): this.type = { value=v; this }
       def valueString: String = value
       def profileString: String = s"$name=$valueString"
-      def process(parameters: List[String], action: (Boolean, List[String])=>Unit): Option[String] = {
-        parameters match {
-          case "==" :: pat :: rest => action(value==pat, rest); None
-          case "!=" :: pat :: rest => action(value!=pat, rest); None
-          case "??" :: pat :: rest => action(value.matches(pat), rest); None
-          case other => Some(s"invalid operator for a OneOf: $other")
+      def processConditional(tail: List[String], process: List[String]=>Unit, ifSo: Boolean=>Boolean): Unit = {
+        tail match {
+          case "==" :: pat :: rest => if (ifSo(value==pat)) process(rest)
+          case "!=" :: pat :: rest => if (ifSo(value!=pat)) process(rest)
+          case "??" :: pat :: rest => if (ifSo(value matches pat)) process(rest)
+          case other => throw new AbortBindings(s"invalid conditional operator for a OneOf: $other")
         }
       }
     }
@@ -61,10 +70,26 @@ object Features {
       def withValue(v: List[String]): this.type = { value=v; this }
       def valueString: String = value.mkString("("," ",")")
       def profileString: String = s"$name=$valueString"
-      def process(parameters: List[String], action: (Boolean, List[String])=>Unit): Option[String] = {
-        parameters match {
-          case "??" :: pat :: rest => action((value.mkString(""," ", "").matches(pat)), rest); None
-          case other => Some(s"invalid operator for an AnyOf: $other")
+      def processConditional(tail: List[String], process: List[String]=>Unit, ifSo: Boolean=>Boolean): Unit = {
+        tail match {
+          case "??" :: pat :: rest => if (ifSo(value.mkString(""," ", "").matches(pat))) process(rest)
+
+          case contains :: pat :: rest if contains == "<<=" || contains == "\u2286" =>
+            val set    = pat.split(',')
+            val subset = value.forall ( set.contains(_) )
+            if (ifSo(subset)) process(rest)
+
+          case contains :: pat :: rest if contains == "=>>" || contains == "\u2287" =>
+            val set    = pat.split(',')
+            val subset = set.forall ( value.contains(_) )
+            if (ifSo(subset)) process(rest)
+
+          case "==" :: pat :: rest =>
+            val set    = pat.split(',')
+            val equals = set.forall ( value.contains(_) ) && value.forall ( set.contains(_) )
+            if (ifSo(equals)) process(rest)
+
+          case other => throw new AbortBindings(s"invalid operator for an AnyOf: $other")
         }
       }
     }
@@ -81,7 +106,7 @@ object Features {
       def makeFeature(_name: String, _kind: String, _attributes: Seq[String]): Either[Feature, String] = {
         var error: Option[String] = None
         val feature: Feature = _kind.toLowerCase() match {
-          case "eval" =>
+          case "get" =>
             _attributes match {
               case s"$${$variable-$default}" :: values =>
                 val value = sys.env.getOrElse(variable, default)
@@ -222,18 +247,25 @@ object Features {
           }
           super.popupMenuWillBecomeInvisible()
         }
+
       }
 
   /** Evaluate a feature name */
-  def eval(feature: String): Feature = features.getOrElse(feature, throw new NoSuchElementException(feature))
+  def get(featureId: String): Feature = features.getOrElse(featureId, throw new NoSuchElementException(featureId))
 
-  /** Evaluate a feature  */
-  def eval(feature: String, default: String): String =
-    feature match {
-      case s"$${$featureId=$default}" =>
-        try eval(featureId).valueString catch { case _ : NoSuchElementException => default}
-      case s"$$$featureId" => eval(featureId).valueString
-      case other           => default
+  def getOrElse(featureId: String, default: => Feature): Feature = features.getOrElse(featureId, default)
+
+  /** Evaluate a feature expression of one of the forms:
+   *  - `${featureId-default}` yields the value of the id or the specified default
+   *  - `$featureId`  yields the value of the id or fails
+   *  - `featureId` yields the id itself
+   */
+  def eval(featureExpr: String): String =
+    featureExpr match {
+      case s"$${$featureId-$default}" =>
+        try get(featureId).valueString catch { case _ : NoSuchElementException => default}
+      case s"$$$featureId" => get(featureId).valueString
+      case _               => featureExpr
     }
 
       val profileChanged: Notifier[String] = new Notifier[String]

@@ -18,12 +18,14 @@ import scala.sys.process.Process
 object Utils {
 
   lazy val homePath: Path = Paths.get(System.getProperty("user.home"))
-  lazy val preferences = java.util.prefs.Preferences.userRoot()
-  lazy val appleRed = preferences.node("/AppleRed")
+
+  lazy val appleRed = java.util.prefs.Preferences.userRoot().node("/AppleRed")
   lazy val appleRedUI = appleRed.node("UI")
+
   val rootFont: Font = new Font("Dialog", Font.PLAIN, 16)
   val redIcon: Icon = new ImageUtilities.ColoredIcon(60, 60, Color.RED)
   val redImage: Image = ImageUtilities.makeImage(redIcon)
+
   /** The suffix added to the name of a file when there is no correspondingly named file
    * in the filestore as an editor session starts.
    */
@@ -276,7 +278,7 @@ object Utils {
       Path.of(arg).toAbsolutePath.toString
     }
 
-  /** Return the PID of the current process if possible
+  /** Return the PID of the current processConditional if possible
    */
   def getPID: String = {
     try {

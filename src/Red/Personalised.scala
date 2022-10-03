@@ -1,5 +1,6 @@
 package Red
 
+import Red.Features.Feature
 import Useful.PrefixMap
 
 import java.io.FileInputStream
@@ -207,32 +208,38 @@ object Personalised extends Logging.Loggable {
      *
      */
     def processLine(profile: String, depth: Int, context: Path, lineNumber: Int, line: String): Unit = if (line.nonEmpty) {
-      def whenTrue (cond: Boolean, fields: List[String]): Unit = if (cond) processFields(fields)
-      def whenFalse(cond: Boolean, fields: List[String]): Unit = if (!cond) processFields(fields)
-      def maybeWarn(result: Option[String]): Unit = result match {
-        case None =>
-        case Some(error) => profileWarning(s"Erroneous conditional declaration:\n($context@$lineNumber)\n$error")
+
+
+      def ifSo(b: Boolean): Boolean  = b
+      def ifNot(b: Boolean): Boolean = !b
+
+      case object Undefined extends Feature {
+        val name: String = "Undefined"
+        def valueString: String = "Undefined"
+        def profileString: String = "Undefined"
+        def processConditional(tail: List[String], process: List[String] => Unit, ifSo: Boolean => Boolean): Unit =
+          throw new AbortBindings(s"Erroneous conditional declaration (undeclared feature):\n$line\n($context@$lineNumber)")
       }
 
-      def processFields(fields: List[String]): Unit = fields match {
+      def evalDeclaration(declaration: List[String]): Unit = declaration match {
 
         case "--" :: _ =>
 
         case "??" :: rest =>
           for { (_, feature) <- Features.features}  println(s"$feature = ${feature.valueString}")
-          for { fid <- rest } println(s"$fid = ${Features.eval(fid, fid) }")
+          for { fid <- rest } println(s"$fid = ${Features.eval(fid) }")
 
-        case ("if" :: feature :: rest)       =>  maybeWarn(Features.eval(feature).process(rest, whenTrue))
-        case ("&&" :: feature :: rest)       =>  maybeWarn(Features.eval(feature).process(rest, whenTrue))
-        case ("then" :: feature :: rest)     =>  maybeWarn(Features.eval(feature).process(rest, whenTrue))
-        case ("unless" :: feature :: rest)   =>  maybeWarn(Features.eval(feature).process(rest, whenFalse))
+        case ("if"     :: feature :: restOfDeclaration)       =>  Features.getOrElse(feature, Undefined).processConditional(restOfDeclaration, evalDeclaration, ifSo)
+        case ("&&"     :: feature :: restOfDeclaration)       =>  Features.getOrElse(feature, Undefined).processConditional(restOfDeclaration, evalDeclaration, ifSo)
+        case ("then"   :: feature :: restOfDeclaration)       =>  Features.getOrElse(feature, Undefined).processConditional(restOfDeclaration, evalDeclaration, ifSo)
+        case ("unless" :: feature :: restOfDeclaration)       =>  Features.getOrElse(feature, Undefined).processConditional(restOfDeclaration, evalDeclaration, ifNot)
 
         case ("font" :: kind :: style :: size :: roles) =>
-          Utils.setFont(kind, Features.eval(style, style), Features.eval(size, size), roles)
+          Utils.setFont(kind, Features.eval(style), Features.eval(size), roles)
 
         case ("feature" :: name :: kind :: attrs) =>
              Features.add(name, kind, attrs) match {
-               case Some(error) => profileWarning(fields.mkString("Erroneous declaration:\n", " ", s"\n($context@$lineNumber)\n$error"))
+               case Some(error) => profileWarning(declaration.mkString("Erroneous declaration:\n", " ", s"\n($context@$lineNumber)\n$error"))
                case None =>
              }
 
@@ -282,13 +289,13 @@ object Personalised extends Logging.Loggable {
                  case "autoindent" => Settings.autoIndenting = value.toBoolean
                }
              } catch {
-               case exn: Throwable => warning(profile, fields.mkString("Erroneous variable setting:\n", " ", s"\n($context@$lineNumber)"))
+               case exn: Throwable => warning(profile, declaration.mkString("Erroneous variable setting:\n", " ", s"\n($context@$lineNumber)"))
              }
 
         case other =>
           profileWarning(other.mkString("Erroneous binding declaration:\n", " ", s"\n($context@$lineNumber)"))
       }
-      try processFields(Lexical.scan(line)) catch {
+      try evalDeclaration(Lexical.scan(line)) catch {
         case exn: NoSuchElementException => profileWarning(s"Conditional declaration with undefined feature: ${exn.getMessage}\n($context@$lineNumber)")
       }
     }

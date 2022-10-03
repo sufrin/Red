@@ -79,15 +79,24 @@ object Buttons {
     def setText(_text: String): Unit = component.text = _text
   }
 
-  /**  A persistent `CheckMenuItem`
-    */
+  /**
+   * A checkbox whose current state is stored in the
+   * persistent store.
+   *
+   * @param title title on the checkbox
+   * @param persistentName name in the persistent store
+   * @param set invoke whenever the checkitem is clicked
+   * @param default initial value
+   */
   class PersistentCheckItem(
       title: String,
       persistentName: String,
+      set: Boolean => Unit,
       default: => Boolean
   ) extends CheckMenuItem(title) {
     selected = appleRedUI.getBoolean(persistentName, default)
     reactions += { case event.ButtonClicked(_) =>
+      set(selected)
       appleRedUI.putBoolean(persistentName, selected)
       appleRedUI.sync()
     }
