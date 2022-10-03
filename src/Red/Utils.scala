@@ -6,7 +6,6 @@ import java.nio.file.attribute.FileTime
 import java.text.SimpleDateFormat
 import java.util.Date
 import javax.swing.{Icon, SwingUtilities}
-import scala.collection.mutable.ListBuffer
 import scala.swing.{Action, Alignment, BoxPanel, Button, ButtonGroup, CheckMenuItem, Component, Image, Label, MenuItem, Orientation, event}
 import scala.sys.process.Process
 
@@ -104,47 +103,19 @@ object Utils {
     font = menuFont
   }
 
-  /** A mixed-mode dynamic+static menu presented in order: prefix ++ dynamic ++ suffix */
-  abstract class DynamicMenu(title: String) extends Menus.DynamicMenu(title) {
-    font = menuFont
-    val prefix, suffix: collection.mutable.Buffer[scala.swing.Component] =
-      new ListBuffer[scala.swing.Component]
-    def content: Seq[scala.swing.Component] =
-      prefix.toList ++ dynamic ++ suffix.toList
-    def dynamic: Seq[scala.swing.Component]
-  }
-
-  abstract class LazyDynamicMenu(title: String, titles: => Seq[String])
-      extends Menus.LazyDynamicMenu(title, titles) {
-    font = menuFont
-    val prefix, suffix: collection.mutable.Buffer[scala.swing.Component] =
-      new ListBuffer[scala.swing.Component]
-    override def content: Seq[scala.swing.Component] =
-      prefix.toList ++ super.content ++ suffix.toList
-  }
-
-  /** A ''completely'' dynamic menu that evaluates  `_dynamic` to generate content on popup */
-  object DynamicMenu {
-    def apply(title: String)(
-        _dynamic: => Seq[scala.swing.Component]
-    ): DynamicMenu = new DynamicMenu(title) {
-      def dynamic: Seq[scala.swing.Component] = _dynamic
-    }
-  }
-
-  def Item(name: String, toolTip: String = "", itemFont: Font = Utils.menuButtonFont)(act: => Unit): MenuItem =
+  def Item(name: String, toolTip: String = "", theFont: Font = Utils.menuButtonFont)(act: => Unit): MenuItem =
     new MenuItem(Action(name) {
       act
     }) {
-      font = itemFont
+      font = theFont
       if (toolTip.nonEmpty) tooltip = toolTip
     }
 
-  def Button(name: String, toolTip: String = "")(act: => Unit): swing.Button =
+  def Button(name: String, toolTip: String = "", theFont: Font = Utils.menuButtonFont)(act: => Unit): swing.Button =
     new Button(Action(name) {
       act
     }) {
-      font = Utils.buttonFont
+      font = theFont
       if (toolTip.nonEmpty) tooltip = toolTip
       horizontalAlignment = Alignment.Center
       verticalAlignment = Alignment.Center
@@ -155,23 +126,29 @@ object Utils {
    *        a composite because layout parameters in swing are
    *        confusing
    */
-  class CentredLabel(var _text: String) extends BoxPanel(Orientation.Horizontal) {
-    val theLabel = new Label(_text) { font = Utils.rootFont }
-    contents += Red.Glue.horizontal()
-    contents += theLabel
-    contents += Red.Glue.horizontal()
-    override def font_=(font: Font): Unit = { theLabel.font=font }
-    def text_=(_text: String): Unit = theLabel.text=_text
-    def setText(_text: String): Unit = theLabel.text=_text
+  class CentredLabel(var _text: String, theFont: Font = Utils.rootFont)
+    extends BoxPanel(Orientation.Horizontal) {
+      val component = new Label(_text) { font = theFont }
+      contents += Red.Glue.horizontal()
+      contents += component
+      contents += Red.Glue.horizontal()
+      override def font_=(font: Font): Unit = { component.font=font }
+      def text_=(_text: String): Unit = component.text=_text
+      def setText(_text: String): Unit = component.text=_text
   }
 
-  /** @return a centred button */
-  def CentredButton(title: String, tip: String="")(act: => Unit): Component = {
-    new BoxPanel(Orientation.Horizontal) {
+  /** A centred button */
+  class CentredButton(title: String, tip: String="", theFont: Font = Utils.rootFont, act: => Unit)
+    extends BoxPanel(Orientation.Horizontal) {
+      val component = Button(title) { act }
+      component.tooltip = tip
+      component.font = theFont
       contents += Red.Glue.horizontal()
-      contents += { val b = Button(title) { act }; b.tooltip=tip; b.font=font; b }
+      contents += component
       contents += Red.Glue.horizontal()
-    }
+      override def font_=(font: Font): Unit = { component.font=font }
+      def text_=(_text: String): Unit = component.text=_text
+      def setText(_text: String): Unit = component.text=_text
   }
 
   //private val fileSeparator: String = System.getProperty("file.separator")
@@ -421,18 +398,18 @@ object Utils {
 
   lazy val preferences = java.util.prefs.Preferences.userRoot()
   lazy val appleRed    = preferences.node("/AppleRed")
-  lazy val appleRedUI  = appleRed.node("/UI")
+  lazy val appleRedUI  = appleRed.node("UI")
 
   object Recents {
     lazy val paths       = collection.mutable.ListBuffer[String]()
-    lazy val recents     = appleRed.node("/recents")
+    lazy val recents     = appleRed.node("recents")
     lazy val count       = recents.getInt("count", 0)
     lazy val limit       = recents.getInt("limit", 10) // TODO: preference.
     locally { for { i <- 0 until count } paths.addOne(recents.get(s"$i", "")) }
     def add(path: String): Unit = {
       if (!paths.contains(path)) {
-        while (paths.length >= limit) paths.remove(0)
-        paths.addOne(path)
+        while (paths.length >= limit) paths.remove(paths.length-1)
+        paths.prepend(path)
         sync()
       }
     }
@@ -443,7 +420,7 @@ object Utils {
     }
     def sync(): Unit = {
       recents.putInt("count", paths.length)
-      for {i <- 0 until paths.length} recents.put(s"$i", paths(i))
+      for { i <- 0 until paths.length } recents.put(s"$i", paths(i))
       recents.sync()
     }
   }

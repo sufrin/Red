@@ -1,6 +1,6 @@
 package Red
 
-import Red.Utils.DynamicMenu
+import Red.Menus.DynamicMenu
 
 import scala.collection.mutable
 import scala.swing.{Action, Component, Label, MenuItem}
@@ -11,7 +11,8 @@ object Features {
    */
    trait Feature {
      val name:     String
-     def mkString: String
+     def valueString: String
+     def profileString: String
      def process(parameters: List[String], action: (Boolean, List[String]) => Unit): Option[String]
    }
 
@@ -31,7 +32,8 @@ object Features {
     case class Bool(name: String, attributes: Seq[String] = List("true", "false")) extends Feature  {
       var value: Boolean = false
       def withValue(v: Boolean): this.type = { value=v; this }
-      def mkString: String = if (value) attributes(0) else attributes(1)
+      def valueString: String = if (value) attributes(0) else attributes(1)
+      def profileString: String = s"$name=$valueString"
       def process(parameters: List[String], action: (Boolean, List[String])=>Unit): Option[String] =
         { action(value, parameters)
           None
@@ -41,7 +43,8 @@ object Features {
     case class OneOf(name: String, attributes: Seq[String])   extends Feature
     { var value: String = ""
       def withValue(v: String): this.type = { value=v; this }
-      def mkString: String = value
+      def valueString: String = value
+      def profileString: String = s"$name=$valueString"
       def process(parameters: List[String], action: (Boolean, List[String])=>Unit): Option[String] = {
         parameters match {
           case "==" :: pat :: rest => action(value==pat, rest); None
@@ -55,7 +58,8 @@ object Features {
     case class AnyOf(name: String, attributes: Seq[String]) extends Feature {
       var value: List[String] = Nil
       def withValue(v: List[String]): this.type = { value=v; this }
-      def mkString: String = value.mkString("("," ",")")
+      def valueString: String = value.mkString("("," ",")")
+      def profileString: String = s"$name=$valueString"
       def process(parameters: List[String], action: (Boolean, List[String])=>Unit): Option[String] = {
         parameters match {
           case "??" :: pat :: rest => action((value.mkString(""," ", "").matches(pat)), rest); None
@@ -186,7 +190,8 @@ object Features {
           }
 
       def menu: DynamicMenu = new DynamicMenu("Profile") {
-        def dynamic: Seq[scala.swing.Component] = {
+        font = Utils.menuButtonFont
+        def content: Seq[scala.swing.Component] = {
           val components = new collection.mutable.ListBuffer[scala.swing.Component]
           components += new MenuItem(Action("Bindings"){ Personalised.Bindings.reImportBindings() }) {
             font = Utils.menuButtonFont
@@ -209,7 +214,7 @@ object Features {
 
         override def popupMenuWillBecomeInvisible(): Unit = {
           // reimport bindings if the profile has changed
-          if (oldProfile != profile) {
+          if (oldProfile != profile) Utils.invokeLater {
             Personalised.Bindings.reImportBindings()
             profileChanged.notify(profile)
           }
@@ -224,8 +229,8 @@ object Features {
   def eval(feature: String, default: String): String =
     feature match {
       case s"$${$featureId=$default}" =>
-        try eval(featureId).mkString catch { case _ : NoSuchElementException => default}
-      case s"$$$featureId" => eval(featureId).mkString
+        try eval(featureId).valueString catch { case _ : NoSuchElementException => default}
+      case s"$$$featureId" => eval(featureId).valueString
       case other           => default
     }
 
@@ -233,7 +238,7 @@ object Features {
 
       /** The profile is the concatenated representations of the features: pro-tem */
       def profile: String = {
-        features.values.map(_.mkString).mkString("", " ", "")
+        features.values.map(_.profileString).mkString("", " ", "")
       }
 
   }

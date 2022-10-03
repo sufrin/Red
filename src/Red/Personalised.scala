@@ -44,20 +44,22 @@ object Personalised extends Logging.Loggable {
     Bindings.clearMapping()
   }
 
-  def warning(profile: String, message: String): Unit = {
-      Dialog.showMessage(
-        null,
-        s"$message${if (profile.nonEmpty) s"\nProfile: $profile" else ""}",
-        "Bindings",
-        Dialog.Message.Warning,
-        icon = Utils.redIcon
-      )
+  def warning(heading: String, message: String): Unit = {
+    Dialog.showMessage(
+      null,
+      s"$message${if (heading.nonEmpty) s"\n$heading" else ""}",
+      "Bindings",
+      Dialog.Message.Warning,
+      icon = Utils.redIcon
+    )
   }
+
+  def profileWarning(message: String): Unit = warning(s"Profile: ${Features.profile}", message)
 
   object Settings {
     var typeOverSelection: Boolean = true
-    var clickSelects:      Boolean = true
-    var autoIndenting:     Boolean = true
+    var clickSelects: Boolean = true
+    var autoIndenting: Boolean = true
   }
 
   object Bindings {
@@ -107,7 +109,7 @@ object Personalised extends Logging.Loggable {
       val path = sys.env.getOrElse("REDBINDINGS", "~/.red/red.bindings")
       val top = Paths.get("")
       try importBindings(profile, 0, top, toPath(top, path)) catch {
-        case AbortBindings(why) => warning(profile, why)
+        case AbortBindings(why) => profileWarning(why)
       }
     }
 
@@ -209,14 +211,15 @@ object Personalised extends Logging.Loggable {
       def whenFalse(cond: Boolean, fields: List[String]): Unit = if (!cond) processFields(fields)
       def maybeWarn(result: Option[String]): Unit = result match {
         case None =>
-        case Some(error) => warning(profile, s"Erroneous conditional declaration:\n($context@$lineNumber)\n$error")
+        case Some(error) => profileWarning(s"Erroneous conditional declaration:\n($context@$lineNumber)\n$error")
       }
 
       def processFields(fields: List[String]): Unit = fields match {
 
         case "--" :: _ =>
+
         case "??" :: rest =>
-          for { (_, feature) <- Features.features}  println(s"$feature = ${feature.mkString}")
+          for { (_, feature) <- Features.features}  println(s"$feature = ${feature.valueString}")
           for { fid <- rest } println(s"$fid = ${Features.eval(fid, fid) }")
 
         case ("if" :: feature :: rest)       =>  maybeWarn(Features.eval(feature).process(rest, whenTrue))
@@ -229,7 +232,7 @@ object Personalised extends Logging.Loggable {
 
         case ("feature" :: name :: kind :: attrs) =>
              Features.add(name, kind, attrs) match {
-               case Some(error) => warning(profile, fields.mkString("Erroneous declaration:\n", " ", s"\n($context@$lineNumber)\n$error"))
+               case Some(error) => profileWarning(fields.mkString("Erroneous declaration:\n", " ", s"\n($context@$lineNumber)\n$error"))
                case None =>
              }
 
@@ -238,19 +241,25 @@ object Personalised extends Logging.Loggable {
           if (exPath.toFile.exists() && exPath.toFile.canRead())
              importBindings(profile, depth+1, context, exPath)
           else
-            warning(profile, s"Attempting, from $context@$lineNumber, to include:\n$exPath\nNo such bindings file can be read.")
+            profileWarning(s"Attempting, from $context@$lineNumber, to include:\n$exPath\nNo such bindings file can be read.")
+
         case ("include?" :: path :: Nil) =>
           val exPath = toPath(context, path)
           if (exPath.toFile.exists()  && exPath.toFile.canRead())
             importBindings(profile, depth+1, context, exPath)
+
         case ("text"::"abbrev"::abbr::text::_)  =>
           mapTo(abbr, text)
+
         case ("pipes"::abbrevs) =>
           personalPipeNames.addAll(abbrevs)
+
         case ("latex"::"blocks"::abbrevs) =>
           personalBlockTypes.addAll(abbrevs)
+
         case ("show"::fields) =>
-          feedback.notify(fields.map{ case "$profile" => profile; case other => other }.mkString("", " ", ""))
+          println(fields.map{ case "$profile" => Features.profile; case other => other }.mkString("", " ", ""))
+
         case ("text"::"diacritical" :: marks :: rest) =>
           AltKeyboard.macKeyboardDiacritical = marks
 
@@ -277,10 +286,10 @@ object Personalised extends Logging.Loggable {
              }
 
         case other =>
-          warning(profile, other.mkString("Erroneous binding declaration:\n", " ", s"\n($context@$lineNumber)"))
+          profileWarning(other.mkString("Erroneous binding declaration:\n", " ", s"\n($context@$lineNumber)"))
       }
       try processFields(Lexical.scan(line)) catch {
-        case exn: NoSuchElementException => warning(profile, s"Conditional declaration with undefined feature: ${exn.getMessage}\n($context@$lineNumber)")
+        case exn: NoSuchElementException => profileWarning(s"Conditional declaration with undefined feature: ${exn.getMessage}\n($context@$lineNumber)")
       }
     }
 

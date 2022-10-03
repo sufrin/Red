@@ -1,6 +1,7 @@
 package Red
 
 import Red.Utils.CentredLabel
+import Red.Menus.EmbeddedDynamicMenu
 
 import java.awt.desktop._
 import java.awt.{Color, Desktop}
@@ -130,21 +131,21 @@ object AppleRed extends Logging.Loggable {
 
 
 
-    contents += new Utils.LazyDynamicMenu("Open recent", { Utils.Recents.get } ) {
+    contents += new EmbeddedDynamicMenu("Open recent", { Utils.Recents.get } ) {
       font = Utils.rootFont
       def component(path: String): Component = {
         if (path == "-")
-          Item(s"""(Forget recent paths)""", "Forget recent paths", itemFont=Utils.rootFont) {
+          Item(s"""(Forget recent paths)""", "Forget recent paths", theFont=Utils.rootFont) {
             Utils.Recents.forget()
           }
         else
-          Item(s"""$path""", itemFont = Utils.rootFont) {
+          Item(s"""$path""", theFont = Utils.rootFont) {
             Red.Server.process(path)
           }
       }
     }
 
-    contents += Item("Open ...", "Choose and edit an existing document", itemFont=Utils.rootFont) {
+    contents += Item("Open ...", "Choose and edit an existing document", theFont=Utils.rootFont) {
       fileChooser.showOpenDialog(parent) match {
         case Cancel  =>
         case Approve =>
@@ -152,14 +153,14 @@ object AppleRed extends Logging.Loggable {
       }
     }
 
-    contents += Item("Open New", "Start editing a new document", itemFont=Utils.rootFont) {
+    contents += Item("Open New", "Start editing a new document", theFont=Utils.rootFont) {
       Red.Server.process(Utils.freshDocumentName())
     }
 
     contents += Separator()
     contents += Separator()
 
-    contents += Item("Quit", "Quit all sessions if possible", itemFont=Utils.rootFont) {
+    contents += Item("Quit", "Quit all sessions if possible", theFont=Utils.rootFont) {
       if (Red.Sessions.canQuit) sys.exit(0)
     }
 

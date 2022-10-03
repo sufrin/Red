@@ -15,7 +15,8 @@ import scala.swing._
 /** Graphical User Interface to an EditSession */
 class UI(val theSession: EditSession) extends SimpleSwingApplication {
   import UI._
-  import Utils.{LazyDynamicMenu, Menu}
+  import Utils.Menu
+  import Menus.EmbeddedDynamicMenu
   /**
    * `theSession` emits feedback and warnings about things like find/replace failures
    * that we wish to report via this user interface.
@@ -365,7 +366,9 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
 
     contents += new Utils.Menu("Red") {
 
-      contents += new Utils.DynamicMenu("cd ") {
+      contents += new Menus.DynamicMenu("cd ") {
+        font = Red.Utils.menuButtonFont
+
         def theLabel():  Component  = {
           val cwd = if (theSession.CWD==theSession.parentPath) "+" else relativeToHome(theSession.CWD)
           new CentredLabel(s"  CWD: ${cwd}  ")  { font = Utils.buttonFont; background = Color.lightGray }
@@ -378,14 +381,12 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
           feedbackWD(theSession.CWD.toString)
         }
 
-        def dynamic = List ( theLabel(), theParent(), Separator(), selectTheParent())
-
-        suffix += menuButton("cd ~", toolTip = "Change working directory to user's home directory") {
+        val homeDir = menuButton("cd ~", toolTip = "Change working directory to user's home directory") {
           theSession.CWD = Utils.homePath;
           feedbackWD(theSession.CWD.toString)
         }
 
-        suffix += menuButton("cd \u24b6", toolTip = "Change working directory using dialogue or nonempty \u24b6 field") {
+        val chooseDir = menuButton("cd \u24b6", toolTip = "Change working directory using dialogue or nonempty \u24b6 field") {
           var text = argLine.text.trim
           if (text.isEmpty) {
             val chooser = dirChooser
@@ -397,6 +398,8 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
           if (text.nonEmpty) theSession.CWD = Utils.toPath(text)
           feedbackWD(theSession.CWD.toString)
         }
+
+        def content = List ( theLabel(), theParent(), Separator(), selectTheParent(), homeDir, chooseDir)
 
         contents += Separator()
 
@@ -464,7 +467,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
         openArglinePath()
       }
 
-      contents += new Utils.LazyDynamicMenu("Open recent", { Utils.Recents.get } ) {
+      contents += new EmbeddedDynamicMenu("Open recent", { Utils.Recents.get } ) {
         def component (path: String): Component = {
           if (path=="-")
             menuButton(s""" (Forget recent paths) """, "Forget recent paths", centred=true) {
@@ -595,7 +598,8 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
       UI_DO(EditSessionCommands.latexToPDF)
     }
 
-    contents += new LazyDynamicMenu("\\begin{...}", { Red.Personalised.latexBlockTypes }) {
+    contents += new EmbeddedDynamicMenu("\\begin{...}", { Red.Personalised.latexBlockTypes }) {
+      font = Utils.menuButtonFont
       prefix += menuButton("%%%%%%%%") {
         val header =
           """%%%%%%%%%%%%%%%%%%%%%%%%
