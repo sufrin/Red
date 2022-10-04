@@ -394,12 +394,9 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
           feedbackWD(theSession.CWD.toString)
         }
 
-        def content = List ( theLabel(), theParent(), Separator(), selectTheParent(), homeDir, chooseDir)
-
-        contents += Separator()
-
+        def dynamicContents: Seq[Component] = List ( theLabel(), theParent(), Separator(), selectTheParent(), homeDir, chooseDir)
       }
-      contents += Separator()
+
       contents += Separator()
 
       contents += new Buttons.PersistentCheckItem("Typeover", "typeover", theSession.typeOverSelection_=(_), Personalised.Settings.typeOverSelection) {
@@ -419,7 +416,6 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
 
       if (theSession.hasCutRing) {
         contents += Separator()
-        contents += Separator()
         contents += menuButton("Cut Ring", toolTip = "Show the cut-ring control window") {
           CutRingUI.refreshIfVisible()
         }
@@ -430,12 +426,10 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
         Personalised.Bindings.reImportBindings()
       }
 
-
       contents += Features.menu
 
-
       contents += Separator()
-
+      contents += Separator()
 
       contents += menuButton("Quit", toolTip = "Quit now if there are no unsaved document sessions; else ask each unsaved document session what to do")  { top.closeOperation() }
 

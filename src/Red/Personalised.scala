@@ -238,7 +238,7 @@ object Personalised extends Logging.Loggable {
           Utils.setFont(kind, Features.eval(style), Features.eval(size), roles)
 
         case ("feature" :: name :: kind :: attrs) =>
-             Features.add(name, kind, attrs) match {
+             Features.declare(name, kind, attrs) match {
                case Some(error) => profileWarning(declaration.mkString("Erroneous declaration:\n", " ", s"\n($context@$lineNumber)\n$error"))
                case None =>
              }
@@ -264,8 +264,11 @@ object Personalised extends Logging.Loggable {
         case ("latex"::"blocks"::abbrevs) =>
           personalBlockTypes.addAll(abbrevs)
 
-        case ("show"::fields) =>
-          println(fields.map{ case "$profile" => Features.profile; case other => other }.mkString("", " ", ""))
+        case ("show" :: fields) =>
+          println(fields.map {
+                 case "$profile" => Features.profile
+                 case other      => Features.eval(other)
+              }.mkString("", " ", ""))
 
         case ("text"::"diacritical" :: marks :: rest) =>
           AltKeyboard.macKeyboardDiacritical = marks

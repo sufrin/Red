@@ -9,36 +9,38 @@ object Menus extends Logging.Loggable {
 
   import javax.swing.event.{PopupMenuEvent, PopupMenuListener}
 
-  /**   A Menu whose dynamic content is generated from `titles`
-    *   as it is popped up; but only if `titles` has changed since
+  /**   A Menu whose dynamic content is generated from `descriptors`
+    *   as it is popped up; but only if `descriptors` has changed since
     *   it was last popped up.
     */
-  abstract class LazyDynamicMenu(title: String, titles: => Seq[String])
+  abstract class LazyDynamicMenu(title: String, descriptors: => Seq[String])
       extends DynamicMenu(title) {
-    var lastTitles: Seq[String] = List()
-    def component(title: String): scala.swing.Component
-    def content: Seq[scala.swing.Component] = lastTitles.map(component)
+
+    private var lastdescriptors: Seq[String] = List()
+
+    protected def dynamicContents: Seq[scala.swing.Component] = lastdescriptors.map(component)
+
+    def component(descriptor: String): scala.swing.Component
+
     override def popupMenuWillBecomeVisible(): Unit = {
-      if (logging) finest(s"Peer popping up: $lastTitles => $titles")
-      if (titles != lastTitles) {
-        if (logging) finest(s"Refreshing menu: $titles")
+      if (logging) finest(s"Peer popping up: $lastdescriptors => $descriptors")
+      if (descriptors != lastdescriptors) {
+        if (logging) finest(s"Refreshing menu: $descriptors")
         contents.clear()
-        lastTitles = titles
-        contents ++= content
+        lastdescriptors = descriptors
+        contents ++= dynamicContents
       }
     }
   }
 
   /**
-   *   A Menu whose content is generated as it pops up
+   *   A Menu whose dynamic content is generated as it pops up
    */
-  abstract class DynamicMenu(title: String) extends scala.swing.Menu(title) {
-    private val thisDynamicMenu: DynamicMenu = this
-
+  abstract class DynamicMenu(title: String) extends scala.swing.Menu(title) { thisDynamicMenu =>
     /**
      * @return dynamically-generated content for the menu
      */
-    def content: Seq[scala.swing.Component]
+    protected def dynamicContents: Seq[scala.swing.Component]
 
     /**
      *  Invoked ''just before'' the menu is about to become
@@ -47,8 +49,8 @@ object Menus extends Logging.Loggable {
     def popupMenuWillBecomeVisible(): Unit = {
       val lastContent = contents.toList
       if (logging) finest(s"Peer popping up: $lastContent\n$peer")
-      contents.clear()
-      contents ++= content
+      contents.clear()      // clear the existing menu elements
+      contents ++= dynamicContents  // add the current menu elements
     }
 
     /**
@@ -87,27 +89,27 @@ object Menus extends Logging.Loggable {
     }
   }
 
-  /** A ''completely'' dynamic menu that evaluates  `_dynamic` to generate content on popup */
+  /** A ''completely'' dynamic menu that evaluates  `_dynamic` to generate dynamicContents on popup */
   object DynamicMenu {
     def apply(title: String)(
       _dynamicContent: => Seq[scala.swing.Component]
     ): DynamicMenu = new DynamicMenu(title) {
-      def content: Seq[scala.swing.Component] = _dynamicContent
+      def dynamicContents: Seq[scala.swing.Component] = _dynamicContent
     }
   }
 
   /**
    *  A menu with a fixed prefix and suffix between which
-   *  dynamically-generated content is embedded. The menu
-   *  components are regenerated only if `titles` changes its
+   *  dynamically-generated components are embedded. The menu
+   *  components are regenerated only if `descriptors` changes its
    *  value.
    */
-  abstract class EmbeddedDynamicMenu(title: String, titles: => Seq[String])
-    extends Menus.LazyDynamicMenu(title, titles) {
+  abstract class EmbeddedDynamicMenu(title: String, descriptors: => Seq[String])
+    extends Menus.LazyDynamicMenu(title, descriptors) {
     val prefix, suffix: collection.mutable.Buffer[scala.swing.Component] =
       new ListBuffer[scala.swing.Component]
-    override def content: Seq[scala.swing.Component] =
-      prefix.toList ++ super.content ++ suffix.toList
+    override def dynamicContents: Seq[scala.swing.Component] =
+      prefix.toList ++ super.dynamicContents ++ suffix.toList
   }
 
 }

@@ -46,8 +46,7 @@ object Features {
       def valueString: String = if (value) attributes(0) else attributes(1)
       def profileString: String = s"$name=$valueString"
       def processConditional(tail: List[String], process: List[String]=>Unit, ifSo: Boolean=>Boolean): Unit =
-        { if (ifSo(value)) process(tail)
-        }
+          if (ifSo(value)) process(tail)
     }
 
     case class OneOf(name: String, attributes: Seq[String])   extends Feature
@@ -75,17 +74,22 @@ object Features {
           case "??" :: pat :: rest => if (ifSo(value.mkString(""," ", "").matches(pat))) process(rest)
 
           case contains :: pat :: rest if contains == "<<=" || contains == "\u2286" =>
-            val set    = pat.split(',')
+            val set    = pat.split(",?\\s+")
             val subset = value.forall ( set.contains(_) )
             if (ifSo(subset)) process(rest)
 
           case contains :: pat :: rest if contains == "=>>" || contains == "\u2287" =>
-            val set    = pat.split(',')
+            val set    = pat.split(",?\\s+")
             val subset = set.forall ( value.contains(_) )
             if (ifSo(subset)) process(rest)
 
+          case contains :: pat :: rest if contains == "intersects" || contains == "\u2229" =>
+            val set    = pat.split(",?\\s+")
+            val subset = set.exists ( value.contains(_) )
+            if (ifSo(subset)) process(rest)
+
           case "==" :: pat :: rest =>
-            val set    = pat.split(',')
+            val set    = pat.split(",?\\s+")
             val equals = set.forall ( value.contains(_) ) && value.forall ( set.contains(_) )
             if (ifSo(equals)) process(rest)
 
@@ -94,16 +98,22 @@ object Features {
       }
     }
 
-
-
     /**
-     *  ===invariant: no two features have the same name
-     *    {{{ noDuplicates(_features map _.name) }}}
+     *  '''Invariant''' {{{
+     *     (forall(id, _) <- features) yield features(id).name==id
+     *   }}}
      */
      val features: collection.mutable.Map[String,Feature]= new mutable.LinkedHashMap[String,Feature]
 
-      /** Construct a feature, `f`, from a declaration, and return `Left(f)` otherwise return `Right(errorDescription)` if the declaration is unsound  */
-      def makeFeature(_name: String, _kind: String, _attributes: Seq[String]): Either[Feature, String] = {
+      /**
+       *  Invoked at a feature declaration of the form
+       *
+       *    `feature` ''name'' ''kind'' ''attributes''
+       *
+       *  - If the declaration is sound, then build the corresponding feature `f`, and return `Left(f)`
+       *  - If the declaration is unsound, return `Right(errorDescription)`
+       */
+      def newFeature(_name: String, _kind: String, _attributes: Seq[String]): Either[Feature, String] = {
         var error: Option[String] = None
         val feature: Feature = _kind.toLowerCase() match {
           case "get" =>
@@ -162,13 +172,26 @@ object Features {
         if (error.isEmpty) return Left(feature) else return Right(error.get)
       }
 
-      def add(_name: String, _kind: String, _attributes: Seq[String]): Option[String] =
-        makeFeature(_name: String, _kind: String, _attributes) match {
+  /**
+   * Add to `features` the feature declared by:
+   *
+   * `feature` ''name kind attributes''
+   *
+   * if it is sound, and if it hasn't already been added; then yield `None`.
+   * Otherwise yield `Some`''(errorReport)''
+   *
+   * Declarations of existing features are ignored, and
+   * are presumed to come while re-reading preferences.
+   *
+   * TODO: differentiate between the first and subsequent reading
+   *       of preferences.
+   */
+      def declare(_name: String, _kind: String, _attributes: Seq[String]): Option[String] =
+        newFeature(_name: String, _kind: String, _attributes) match {
           case Left(theFeature) =>
-            // redefinitions of features are ignored silently
             features.get(_name) match {
-              case None                  => features(_name) = theFeature; None
-              case Some(originalFeature) => None
+              case None    => features(_name) = theFeature; None
+              case Some(_) => None
             }
           case Right(theError)  => Some(theError)
         }
@@ -217,7 +240,8 @@ object Features {
 
       def menu: DynamicMenu = new DynamicMenu("Profile") {
         font = Utils.menuButtonFont
-        def content: Seq[scala.swing.Component] = {
+
+        def dynamicContents: Seq[scala.swing.Component] = {
           val components = new collection.mutable.ListBuffer[scala.swing.Component]
           components += new MenuItem(Action("Bindings"){ Personalised.Bindings.reImportBindings() }) {
             font = Utils.menuButtonFont
