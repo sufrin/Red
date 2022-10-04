@@ -371,7 +371,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
           background = Color.lightGray
         }
 
-        def selectTheParent(): Component = menuButton("cd +", toolTip = s"Change working directory to ${relativeToHome(theSession.parentPath)}") {
+        def selectTheParent(): Component = menuButton(s"cd +: ${relativeToHome(theSession.parentPath)} ", toolTip = s"Change working directory to ${relativeToHome(theSession.parentPath)}") {
           theSession.CWD = theSession.parentPath;
           feedbackWD(theSession.CWD.toString)
         }
@@ -394,7 +394,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
           feedbackWD(theSession.CWD.toString)
         }
 
-        def dynamicContents: Seq[Component] = List ( theLabel(), theParent(), Separator(), selectTheParent(), homeDir, chooseDir)
+        def dynamicContents: Seq[Component] = List ( theLabel(), Separator(), selectTheParent(), homeDir, chooseDir)
       }
 
       contents += Separator()
