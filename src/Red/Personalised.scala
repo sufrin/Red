@@ -112,6 +112,7 @@ object Personalised extends Logging.Loggable {
       try importBindings(profile, 0, top, toPath(top, path)) catch {
         case AbortBindings(why) => profileWarning(why)
       }
+      Features.sync()
     }
 
     /** Read the top-level bindings file (unconditionally) */
@@ -217,8 +218,11 @@ object Personalised extends Logging.Loggable {
         val name: String = "Undefined"
         def valueString: String = "Undefined"
         def profileString: String = "Undefined"
-        def processConditional(tail: List[String], process: List[String] => Unit, ifSo: Boolean => Boolean): Unit =
+        def processConditional(tail: List[String], process: List[String] => Unit, ifSo: Boolean => Boolean): Unit = {
           throw new AbortBindings(s"Erroneous conditional declaration (undeclared feature):\n$line\n($context@$lineNumber)")
+        }
+        def save(): Unit = {}
+        def restore(): Unit = {}
       }
 
       def evalDeclaration(declaration: List[String]): Unit = declaration match {

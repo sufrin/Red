@@ -8,7 +8,11 @@ import scala.swing.{Action, Component, Label, MenuItem}
 
 object Features {
 
-  lazy val appleRedFeatures = Utils.appleRed.node("Features")
+  lazy val persistent = Utils.appleRed.node("Features")
+
+  def sync(): Unit = persistent.sync()
+
+  def purge(): Unit = { persistent.clear(); sync() }
 
   /**
    * Every feature has a kind -- akin to a type
@@ -24,6 +28,16 @@ object Features {
       *  Conditionally continue to process the rest of a declaration starting with this feature
       */
      def processConditional(tail: List[String], process: List[String] => Unit, ifSo: Boolean=>Boolean): Unit
+
+    /**
+     *  Save the feature in the persistent store
+     */
+    def save(): Unit
+
+    /**
+     *  Restore the feature from the persistent store
+     */
+    def restore(): Unit
    }
 
   /**
@@ -47,7 +61,15 @@ object Features {
       def profileString: String = s"$name=$valueString"
       def processConditional(tail: List[String], process: List[String]=>Unit, ifSo: Boolean=>Boolean): Unit =
           if (ifSo(value)) process(tail)
-    }
+
+        def save(): Unit = {
+         persistent.putBoolean(name, value)
+      }
+
+      def restore(): Unit = {
+          value = persistent.getBoolean(name, value)
+      }
+  }
 
     case class OneOf(name: String, attributes: Seq[String])   extends Feature
     { var value: String = ""
@@ -62,12 +84,20 @@ object Features {
           case other => throw new AbortBindings(s"invalid conditional operator for a OneOf: $other")
         }
       }
+
+      def save(): Unit = {
+        persistent.put(name, value)
+      }
+
+      def restore(): Unit = {
+        value = persistent.get(name, value)
+      }
     }
 
     case class AnyOf(name: String, attributes: Seq[String]) extends Feature {
       var value: List[String] = Nil
       def withValue(v: List[String]): this.type = { value=v; this }
-      def valueString: String = value.mkString("("," ",")")
+      def valueString: String = value.mkString("","\u00A0","")
       def profileString: String = s"$name=$valueString"
       def processConditional(tail: List[String], process: List[String]=>Unit, ifSo: Boolean=>Boolean): Unit = {
         tail match {
@@ -95,6 +125,15 @@ object Features {
 
           case other => throw new AbortBindings(s"invalid operator for an AnyOf: $other")
         }
+      }
+
+      def save(): Unit = {
+        persistent.put(name, valueString)
+      }
+
+      def restore(): Unit = {
+        val rep = persistent.get(name, valueString)
+        value = rep.split('\u00A0').toList
       }
     }
 
@@ -190,7 +229,7 @@ object Features {
         newFeature(_name: String, _kind: String, _attributes) match {
           case Left(theFeature) =>
             features.get(_name) match {
-              case None    => features(_name) = theFeature; None
+              case None    => features(_name) = theFeature; theFeature.restore(); None
               case Some(_) => None
             }
           case Right(theError)  => Some(theError)
@@ -209,14 +248,14 @@ object Features {
             new Buttons.CheckBox(s"$name", name) {
               font = Utils.menuButtonFont
               selected = f.value
-              def click(): Unit = f.value = selected
+              def click(): Unit = { f.value = selected; f.save() }
             }
             List(Separator(), Separator(), item)
 
 
           case f @ OneOf(name, attrs) =>
           { val group = new Buttons.Group() {
-                   def select(value: String): Unit = { f.value = value }
+                   def select(value: String): Unit = { f.value = value; f.save() }
                    value = f.value
                 }
             val menu = for { attr <- attrs.toList.reverse }  yield group.CheckBox(attr, attr)
@@ -232,25 +271,37 @@ object Features {
                   selected = f.value.contains(attr)
                   def click(): Unit = {
                       if (selected) f.value = attr :: f.value.toList else f.value = f.value.filter(_.!=(attr))
+                      f.save()
                   }
                 }
             Separator() :: Separator() :: Lab(s"$name::") ::  menu
             }
           }
 
+      val purgeFeatures: Component = new MenuItem(Action("Reset"){
+          purge()
+        }) {
+        font = Utils.menuButtonFont
+        tooltip = "Reset all features to their default values"
+      }
+
       def menu: DynamicMenu = new DynamicMenu("Profile") {
         font = Utils.menuButtonFont
 
         def dynamicContents: Seq[scala.swing.Component] = {
           val components = new collection.mutable.ListBuffer[scala.swing.Component]
-          components += new MenuItem(Action("Bindings"){ Personalised.Bindings.reImportBindings() }) {
+          components += new MenuItem(Action("Reimport Profile"){ Personalised.Bindings.reImportBindings() }) {
             font = Utils.menuButtonFont
-            tooltip = "Reimport all bindings"
+            tooltip = "Reimport the profile with these features set"
           }
 
           for { (_, feature) <- features }
             for { component <- makeFeatureMenu(feature) }
                   components.addOne(component)
+
+          components.addOne(Separator())
+          components.addOne(Separator())
+          components.addOne(purgeFeatures)
 
           components.toSeq
         }

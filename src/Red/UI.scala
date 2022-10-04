@@ -422,9 +422,6 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
       }
 
       contents += Separator()
-      contents += menuButton("Bindings", toolTip = "Reimport bindings from scratch")  {
-        Personalised.Bindings.reImportBindings()
-      }
 
       contents += Features.menu
 
@@ -490,7 +487,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
 
     contents += new Utils.Menu("Edit") {
 
-          contents += menuButton("format ...", "Format the selection using the current mode") {
+          contents += menuButton("Format ...", "Format the selection using the current mode") {
              withFilterWarnings("format") { formatting.select() }
           }
 
