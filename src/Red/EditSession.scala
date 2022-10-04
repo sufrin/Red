@@ -606,6 +606,16 @@ class EditSession(val document: DocumentInterface, private var _path: String)
     }
   }
 
+  /**
+   *  TODO: `find` for a poorly-constructed regex may take forever to terminate.
+   *        Regex compilation should filter the antipatterns: but even dealing
+   *        with the more obvious ones slows down the compiler, and
+   *        loop detection in the abstract machine is likely to make it slower.
+   *        It is possible to limit the resources used during a find; and
+   *        to interrupt if the limit is exceeded. The simplest resource
+   *        to limit is cycles of the abstract machine. Limiting ''time'' will
+   *        be more complicated.
+   */
   def find(thePattern: String, backwards: Boolean, asRegex: Boolean): Boolean = {
     try {
       val regex = RegexCache(thePattern, !asRegex)
