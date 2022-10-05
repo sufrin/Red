@@ -10,9 +10,14 @@ object Features {
 
   lazy val persistent = Utils.appleRed.node("Features")
 
-  def sync(): Unit = persistent.sync()
+  def sync(): Unit = { persistent.sync(); Utils.appleRed.sync() }
 
-  def purge(): Unit = { persistent.clear(); sync() }
+  /** Clear the persistent store and nullify all features.
+   *  The effect of this is that when bindings are
+   *  read features are given the default values specified
+   *  in the bindings file(s).
+   */
+  def resetFeatures(): Unit = { features.clear(); persistent.clear(); sync() }
 
   /**
    * Every feature has a kind -- akin to a type
@@ -283,10 +288,11 @@ object Features {
           }
 
       val purgeFeatures: Component = new MenuItem(Action("Reset"){
-          purge()
-        }) {
+          resetFeatures()
+          Personalised.Bindings.reImportBindings()
+      }) {
         font = Utils.menuButtonFont
-        tooltip = "Reset all features to their default values"
+        tooltip = "Erase all feature settings then import the profile file, thereby setting all features to their defaults"
       }
 
       def menu: DynamicMenu = new DynamicMenu("Profile") {
@@ -296,7 +302,7 @@ object Features {
           val components = new collection.mutable.ListBuffer[scala.swing.Component]
           components += new MenuItem(Action("Reimport Profile"){ Personalised.Bindings.reImportBindings() }) {
             font = Utils.menuButtonFont
-            tooltip = "Reimport the profile with these features set"
+            tooltip = "Import the profile file using current feature settings"
           }
 
           for { (_, feature) <- features }

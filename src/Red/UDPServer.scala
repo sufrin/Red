@@ -37,8 +37,8 @@ object UDPServer extends Logging.Loggable with ServerInterface {
 
   def processLocally(arg: String): Unit =
     arg match {
-      case "-purge" =>
-        Features.purge()
+      case "-resetFeatures" =>
+        Features.resetFeatures()
       case "-probe" =>
         if (logging) fine(s"probed")
       case s"-l${module}=${level}" =>
