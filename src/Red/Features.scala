@@ -153,24 +153,28 @@ object Features {
        *  - If the declaration is unsound, return `Right(errorDescription)`
        */
       def newFeature(_name: String, _kind: String, _attributes: Seq[String]): Either[Feature, String] = {
+        def cons(value: String, values: List[String]): List[String] = if (values.contains(value)) values else value::values
         var error: Option[String] = None
         val feature: Feature = _kind.toLowerCase() match {
-          case "get" =>
-            _attributes match {
-              case s"$${$variable-$default}" :: values =>
-                val value = sys.env.getOrElse(variable, default)
-                OneOf(_name, values ++ (if (values.contains(value)) Nil else List(value))).withValue(value)
 
-              case s"$$$variable" :: values =>
-                sys.env.get(variable) match {
-                  case Some(value) => OneOf (_name, values ++ (if (values.contains(value)) Nil else List(value))) . withValue (value)
-                  case None => AnyOf (_name, values)
-                }
+          case s"$${$variable-$default}" =>
+            val value = sys.env.getOrElse(variable, default)
+            OneOf(_name, cons(value, _attributes.toList)).withValue(value)
 
-              case _ =>
-                error = Some(s"Eval feature must have one name, and possibly some alternate value")
-                null
+          case s"$${=$default}" =>
+            val value =
+            _attributes.filter { v => sys.env.get(v).nonEmpty } match {
+              case v::_ => sys.env.get(v).get
+              case Nil  => default
             }
+            OneOf(_name, List(value)).withValue(value)
+
+          case s"$$$variable" =>
+            sys.env.get(variable) match {
+              case Some(value) => OneOf(_name, cons(value, _attributes.toList)).withValue(value)
+              case None        => OneOf(_name, _attributes.toList).withValue("")
+          }
+
           case "bool" | "boolean" =>
             _attributes match {
               case Nil => Bool(_name)
