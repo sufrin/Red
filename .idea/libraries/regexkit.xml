@@ -1,7 +1,7 @@
 <component name="libraryTable">
   <library name="regexkit">
     <CLASSES>
-      <root url="jar://$PROJECT_DIR$/../RegexKit/out/artifacts/regexkit.jar!/" />
+      <root url="jar://$PROJECT_DIR$/regexkit.jar!/" />
     </CLASSES>
     <JAVADOC />
     <SOURCES />
