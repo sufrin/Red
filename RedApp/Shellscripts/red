@@ -27,8 +27,8 @@ else
    for f in "$@"
    do
     case "${f}" in
-         (~/* | /*) echo -n "${f}"        | nc  -u localhost $REDPORT > /dev/null;;
-         (*)        echo -n "$(pwd)/${f}" | nc -u localhost $REDPORT > /dev/null;;
+         (~/* | /*) echo -n "${f}"        | nc -w 1 -u localhost $REDPORT > /dev/null;;
+         (*)        echo -n "$(pwd)/${f}" | nc -w 1 -u localhost $REDPORT > /dev/null;;
     esac
    done
 fi
