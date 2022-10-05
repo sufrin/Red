@@ -1,0 +1,105 @@
+#!/bin/sh
+#
+# Invocation of Red from AppleRed.app (and scripts), including Linux scripts
+#
+#   $1 is the path to AppleRed.app/Contents of the invoking app
+#   $@ are the arguments passed to the opening script or app
+#
+#
+####
+####
+#### Read the global profile, if there is one: intended for Linux
+####
+####
+
+function LOG {
+  echo "$@" >> ~/REDLOG
+}
+
+PROFILE=$HOME/.AppleRed.profile
+[ -e $PROFILE ] && . $PROFILE
+
+#### 
+#### 
+#### Locate the resources needed to start the java command
+#### 
+#### 
+CONTAINER=${1}
+shift
+Java=${CONTAINER}/Java
+Resources=${CONTAINER}/Resources
+
+#### Unless otherwise specified this script was invoked by the app
+MODE=${REDMODE-application}
+
+#### Read the appropriate profile
+PROFILE=$HOME/.AppleRed-${MODE}.profile
+[ -e $PROFILE ] && . $PROFILE
+
+LOCK=/tmp/AppleRed-$REDPORT
+
+#### Set the appropriate dock features (OS/X)
+if [ "$MODE" = "client"  ]
+then 
+  REDICON="$Resources/AppleCred.png"
+  DOCKNAME="AppleRed-Standalone"
+else
+  REDICON="$Resources/AppleRed.png"
+  DOCKNAME="AppleRed-ClientServer"
+fi
+
+
+#### 
+#### 
+#### If started from the OS/X app change directory to something sensible, pro-tem
+#### 
+#### 
+
+[ "$PWD" = "/" ] && cd $HOME
+
+#### 
+#### 
+#### 
+#### 
+####
+LOG MODE $MODE LOCK $LOCK 
+
+if [ "$MODE" != "client" -a -f $LOCK ]
+then
+   LOG Using nc
+   ## Tell the server/application using datagrams
+   for f in "$@"
+   do
+    case "${f}" in
+         (~/* | /*) echo -n "${f}"        | nc -w 1 -u localhost $REDPORT;;
+         (*)        echo -n "$(pwd)/${f}" | nc -w 1 -u localhost $REDPORT;;
+    esac
+   done
+else
+    ## Start the server
+    LOG STARTING SERVER
+    
+    ##         -DRed.AppleRed.level=all \
+    ##         -DJed.UDPServer=all\
+
+    if [ "$MODE" != "client" ]
+    then
+       LOG TOUCHING LOCK
+       touch $LOCK
+    fi
+    
+    if [ `uname` = Darwin ] 
+    then
+        java  \
+             -Xdock:icon="$REDICON"  \
+             -Xdock:name="$DOCKNAME" \
+             -DLogging.Default.level=error \
+             -jar $Java/AppleRed.jar "$@"
+    else
+        java  \
+             -DLogging.Default.level=error \
+             -jar $Java/AppleRed.jar "$@"
+    fi 
+    rm -f $LOCK
+fi
+
