@@ -226,8 +226,9 @@ object EditSessionCommands extends Logging.Loggable {
       }
     }
 
-    override val kind: String =
-      if (chars.isLeft && chars.left == '\n') "InsEol" else "Ins" // break insertion merges
+    @inline def isEol(e: Either[Char, Any]): Boolean = e match { case Left('\n') => true; case _ => false }
+
+    override val kind: String = if (isEol(chars)) "InsEol" else "Ins" // break insertion merges
   }
 
   def insert (ch: Char): SessionCommand = {

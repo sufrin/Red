@@ -288,12 +288,15 @@ object Personalised extends Logging.Loggable {
           for { map <- pairs if map.length>=2 }
             AltKeyboard.mapTo(map(0).toUpper, map(1), shift=false)
 
-        case (variable :: "is" :: value :: Nil) =>
+        case (variable :: "is" :: _value :: Nil) =>
              try {
+               val value = Features.eval(_value)
                variable match {
-                 case "typeover"   => Settings.typeOverSelection = value.toBoolean
-                 case "autoselect" => Settings.clickSelects = value.toBoolean
-                 case "autoindent" => Settings.autoIndenting = value.toBoolean
+                 case "typeover"        => Settings.typeOverSelection = value.toBoolean
+                 case "autoselect"      => Settings.clickSelects = value.toBoolean
+                 case "autoindent"      => Settings.autoIndenting = value.toBoolean
+                 case "matchcostlimit"  => Utils.stepLimit = value.toInt
+                 case "showmatchcost"   => Utils.showSteps = value.toBoolean
                }
              } catch {
                case exn: Throwable => warning(profile, declaration.mkString("Erroneous variable setting:\n", " ", s"\n($context@$lineNumber)"))

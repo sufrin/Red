@@ -40,6 +40,18 @@ object Utils {
   var feedbackFont: Font = new Font("Monospaced", Font.PLAIN, 16)
   var feedbackColor: Color = Color.BLUE
 
+  /**
+   *   Number of matching-machine instructions permitted before we conclude a match
+   *   has failed (on account of a pathological pattern).
+   *   Settable as a feature.
+   */
+  var stepLimit: Int     = 100
+  /**
+   *   Show the number of matching-machine instructions executed while the
+   *   find pattern was successfully matched starting at the position of
+   *   the match.
+   */
+  var showSteps: Boolean = false
 
   //private val fileSeparator: String = System.getProperty("file.separator")
 

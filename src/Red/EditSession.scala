@@ -620,23 +620,25 @@ class EditSession(val document: DocumentInterface, private var _path: String)
     try {
       val regex = RegexCache(thePattern, !asRegex)
       if (backwards) {
-        val lastMatch = regex.findSuffix(document.characters, 0, cursor)
+        val lastMatch = regex.findSuffix(document.characters, 0, cursor, Utils.stepLimit)
         lastMatch match {
           case None =>
             feedback.notify("Not found upwards", s"$thePattern")
             false
           case Some(instance) =>
+            if (Utils.showSteps) feedback.notify("Found", s"#${instance.steps}/${Utils.stepLimit}")
             cursor = instance.start
             setMark(instance.end)
             true
         }
       } else {
-        val lastMatch = regex.findPrefix(document.characters, cursor)
+        val lastMatch = regex.findPrefix(document.characters, cursor, document.characters.length, Utils.stepLimit)
         lastMatch match {
           case None =>
             feedback.notify("Not found", s"$thePattern")
             false
           case Some(instance) =>
+            if (Utils.showSteps) feedback.notify("Found", s"#${instance.steps}/${Utils.stepLimit}")
             //TODO: remove min hack designed to avoid embarrassment if $ matched
             cursor = instance.end min (document.characters.length-1)
             setMark(instance.start)
@@ -644,6 +646,9 @@ class EditSession(val document: DocumentInterface, private var _path: String)
         }
       }
     } catch {
+      case exn: sufrin.regex.machine.State.StepLimitExceeded =>
+        warnings.notify("Find", s"Pattern:\n  $thePattern\n exceeded the findsteps limit (${Utils.stepLimit})\n ${exn.getMessage}")
+        false
       case exn: sufrin.regex.syntax.lexer.SyntaxError =>
         warnings.notify("Find", s"Pattern:\n  $thePattern\n is not well-formed\n ${exn.getMessage}")
         false

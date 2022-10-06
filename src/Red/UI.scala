@@ -409,8 +409,14 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
         font     = Utils.menuButtonFont
       }
 
+
       contents += new Buttons.PersistentCheckItem("Auto indent", "autoindent", theSession.autoIndenting=(_), Personalised.Settings.autoIndenting) {
         tooltip  = "When this is enabled, the insertion of a newline will align the cursor (and any non-space material to its right) with the indentation of the current line"
+        font     = Utils.menuButtonFont
+      }
+
+      contents += new Buttons.PersistentCheckItem("Show find cost", "showsteps", { b => Utils.showSteps=b }, Utils.showSteps) {
+        tooltip  = "When this is enabled, a successful find reports the the cost of the succeeding match as a proportion of the prevailing limit"
         font     = Utils.menuButtonFont
       }
 
