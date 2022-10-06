@@ -60,10 +60,13 @@ package Commands
      *
      *          The type of `kind` is `Any` in order to facilitate a
      *          redefinition (by overriding) of `merge` in more complex
-     *          applications; though I've never experienced the need for
-     *          this.
+     *          applications. But see the definition  (in `EditSessionCommands`)
+     *          of the `InsChange` subclass of `StateChange` as an example of a
+     *          straightforward overriding of `merge` that yields space-efficient
+     *          representations for merges of sequences of `StatChanges`
+     *          arising from single-character insertions.
+     *
      */
-     
     def merge(next: StateChange): Option[StateChange] =
       if (this.kind!="Nothing" && this.kind==next.kind )
         Some(StateChange.compose(this, next))
