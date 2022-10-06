@@ -81,4 +81,8 @@ spartacus:      app; \
                 rsync -av ~/Applications/$(APP).app/ spartacus.local:Applications/$(APP).app/;\
                 rsync -av ~/.red/ spartacus.local:.red/
 
+global:         app; \
+                rm -rf /Applications/AppleRed.app ; \
+                mv AppleRed.app /Applications
+
 clean:          ; rm -rf app $(APP).app
