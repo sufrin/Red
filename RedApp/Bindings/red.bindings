@@ -1,0 +1,52 @@
+# Profile features
+feature Bold Boolean    bold _ = false
+feature Size OneOf      Small Medium Large Huge = Medium
+feature Host            ${=spartacus} HOST HOSTNAME 
+feature Test Boolean    = false
+
+unless Host ?? .*[Ss]partacus.* feature OS OneOf OSX Linux = OSX
+if     Host ?? .*[Ss]partacus.* feature OS OneOf OSX Linux = Linux
+
+if Test feature Experiment AnyOf A B C D E F G = G F A
+if Test ??
+
+if Test && Experiment ⊆ "G,F"  show $Experiment ⊆ "G,F"
+if Test && Experiment ⊇ "G, F"  show $Experiment ⊇ "G, F"
+if Test && Experiment == "G   F" show $Experiment == "G   F"
+if Test && Experiment ∩ "G,  F"  show $Experiment ∩ "G,  F"
+
+# Diacriticals are generated on some OS/X keyboards by: 
+#     alt-e, alt-`, alt-u, alt-n
+#
+# 1. They are emitted before the character (if any) they will decorate
+# 2. They should be suppressed when generated
+#
+unless OS == OSX     text diacritical ""
+if     OS == OSX     text diacritical "´`^~¨" 
+
+# Persistent UI features
+typeover   is false
+autoselect is true
+autoindent is true
+
+# Sizes and boldness
+if Size == Small   font _ $Bold 14 widget default button  menu menu-button
+if Size == Small   font _ _     14 feedback
+
+if Size == Medium  font _ $Bold 16 widget default button  menu menu-button
+if Size == Medium  font _ _     16 feedback
+
+if Size == Large   font _ $Bold 18 widget default button menu menu-button 
+if Size == Huge    font _ $Bold 16 menu menu-button 
+if Size == Large   font _ _     16 feedback
+
+if Size == Huge    font _ $Bold 24 widget default button menu menu-button 
+if Size == Huge    font _ $Bold 18 menu menu-button 
+if Size == Huge    font _ _     16 feedback 
+
+font _ _ 5 small-button
+
+include "symbols.bindings"
+
+
+

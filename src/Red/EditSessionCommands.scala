@@ -1,8 +1,7 @@
 package Red
 
 import Commands.{Command, StateChange}
-import FilterUtilities.inputStreamOf
-
+import Red.FilterUtilities.inputStreamOf
 
 import java.nio.file.Path
 import scala.sys.process.{Process, ProcessLogger}
@@ -172,20 +171,70 @@ object EditSessionCommands extends Logging.Loggable {
    */
   def insertCommand(ch: Char): SessionCommand = ifTypeOver(cut &&& notifyNow) &&& insert(ch)
 
+  /**
+   *  An `InsChange` is either the representation of a `StateChange` for a single character insertion,
+   *  or the representation of a `StateChange` for a sequence of single character insertions.
+   *
+   *  The implementation makes the representation of sequences of successive insertions
+   *  more concise (by a constant factor) than the composition of the more obvious
+   *  conventional `StateChange` representations.
+   *
+   *  To be more precise: the cost of maintaining the `StateChange` for the insertion, without
+   *  interrupting, of a line of length `N (>1)` by composing conventional `StateChange`s is
+   *  {{{N*SIZE(StateChange)}}}
+   *  whereas the cost of using `InsChange` is
+   *  {{{SIZE(InsChange)+SIZE(StringBuilder(N))}}}
+   *
+   *  Merging `this: InsChange` with `next: InsChange`  ''always'' yields `this`, having
+   *  changed `this.chars` (if necessary) to be the `StringBuilder` for which `undo` and
+   *  `redo` have the appropriate effects.
+   *
+   */
+  class InsChange(session: EditSession, var chars: Either[Char, StringBuilder]) extends StateChange {
+    @inline def length: Int = chars match {
+      case Left(_)        => 1
+      case Right(builder) => builder.length
+    }
+
+    def undo(): Unit = session.deleteFor(-length)
+
+    def redo(): Unit = chars match {
+      case Left(ch)       => session.insert(ch)
+      case Right(builder) => session.insert(builder.toString())
+    }
+
+    /**
+     * == Precondition
+     *   {{{ next.isInstanceOf[InsChange] => next.chars.isLeft }}}
+     */
+    override def merge(next: StateChange): StateChangeOption = {
+      next match {
+        case next : InsChange =>
+          assert(next.chars.isLeft, "Attempt to merge a non-unit InsChange with an insChange")
+          chars match {
+            case Left(ch) =>
+              val builder: StringBuilder = new StringBuilder(ch)
+              builder.append(next.chars.left)
+              chars = Right(builder)
+
+            case Right(builder) =>
+              builder.append(next.chars.left)
+          }
+          println(s"InsChange($chars)")
+          Some(this)
+        case other => None
+      }
+    }
+
+    override val kind: String =
+      if (chars.isLeft && chars.left == '\n') "InsEol" else "Ins" // break insertion merges
+  }
+
   def insert (ch: Char): SessionCommand = {
       if (ch == '\n') autoIndentNL else new SessionCommand {
         def DO(session: EditSession): StateChangeOption = {
-          Some {
-            session.insert(ch)
-            new StateChange {
-              def undo(): Unit = session.delete()
-
-              def redo(): Unit = session.insert(ch)
-
-              override val kind: String =
-                if (ch == '\n') "InsEol" else "Ins" // break insertion merges
-            }
-          }
+          session.insert(ch)
+          Some(new InsChange(session, Left(ch)))
         }
       }
     }
