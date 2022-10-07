@@ -10,8 +10,19 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="library" exported="" name="regexkit" level="project" />
-    <orderEntry type="library" exported="" name="scala-sdk-2.13.8" level="project" />
-    <orderEntry type="library" name="scala-swing" level="project" />
+    <orderEntry type="library" name="scala-sdk-2.13.7" level="application" />
+    <orderEntry type="module-library">
+      <library>
+        <CLASSES>
+          <root url="jar://$USER_HOME$/local/scalalib/scala-swing_2.13-2.1.1.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="library" name="regexkit" level="project" />
+    <orderEntry type="library" name="scala-sdk-2.13.8" level="project" />
+    <orderEntry type="library" name="scala-sdk-2.13.8" level="application" />
+    <orderEntry type="library" name="scala-sdk-2.13.8" level="application" />
   </component>
 </module>
