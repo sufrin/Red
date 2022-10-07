@@ -689,7 +689,7 @@ object EditSessionCommands extends Logging.Loggable {
       val source = session.path // the file being edited
       val driver = session.TEX.toString // the driver file (to be latexed at the top level)
       val (row, _) = session.getCursorPosition // the 0-origin row of the file being edited
-      val logWindow = Sessions.startSession(s"$driver.texlog")
+      val logWindow = Sessions.startSession(s"$driver.texlog", log = true)
       val logSession = logWindow.session
 
       locally {
@@ -836,7 +836,7 @@ object EditSessionCommands extends Logging.Loggable {
       val source = session.path // the file being edited
       val driver = source // the driver file
       val (row, _) = session.getCursorPosition // the 0-origin row of the file being edited
-      val logWindow = Sessions.startSession(s"$driver.pandoclog")
+      val logWindow = Sessions.startSession(s"$driver.pandoclog", log = true)
       val logSession = logWindow.session
 
       locally {

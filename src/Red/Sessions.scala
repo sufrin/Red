@@ -39,10 +39,10 @@ object Sessions extends Logging.Loggable {
   /** Yields a new `Red`, editing the document in
     * (or destined to be saved in) the filestore at `fileName`.
     */
-  def startSession(fileName: String): Session = {
+  def startSession(fileName: String, log: Boolean = false): Session = {
     if (logging) info(s"startSession($fileName)")
     findRed(fileName) match {
-      case None      => new Session(Utils.toPath(fileName), newRedIndex())
+      case None      => new Session(Utils.toPath(fileName), newRedIndex(), "", log)
       case Some(red) => red
     }
   }
@@ -77,7 +77,6 @@ object Sessions extends Logging.Loggable {
 
   def opened(red: Session): Unit = {
     activeReds += red.identity -> red
-    Utils.Recents.add(red.path.toAbsolutePath.toString)
   }
 
   /** Find an active `Red` for a file with the same name, if any. */

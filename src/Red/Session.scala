@@ -21,7 +21,7 @@ import java.nio.file.Files
  *  from the GUI by informing the global session coordinator
  *  (`Sessions`)
  */
-class Session(_path: java.nio.file.Path, val identity: Int, location: String="") {
+class Session(_path: java.nio.file.Path, val identity: Int, location: String="", val log: Boolean = false) {
   override def toString: String = s"Session($path, $identity)"
   import Session._
 
@@ -80,11 +80,15 @@ class Session(_path: java.nio.file.Path, val identity: Int, location: String="")
      * invoking `SaveAs`) in the underlying `EditSession`.
      */
     session.pathChange.handleWith {
-      case (from, to) => Sessions.rename(from, to)
+      case (from, to) =>
+        Sessions.rename(from, to)
+        if (!log) Utils.Recents.add(to.toAbsolutePath.toString)
     }
 
     /** Tell the coordinator that this is open. */
     Sessions.opened(this)
+    if (!log) Utils.Recents.add(path.toAbsolutePath.toString)
+
   }
 }
 

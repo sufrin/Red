@@ -707,7 +707,8 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
         handlers.mouse    orElse
         findreplHandler   orElse
         handlers.keyboard orElse {
-        case Instruction(Key.P, _, Control) => UI_DO(EditSessionCommands.selectParagraph &&& EditSessionCommands.formatter(argLine.text, "fmt"))
+        case Instruction(Key.P, _, Control) =>
+             UI_DO(EditSessionCommands.selectParagraph &&& EditSessionCommands.formatter(argLine.text, "fmt"))
         case Instruction(Key.Z, _, ControlShift) => UI_DO(history.REDO)
         case Instruction(Key.Z, _, Control) => UI_DO(history.UNDO)
         case Instruction(Key.Q, _, Control) =>
