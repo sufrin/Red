@@ -2,17 +2,46 @@
 
 package Commands
 
-  /**
+  /**    === Command: the big ideas
+   *
+   *     Every `command: Command[T]` represents a state-changing operation that is
+   *     applied to a `target` of type T` by invoking
+   *     {{{ command.DO(target}}}
+   *
    *     Suppose a (mutable) object `target: T` is in state `s`.
    *
-   *     If `DO(target)` succeeds, thereby changing the state of target to
+   *     If `DO(target)` succeeds, thereby changing the state of `target` to
    *     `s'`, then it must yield `Some(change)` such that henceforth,
    *     whenever target is in state `s'`, `change.undo()` will drive
    *     it back to state `s`; and whenever target is in state `s`,
    *     `change.redo()` will drive target back to state `s'`.
    *
    *     If `DO(target)` fails, or is otherwise non-applicable, then it
-   *     must yield `None`, and must not change the state of target.
+   *     must yield `None`, and must not have changed the state of `target`.
+   *
+   *     `c1 &&& c2` is the ''sequential composition'' of the commands `c1`
+   *     and `c2`.
+   *
+   *      === Composition and Alternation
+   *
+   *      When `target` is in state `s`, `(c1 &&& c2).DO(target)` succeeds only if
+   *      {{{c1.DO(target)}}} succeeds (leaving `target` in state `s'`), and
+   *      {{{c2.DO(target)}}} then succeeds (leaving `target` in
+   *      state `s''`). The result is a `StateChange` whose `undo`,
+   *      is guaranteed to restore the original state `s` whenever executed
+   *      in state `s''`
+   *
+   *      If either `DO` fails, then `target` is left in its original state, `s`.
+   *
+   *     `c1 ||| c2` is the ''alternation'' of the commands `c1`
+   *     and `c2`.
+   *
+   *     When `target` is in state `s`, `(c1 ||| c2).DO(target)` succeeds
+   *     if `c1.DO(target)` succeeds, or if it does not succeed and
+   *     `c2.DO(target)` succeeds. The result is a `StateChange` whose `undo`,
+   *     is guaranteed to restore the original state `s` whenever executed
+   *     in the target state `s'` that is the result of the successful
+   *     `DO`.
    */
   trait Command[T] {
     def DO(target: T): Option[StateChange]
@@ -21,7 +50,8 @@ package Commands
     def when(condition: T => Boolean): Command[T] = Command.when(condition, this)
   }
 
-  /**
+  /**     === StateChange: the big ideas
+   *
    *      A `StateChange` captures the state of a target on which a
    *      `Command` has just been `DO`d successfully. Invoking `undo()`
    *      restores the target's state to what it was just before the
@@ -99,12 +129,7 @@ package Commands
   }
 
   object Command {
-    /**
-     * Execution of the (forward) composition of `Command`s `c1` and
-     * `c2` on a target  yields the (forward) composition of their
-     * state changes, if they are successful in sequence; otherwise it
-     * yields `None` and has no effect on the target.
-     */
+    /** Forward composition */
     private def andThen[T](c1: Command[T], c2: Command[T]): Command[T] = new Command[T] {
       def DO(target: T): Option[StateChange] =
         c1.DO(target) match {
@@ -117,13 +142,7 @@ package Commands
         }
     }
 
-    /**
-     * Execution of the alternation of `Command`s `c1` and `c2`  on a
-     * target yields the state change of `c1`'s execution, if it is
-     * successful; otherwise it yields the state change of `c2`'s
-     * execution, if 'that' is successful, otherwise it yields `None`
-     * and has no effect on the target.
-     */
+    /** Alternation */
     private def orElse[T](c1: Command[T], c2: Command[T]): Command[T] = new Command[T] {
       def DO(target: T): Option[StateChange] =
         c1.DO(target) match {
@@ -132,6 +151,7 @@ package Commands
         }
     }
 
+    /**  */
     object undoNothing extends StateChange {
       def redo(): Unit = ()
       def undo(): Unit = ()
@@ -141,7 +161,7 @@ package Commands
     }
 
     /**
-     * Execution of `doNothing` on a target has no effect on the
+     * Execution of `doNothing` on a target succeeds, with no effect on the
      * target, and yields a state change whose `undo` and `redo` have
      * no effect.
      */
