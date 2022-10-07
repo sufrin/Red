@@ -385,11 +385,10 @@ object Utils {
     }
 
     def add(path: String): Unit = {
-      if (!paths.contains(path)) {
+        paths.filterInPlace { recent => path != recent }
         while (paths.length >= limit) paths.remove(paths.length - 1)
         paths.prepend(path)
         sync()
-      }
     }
 
     def sync(): Unit = {
