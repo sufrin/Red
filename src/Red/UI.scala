@@ -363,11 +363,11 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
 
         def theLabel():  Component  = {
           val cwd = if (theSession.CWD==theSession.parentPath) "+" else relativeToHome(theSession.CWD)
-          new Buttons.CentredLabel(s"  CWD: ${cwd}  ")  { font = Utils.buttonFont; background = Color.lightGray }
+          new Buttons.CentredLabel(s"  CWD: ${cwd}  ")  { font = Utils.menuButtonFont; background = Color.lightGray }
         }
 
         def theParent(): Component  = new Buttons.CentredLabel(s"  +: ${relativeToHome(theSession.parentPath)}  ") {
-          font = Utils.buttonFont
+          font = Utils.menuButtonFont
           background = Color.lightGray
         }
 

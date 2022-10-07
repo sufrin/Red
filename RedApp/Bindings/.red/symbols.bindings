@@ -23,8 +23,6 @@ text alt "-¬"
 text alt       "7∧" 
 text alt shift "7∨"
 
-show Alt keys loaded
-
 #
 #       Common symbol abbreviations
 #
@@ -58,6 +56,11 @@ text    abbrev <->      \u2194          # ↔
 text    abbrev iff      \u2194          # ↔
 text    abbrev Iff      \u21D4          # ⇔
 text    abbrev <=>      \u21D4          # ⇔
+
+text    abbrev <<=      \u2286          # ⊆
+text    abbrev =>>      \u2287          # ⊇
+text    abbrev sub      \u2286          # ⊆
+text    abbrev sup      \u2287          # ⊇
     
 text    abbrev <==      \u21DA          # ⇚
 text    abbrev ==>      \u21DB          # ⇛
@@ -196,39 +199,31 @@ text    abbrev ]]        \u27e7 # ⟧
 # right now...
 #
 
-# profiles+ RTL
-if RTL text    abbrev alef     \u05D0 #
-if RTL text    abbrev beth     \u05D1 #
-if RTL text    abbrev gimel    \u05D2
-if RTL text    abbrev dalet    \u05D3
-if RTL text    abbrev he       \u05D4
-if RTL text    abbrev vav      \u05D5
-if RTL text    abbrev vov      \u05D5
-if RTL text    abbrev zayin    \u05D6  # ז
-if RTL text    abbrev het      \u05D7
-if RTL text    abbrev tet      \u05D8
-if RTL text    abbrev yod      \u05D9
-if RTL text    abbrev finalkaf \u05DA  # ך 
-if RTL text    abbrev kaf      \u05DB  # כ 
-if RTL text    abbrev lamed    \u05DC  # ל 
-if RTL text    abbrev mem      \u05DE
-if RTL text    abbrev finalnun \u05DF
-if RTL text    abbrev nun      \u05E0
-if RTL text    abbrev samekh   \u05E1
-if RTL text    abbrev ayin     \u05E2
-if RTL text    abbrev finalpe  \u05E3
-if RTL text    abbrev pe       \u05E4
-if RTL text    abbrev finaltsadi \u05E5
-if RTL text    abbrev tsadi    \u05E6
-if RTL text    abbrev qof      \u05E7
-if RTL text    abbrev resh     \u05E8
-if RTL text    abbrev shin     \u05E9
-if RTL text    abbrev tav      \u05EA
-
-
-
-
-
-
-
-
+-- # profiles+ RTL
+-- if RTL text    abbrev alef     \u05D0 #
+-- if RTL text    abbrev beth     \u05D1 #
+-- if RTL text    abbrev gimel    \u05D2
+-- if RTL text    abbrev dalet    \u05D3
+-- if RTL text    abbrev he       \u05D4
+-- if RTL text    abbrev vav      \u05D5
+-- if RTL text    abbrev vov      \u05D5
+-- if RTL text    abbrev zayin    \u05D6  # ז
+-- if RTL text    abbrev het      \u05D7
+-- if RTL text    abbrev tet      \u05D8
+-- if RTL text    abbrev yod      \u05D9
+-- if RTL text    abbrev finalkaf \u05DA  # ך 
+-- if RTL text    abbrev kaf      \u05DB  # כ 
+-- if RTL text    abbrev lamed    \u05DC  # ל 
+-- if RTL text    abbrev mem      \u05DE
+-- if RTL text    abbrev finalnun \u05DF
+-- if RTL text    abbrev nun      \u05E0
+-- if RTL text    abbrev samekh   \u05E1
+-- if RTL text    abbrev ayin     \u05E2
+-- if RTL text    abbrev finalpe  \u05E3
+-- if RTL text    abbrev pe       \u05E4
+-- if RTL text    abbrev finaltsadi \u05E5
+-- if RTL text    abbrev tsadi    \u05E6
+-- if RTL text    abbrev qof      \u05E7
+-- if RTL text    abbrev resh     \u05E8
+-- if RTL text    abbrev shin     \u05E9
+-- if RTL text    abbrev tav      \u05EA

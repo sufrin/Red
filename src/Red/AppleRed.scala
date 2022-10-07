@@ -1,6 +1,6 @@
 package Red
 
-import Menus.EmbeddedDynamicMenu
+import Red.Menus.EmbeddedDynamicMenu
 
 import java.awt.desktop._
 import java.awt.{Color, Desktop}
@@ -126,25 +126,25 @@ object AppleRed extends Logging.Loggable {
 
   def fileMenu(parent: MainFrame) =  new scala.swing.Menu ("File") {
     import Buttons.Item
-    font = Utils.rootFont
+    font = Utils.menuButtonFont
 
 
 
     contents += new EmbeddedDynamicMenu("Open recent", { Utils.Recents.get } ) {
-      font = Utils.rootFont
+      font = Utils.menuButtonFont
       def component(path: String): Component = {
         if (path == "-")
-          Item(s"""(Forget recent paths)""", "Forget recent paths", theFont=Utils.rootFont) {
+          Item(s"""(Forget recent paths)""", "Forget recent paths", theFont=Utils.menuButtonFont) {
             Utils.Recents.forget()
           }
         else
-          Item(s"""$path""", theFont = Utils.rootFont) {
+          Item(s"""Open $path""", theFont = Utils.menuButtonFont) {
             Red.Server.process(path)
           }
       }
     }
 
-    contents += Item("Open ...", "Choose and edit an existing document", theFont=Utils.rootFont) {
+    contents += Item("Open ...", "Choose and edit an existing document", theFont=Utils.menuButtonFont) {
       fileChooser.showOpenDialog(parent) match {
         case Cancel  =>
         case Approve =>
@@ -152,14 +152,14 @@ object AppleRed extends Logging.Loggable {
       }
     }
 
-    contents += Item("Open New", "Start editing a new document", theFont=Utils.rootFont) {
+    contents += Item("Open New", "Start editing a new document", theFont=Utils.menuButtonFont) {
       Red.Server.process(Utils.freshDocumentName())
     }
 
     contents += Separator()
     contents += Separator()
 
-    contents += Item("Quit", "Quit all sessions if possible", theFont=Utils.rootFont) {
+    contents += Item("Quit", "Quit all sessions if possible", theFont=Utils.menuButtonFont) {
       if (Red.Sessions.canQuit) sys.exit(0)
     }
 

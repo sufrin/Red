@@ -400,7 +400,7 @@ object Utils {
     def menu(): Component = new EmbeddedDynamicMenu("Open recent", {
       get
     }) {
-      font = menuFont
+      font = menuButtonFont
       def component(path: String): Component = {
         if (path == "-")
           Buttons.menuButton(s""" (Forget recent paths) """, "Forget recent paths", centred = true) {
