@@ -36,3 +36,6 @@ AppleRed/AppleRed-new.app/Contents/Resources/AppleRed.icns
 AppleRed/AppleRed-new.app/Contents/PkgInfo
 AppleRed/AppleRed-new.app/Contents/MacOS/newJavaApplicationStub
 AppleRed/AppleRed-new.app/Contents/Info.plist
+out/test/Jed/parsetest.sc
+out/test/Jed/parsetest.sc
+out/test/Jed/evaltest.sc

@@ -2,7 +2,7 @@ package Red
 
 /** An extensible editable character sequence
   *
-  * '''Represents''' {{{ chars: Seq[Char] }}}
+  * '''Represents''' {{{ chars: [Char] }}}
   *
   * '''Representation Invariant'''
   * {{{

@@ -4,7 +4,7 @@ import scala.collection._
 import CharSequenceOperations._
 
 /**
- *   Represents a mutable finite mapping, {{{map: Seq[Char] -> [T]}}}
+ *   Represents a mutable finite mapping, {{{map: [Char] -> T}}}
  *
  *   The representation is a tree, whose edges are individual letters
  *   of the character sequences of the domain, and whose nodes contain
