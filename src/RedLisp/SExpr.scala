@@ -1,117 +1,95 @@
 package RedLisp
 
-trait Env[T] {
-  def apply(name: String): SExp[T]
+object Syntax {
+
+  trait SExp[T] {
+    def eval(env: Env[T]): Const[T]
+
+    def isNull: Boolean = false
+  }
+
+  case class Atom[T](name: String) extends SExp[T] {
+    def eval(env: Env[T]): Const[T] = env(name)
+
+    override def toString = name
+  }
+
+  case class Seq[T](elements: List[Const[T]]) extends Const[T] {
+    override def toString = elements.mkString("(", " ", ")")
+  }
+
+  case class SExps[T](elements: List[SExp[T]]) extends SExp[T] {
+    override def toString = elements.mkString("(", " ", ")")
+
+    override def isNull = elements.isEmpty
+
+    def eval(env: Env[T]): Const[T] =
+      if (elements.isEmpty) Seq(Nil) else {
+        val operator = elements.head.eval(env)
+        operator match {
+          case Subr(_, scala) =>
+            val args = elements.tail.map(_.eval(env))
+            scala(args)
+
+          case FSubr(_, scala) =>
+            val args = SExps(elements.tail)
+            scala(env, args)
+
+          case Expr(env, params, body) =>
+            val args = elements.tail.map(_.eval(env))
+            body.eval(env.extend(params, args))
+
+          case other =>
+            throw Error(s"$operator is not applicable", Some(this))
+        }
+      }
+  }
+
+
   /**
-   * The environment that extends this by binding
-   * successive variables in the pattern to successive
-   * `values`. This will later permit pattern matching.
+   * The fixedpoints of `eval` are represented as `Const`s.
    */
-  def extend(pattern: SExp[T], values: List[SExp[T]]): Env[T]
-}
-
-trait SExp[T] {
-  def eval(env: Env[T]): SExp[T]
-  def isNull:   Boolean = false
-}
-
-case class Var[T](name: String)           extends SExp[T] {
-  def eval(env: Env[T]): SExp[T] = env(name)
-}
-
-case class Seq[T](elements: List[SExp[T]])  extends SExp[T] {
-  override def isNull = elements.isEmpty
-  def eval(env: Env[T]): SExp[T] =
-    if (elements.isEmpty) this else  {
-       val operator = elements.head.eval(env)
-       operator match {
-         case Subr( scala ) =>
-              val args = Seq(elements.tail.map(_.eval(env)))
-              scala(env, args)
-
-         case FSubr( scala ) =>
-           val args = Seq(elements.tail)
-           scala(env, args)
-
-         case Expr(env, params, body) =>
-           val args = elements.tail.map(_.eval(env))
-           body.eval(env.extend(params, args))
-
-         case other =>
-           Error(s"$operator is not applicable", Some(this))
-       }
+  trait Const[T] extends SExp[T] {
+    def eval(env: Env[T]): Const[T] = this
   }
 
-}
-
-
-/**
- * The fixedpoints of `eval` are represented as `Const`s.
- */
-trait Const[T] extends SExp[T] {
-  def eval(env: Env[T]): SExp[T] = this
-}
-
-case class Num[T](value: Int) extends Const[T]
-
-case class Bool[T](value: Boolean) extends Const[T]
-
-case class Expr[T](env: Env[T], pattern: SExp[T], body: SExp[T])
-     extends Const[T]
-
-case class Subr[T](scala: (Env[T], SExp[T]) => SExp[T])
-     extends Const[T]
-
-case class FSubr[T](scala: (Env[T], SExp[T]) => SExp[T])
-     extends Const[T]
-
-case class Prim[T](value: T) extends Const[T]
-
-case class Error[T](why: String, description: Option[SExp[T]])  extends scala.Error with Const[T]
-
-class PairList[T](pairs: List[(String, SExp[T])], derivedFrom: Option[PairList[T]] = None) extends Env[T] {
-  def apply(name: String): SExp[T] =
-    {
-      for { (n, v) <- pairs if (n==name) } return v
-      if (derivedFrom.isEmpty) Error(s"Unbound variable $name", None) else derivedFrom.get(name)
-    }
-
-  def extend(pattern: SExp[T], values: List[SExp[T]]): Env[T] = {
-    pattern match {
-
-      case Var(name) =>
-        val newPairs: List[(String, SExp[T])] = List[(String, SExp[T])](name, Seq[T](values))
-        new PairList[T](newPairs, Some(this))
-
-      case Seq(patterns) if patterns.length==values.length && patterns.forall(_.isInstanceOf[Var[T]]) =>
-        val newPairs = patterns.map { case Var(v) => v }.zip(values)
-        new PairList[T](newPairs, Some(this))
-
-        /** One layer of matching  */
-      case _ => throw Error(s"Pattern match error $values", pattern)
-
-    }
-
+  case class Num[T](value: Int) extends Const[T] {
+    override def toString = value.toString
   }
 
-  override def toString: String =
-      if (derivedFrom.isEmpty)
-        pairs.mkString("(", "->", ")")
-      else
-        s"${pairs.mkString("(", "->", ")")}\n${derivedFrom.get}"
-}
 
-object Primitives {
-  val primitives = new PairList[Unit] ( List(
-    // TODO: do something with rest
-    "lambda" -> FSubr { case (env, Seq(params :: body :: rest)) => Expr(env, params, body) },
-    // TODO: do something with rest
-    "if"     -> FSubr { case (env, Seq(pred :: thenPart :: elsePart :: rest)) =>
-                        pred.eval(env) match {
-                          case Bool(true) => thenPart.eval(env)
-                          case Bool(false) => elsePart.eval(env)
-                          case other => throw Error(s"condition evaluates to a non-Bool: $other", Some(pred))
-                        }
-                      }
-  ))
+  case class Bool[T](value: Boolean) extends Const[T] {
+    override def toString = value.toString
+  }
+
+  case class Str[T](value: String) extends Const[T] {
+    override def toString = s"\"$value\""
+  }
+
+  case class Expr[T](env: Env[T], pattern: SExp[T], body: SExp[T]) extends Const[T] {
+    override def toString = s"(expr $pattern $body)"
+  }
+
+  case class Subr[T](name: String, scala: List[Const[T]] => Const[T]) extends Const[T] {
+    override def toString = s"Strict: $name"
+  }
+
+  case class FSubr[T](name: String, scala: (Env[T], SExp[T]) => Const[T]) extends Const[T] {
+    override def toString = s"Lazy: $name"
+  }
+
+  case class Opaque[T](value: T) extends Const[T] {
+    override def toString = s"Opaque: $value"
+  }
+
+  case class Quote[T](value: SExp[T]) extends Const[T] {
+    override def toString = s"(' $value)"
+  }
+
+  case class Error[T](why: String, description: Option[Any] = None) extends scala.Error(why) with Const[T] {
+    override def eval(env: Env[T]): Const[T] = throw this
+
+    override def toString: String = s"Error($why, $description)"
+  }
+
 }

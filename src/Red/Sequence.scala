@@ -6,7 +6,7 @@ import scala.reflect.ClassTag
  *
  *  '''Represents'''
  *  {{{
- *         elements: Seq[T]
+ *         elements: SExps[T]
  *  }}}
  *
  *  '''Technicality'''
@@ -33,7 +33,7 @@ import scala.reflect.ClassTag
 class Sequence [T: ClassTag](initialSize: Int=20) extends scala.collection.mutable.Seq[T] {
   /**
    * '''Represents''' {{{
-   *  elements: Seq[T]
+   *  elements: SExps[T]
    * }}}
    *
    * '''Abstraction invariant'''
