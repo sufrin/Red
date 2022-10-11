@@ -42,7 +42,7 @@ object Lexical {
   
 }
 
-class Parser(source: io.Source) {
+class Parser[T](source: io.Source) {
    private val in = new source.Positioner()
    private var braCount = 0
 
@@ -103,25 +103,30 @@ class Parser(source: io.Source) {
          val buf = new collection.mutable.StringBuilder()
          buf.append(in.ch)
          while ({getNext(); inAtom}) buf.append(in.ch)
-         Atom(buf.toString())
+         buf.toString match {
+           case "true"  => True
+           case "false" => False
+           case text    => Atom(text)
+         }
      }
      symb
    }
 
     import Syntax.SExp
-    import Syntax.Bool
-    val trueVal = Bool(true)
-    val falseVal = Bool(false)
 
-   def exprs[T](): List[SExp[T]] = nextSymb() match {
-     case EOL | EOF => Nil
-     case Ket => nextSymb(); Nil
-     case Bra => Syntax.SExps(exprs) :: exprs[T]()
-     case Atom(text) => Syntax.Atom[T](text) :: exprs[T]()
-     case Num(value) => Syntax.Num[T](value) :: exprs[T]()
-     case Str(text) => Syntax.Str[T](text) :: exprs[T]()
-     case True => trueVal :: exprs[T]()
-     case False => falseVal :: exprs[T]()
+   def exprs[T]: List[SExp[T]] = symb match {
+     case EOL | EOF  | Ket => nextSymb(); Nil
+     case _                => expr[T] :: exprs[T]
    }
+
+  def expr[T]: SExp[T] = symb match {
+    case Bra =>  nextSymb(); Syntax.SExps[T](exprs[T])
+    case Atom(text) => nextSymb(); Syntax.Atom[T](text)
+    case Num(value) => nextSymb(); Syntax.Num[T](value)
+    case Str(text) => nextSymb(); Syntax.Str[T](text)
+    case True => nextSymb(); Syntax.Bool[T](true)
+    case False => nextSymb(); Syntax.Bool[T](false)
+    case other => Syntax.Atom[T](other.toString)
+  }
   
 }
