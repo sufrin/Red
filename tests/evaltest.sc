@@ -1,22 +1,7 @@
 
 
-/*
-val s1 =
-  """
-    |23
-    |24
-    |(if true 23 24)
-    |(def fst(x y) x)
-    |(def snd(x y) y)
-    |(fst 3 4)
-    |(snd 3 4)
-    |list 1 2 3 (fst 4 5) (list 6 7 8)
-    |""".stripMargin
 
-Test.rep(s1)
-*/
-
-val s2 =
+val s1  =
   """  zsugar
     |
     |
@@ -72,5 +57,30 @@ val s2 =
     |""".stripMargin
 
 
+RedScript.Test.rep(s1)
+
+val s2=
+  """
+     (+ 1)
+     (* 1 2 3)
+     variable m1 (- 0 1)
+     m1
+     set m1 (+ m1 m1)
+     m1
+     def m1()  ()
+  """
 RedScript.Test.rep(s2)
+
+val u = "\\u"
+RedScript.Test.rep(
+  s"""
+    "${u}1234"
+    "${u}aa0a is best"
+    "Mistake ${u}abc xyz"
+    "Mistake ${u}aXc xyz"
+    "Underflow ${u}abc"
+    "Underflow ${u}abc
+    def"
+    "Unclosed string
+   """)
 

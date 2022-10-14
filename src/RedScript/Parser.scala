@@ -87,6 +87,9 @@ class Parser(source: io.Source, val path: String="") {
 
    var symb: Lexical.Symbol = EOL
 
+   @inline private def isHexit(c: Char): Boolean =
+     ('a'<=c&&c<='f') || ('A'<=c&&c<='F')|| ('0'<=c&&c<='9')
+
    def nextSymb(): Lexical.Symbol = {
      lastPosition = new SourcePosition((path, in.cline, in.ccol-1))
      symb =
@@ -107,11 +110,48 @@ class Parser(source: io.Source, val path: String="") {
        case '\t' =>
          getNext()
          nextSymb()
+
+       // So as to avoid tedious error reports, we have a philistine approach:
+       // Newlines are accepted within strings
+       // Malformed `\u` escapes are not flagged as errors but treated literally
+       // End-of-file within a string is a (fatal) lexical error
        case '"' =>
          val buf = new collection.mutable.StringBuilder()
-         while (getNext()!='"') {
-           buf.append(in.ch)
+         var going = true
+
+         while (going && getNext()!='"' && in.ch!='\u0000') {
+           val theChar: Char =
+           in.ch match {
+             case '\\' => getNext() match {
+               case '\\' => getNext(); '\\'
+               case 'n' => getNext(); '\n'
+               case 's' => getNext(); ' '
+               case 'u' | 'U' => {
+                 import Useful.CharSequenceOperations._
+                 var s = s"\\${in.ch}"
+                 while (s.length<6 && isHexit(getNext())) s = s + in.ch
+                 if (in.ch=='"') going = false
+                 if (s.length==6) {
+                   // 6 hex digits
+                   s.toUnicode match {
+                     case Some(ch) => ch
+                     case None     => throw new IllegalStateException(s"\"$s\".toUnicode fails")
+                 }
+                 } else  {
+                   buf.append(s)
+                   in.ch
+                 }
+               }
+               //'\ch'
+               case ch => ch
+             }
+             // 'ch'
+             case ch => ch
+           }
+           buf.append(theChar)
          }
+         //
+         if (in.ch=='\u0000') throw Syntax.SyntaxError(s"Unclosed string: \"${buf.toString}\" $position") else
          getNext()
          Str(buf.toString())
 

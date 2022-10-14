@@ -93,7 +93,11 @@ class MutableEnv extends LocalEnv(Nil, None) {
     Console.println("»»")
   }
 
-  def define(name: String, value: Const): Unit = map.put(name, value)
+  def define(name: String, value: Const): Unit =
+    map.get(name) match {
+      case None    => map.put(name, value)
+      case Some(v) => throw new RuntimeError(s"Redefinition of global $name")
+    }
 
   def set(name: String, value: Const): Unit = map.put(name, value)
 

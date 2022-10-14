@@ -7,6 +7,8 @@ object Syntax {
   trait SExp {
     def eval(env: Env): Const
 
+    def lval(env: Env): Ref = throw RuntimeError(s"$this cannot be assigned to $position")
+
     def isNull: Boolean = false
 
     def evalQuote(env: Env): Const = eval(env)
@@ -15,13 +17,30 @@ object Syntax {
 
   }
 
+
   case class Atom(name: String) extends SExp {
     def eval(env: Env): Const = env(name) match {
       case None => throw RuntimeError(s"Unbound variable $name ($position)")
-      case Some(v) => v
+      case Some(v) => v match {
+        case Ref(value) => value
+        case _ => v
+      }
+    }
+
+    override def lval(env: Env): Ref = env(name) match {
+      case None => throw RuntimeError(s"Unbound variable $name ($position)")
+        case Some(v)   => v match {
+        case r: Ref    => r
+        case _         => throw RuntimeError(s"Not an lvalue $name ($position)")
+      }
     }
 
     override def toString = name
+  }
+
+  case class Ref(var value: Const) extends Const {
+    override def eval(env: Env): Const = value
+    override def lval(env: Env): Ref = this
   }
 
   case class Seq(elements: List[Const]) extends Const {
@@ -116,14 +135,14 @@ object Syntax {
 
   case class RuntimeError(why: String, description: Option[Any] = None, level: Int=0) extends scala.Error(why) with Const {
     override def eval(env: Env): Const = throw this
-    override def toString: String = s"Error: $why ${if (description.isEmpty) "" else description}"
+    override def toString: String = s"Runtime Error: $why ${if (description.isEmpty) "" else description}"
     def reThrow(): Const =
       if (level<4) throw new RuntimeError(why, description, level+1) else this
   }
 
   case class SyntaxError(why: String, description: Option[Any] = None) extends scala.Error(why) with Const {
     override def eval(env: Env): Const = throw this
-    override def toString: String = s"SyntaxError: $why ${if (description.isEmpty) "" else description}"
+    override def toString: String = s"Syntax Error: $why ${if (description.isEmpty) "" else description}"
   }
 
 }

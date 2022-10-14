@@ -1,5 +1,7 @@
 package RedScript
 
+import scala.language.postfixOps
+
 /**
  *  A global evaluator that defines primitives
  */
@@ -52,15 +54,31 @@ class Runtime {
 
   def evSet(env: Env, body: SExp): Const = {
     body match {
-      case SExps(List(Atom(name), value)) => global.set(name, value.eval(env)); nil
+      case SExps(List(lvalue, rvalue)) =>
+        lvalue.lval(env).value = rvalue.eval(env);
+        nil
       case other => throw SyntaxError(s"Malformed assignment: $other")
     }
   }
 
-  def evVar(env: Env, body: SExp): Const = {
+  def evGlobal(isVar: Boolean)(env: Env, body: SExp): Const = {
     body match {
-      case SExps(List(Atom(name), value)) => global.define(name, value.eval(env)); nil
-      case other => throw SyntaxError(s"Malformed var declaration: $other")
+      case SExps(List(Atom(name), value)) =>
+           val v = value.eval(env)
+           global.define(name, if (isVar) Ref(v) else v)
+           nil
+      case other => throw SyntaxError(s"Malformed global declaration: $other")
+    }
+  }
+
+  def evLet(isVar: Boolean)(env: Env, body: SExp): Const = {
+    body match {
+      case SExps(List(bv, value, body)) =>
+        val v = value.eval(env)
+        val params = SExps(List(bv))
+        val args   = List(if (isVar) Ref(v) else v)
+        body.eval(env.extend(params, args))
+      case other => throw SyntaxError(s"Malformed let declaration: $other")
     }
   }
 
@@ -98,6 +116,14 @@ class Runtime {
   def predSubr(name: String)(test: SExp=>Boolean): Const =
     Subr(name, { args => Bool(args.forall(test)) })
 
+  def fun(name: String, op: List[Const]=>Const): Subr  =
+    Subr(name, { case args => try op(args) catch { case exn: MatchError => throw RuntimeError(s"Mismatched arguments to $name: ${Seq(args)}")}})
+
+  def red(name: String, op: (Int,Int)=>Int):Subr = {
+    val opn: (Const,Const)=>Const  = { case (Num(a),Num(b)) => Num(op(a,b)) }
+    fun(name, { args: List[Const] => args.reduceLeft(opn(_,_)) })
+  }
+
 
   val primitives: List[(String, Const)] = List(
     "nil"       -> nil,
@@ -107,7 +133,10 @@ class Runtime {
     "cons"      -> Subr("cons", { case List(const, Seq(consts)) => Seq(const :: consts); case other => throw RuntimeError(s"malformed cons: ${SExps(other)}") } ),
     "fun"       -> FSubr ("fun", evFun),
     "set"       -> FSubr ("set", evSet),
-    "var"       -> FSubr ("var", evVar),
+    "variable"  -> FSubr ("variable", evGlobal(true)),
+    "constant"  -> FSubr ("constant", evGlobal(false)),
+    "var"       -> FSubr ("var", evLet(true)),
+    "val"       -> FSubr ("val", evLet(false)),
     "if*"       -> FSubr ("if*", evCond),
     "if"        -> FSubr ("if", evIf),
     "def"       -> FSubr ("def", evDef),
@@ -124,6 +153,10 @@ class Runtime {
     "isString"  -> predSubr("isString") { case Str(_)=>true; case _ => false },
     "toString"  -> Subr("toString", { case List(const) => Str(const.toString);  case other => throw RuntimeError(s"malformed toString: $other") }),
     "eval"      -> FSubr("eval", { case (env, SExps(List(expr))) => expr.eval(env).evalQuote(env)}),
+    "+"         -> red("+", (_.+(_))),
+    "-"         -> red("-", (_.-(_))),
+    "*"         -> red("*", (_.*(_))),
+    "/"         -> red("/", (_./(_))),
   )
 
   def Run(sexp: SExp): Const =
