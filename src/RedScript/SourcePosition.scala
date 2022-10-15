@@ -7,3 +7,7 @@ class SourcePosition(val pos: (String,Int,Int)) extends AnyVal {
   override def toString: String =
      if (line<0) "" else s"$path@$line:$col"
 }
+
+object SourcePosition {
+  @inline def apply(path: String, line: Int, col: Int): SourcePosition = new SourcePosition(path, line, col)
+}

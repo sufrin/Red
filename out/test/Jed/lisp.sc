@@ -1,5 +1,5 @@
 import RedScript.Test._
-import RedScript.Syntax._
+import RedScript.Language._
 
 run()
 

@@ -78,16 +78,3 @@ val s2=
   """
 RedScript.Test.rep(s2)
 
-val u = "\\u"
-RedScript.Test.rep(
-  s"""
-    "${u}1234"
-    "${u}aa0a is best"
-    "Mistake ${u}abc xyz"
-    "Mistake ${u}aXc xyz"
-    "Underflow ${u}abc"
-    "Underflow ${u}abc
-    def"
-    "Unclosed string
-   """)
-

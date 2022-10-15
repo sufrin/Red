@@ -3,11 +3,11 @@ package RedScript
 import scala.language.postfixOps
 
 /**
- *  A global evaluator that defines primitives
+ *  A global evaluator that defines syntactic forms as well as the semantics of
+ *  primitive functions.
  */
-class Runtime {
-  import RedScript.Syntax._
-  val nil = Seq(Nil)
+class Evaluator {
+  import RedScript.Language._
 
   /**
    * A cases expression takes one of the following forms:
@@ -27,8 +27,6 @@ class Runtime {
           case Bool(false) => evCases(cases)
           case other => throw RuntimeError(s"condition evaluates to a non-Bool: $other", Some(pred))
         }
-
-      case Nil => Seq(Nil)
 
       case other => throw SyntaxError(s"Malformed if*: ${cases.mkString(" ")}")
     }

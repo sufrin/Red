@@ -1,6 +1,6 @@
 package RedScript
 
-import RedScript.Syntax._
+import RedScript.Language._
 
 import scala.annotation.tailrec
 
@@ -21,7 +21,7 @@ trait Env {
     val newEnv =
     pattern match {
       case Variable(name) =>
-        val newPairs: List[(String, Const)] = List((name, Syntax.Seq(values)))
+        val newPairs: List[(String, Const)] = List((name, Language.Seq(values)))
         new LocalEnv(newPairs, Some(this))
 
       case SExps(patterns) if patterns.forall(_.isInstanceOf[Variable]) =>

@@ -1,9 +1,9 @@
 package RedScript
 
 import scala.io.Source
-import RedScript.Syntax._
+import RedScript.Language._
 
-object Test extends Runtime {
+object Test extends Evaluator {
 
   def rep(source: String): Unit = {
     val p = new Parser(Source.fromString(source))

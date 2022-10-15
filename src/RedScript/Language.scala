@@ -1,19 +1,43 @@
 package RedScript
 
+/**
+ * Abstract syntax and "pre-semantics" of S-expressions.
+ *
+ * Each `SExp` form has an interpretation in an environment: either as an lvalue
+ * (address of a constant: recovered by `lval(env)`)
+ * or as a constant (recovered by `eval(env)`).
+ *
+ * Constants are also `SExp` forms: their interpretations, save for those of
+ * variables, are in normal form -- that is, they denote themselves.
+ *
+ * The interpretation of a composite S-expression of the form
+ * `(`''operator'' ''operands''`)` is very flexible: and depends on
+ * the interpretation of the ''operator''. The details are specified in
+ * the `Evaluator` module; and a number of detailed examples should be
+ * found elsewhere in documentation.
+ */
 
-
-object Syntax {
+object Language {
 
   trait SExp {
+    /** Value of this expression in `env` */
     def eval(env: Env): Const
 
+    /** Most expressions have no lvalue  */
     def lval(env: Env): Ref = throw RuntimeError(s"$this cannot be assigned to $position")
 
+    /** Most expressions do not denote the empty list  */
     def isNull: Boolean = false
 
+    /**
+     * Evaluate an expression constructed as a quotation:
+     */
     def evalQuote(env: Env): Const = eval(env)
 
-    var position: SourcePosition = new SourcePosition(("",-1,-1))
+    /**
+     * The position in source code at which this expression started.
+     */
+    var position: SourcePosition = SourcePosition("",-1,-1)
 
   }
 
@@ -53,6 +77,8 @@ object Syntax {
     override def toString = elements.mkString("(", " ", ")")
     override def evalQuote(env: Env): Const = SExps(elements.map{ case Quote(e) => e; case e => e}).eval(env)
   }
+
+  val nil = Seq(Nil)
 
   case class SExps(elements: List[SExp]) extends SExp {
     override def toString = elements.mkString("(", " ", ")")
@@ -95,6 +121,7 @@ object Syntax {
             }
             result
       }
+
   }
 
 

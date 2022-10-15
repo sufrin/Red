@@ -1,6 +1,6 @@
 package RedScript
 
-import RedScript.Syntax.SyntaxError
+import RedScript.Language.SyntaxError
 
 
 object Lexical {
@@ -47,7 +47,7 @@ class Parser(source: io.Source, val path: String="") {
   private val in = new source.Positioner()
 
   def position: SourcePosition = lastPosition
-  var lastPosition: SourcePosition = new SourcePosition((path,-1,-1))
+  var lastPosition: SourcePosition = SourcePosition(path,-1,-1)
 
    private var braCount = 0
 
@@ -86,7 +86,7 @@ class Parser(source: io.Source, val path: String="") {
      ('a'<=c&&c<='f') || ('A'<=c&&c<='F')|| ('0'<=c&&c<='9')
 
    def nextSymb(): Lexical.Symbol = {
-     lastPosition = new SourcePosition((path, in.cline, in.ccol-1))
+     lastPosition = SourcePosition(path, in.cline, in.ccol-1)
      symb =
      in.ch match {
        case '\u0000' => EOF
@@ -119,15 +119,18 @@ class Parser(source: io.Source, val path: String="") {
          while (going && getNext()!='"' && in.ch!='\u0000') {
            val theChar: Char =
            in.ch match {
+             case '\n' => throw Language.SyntaxError(s"Unclosed string: \"${buf.toString}\" $position")
              case '\\' => getNext() match {
                case '\\' => getNext(); '\\'
                case 'n' => getNext(); '\n'
                case 's' => getNext(); ' '
+               case '\n' => throw Language.SyntaxError(s"Character escape \\ at the end of a line: \"${buf.toString}\" $position")
+
                case 'u' | 'U' => {
                  import Useful.CharSequenceOperations._
                  var s = s"\\${in.ch}"
                  while (s.length<6 && isHexit(getNext())) s = s + in.ch
-                 if (in.ch=='"') going = false
+                 if (in.ch=='"' || in.ch=='\n') going = false
                  if (s.length==6) {
                    // 6 hex digits
                    s.toUnicode match {
@@ -148,7 +151,7 @@ class Parser(source: io.Source, val path: String="") {
            buf.append(theChar)
          }
          //
-         if (in.ch=='\u0000') throw Syntax.SyntaxError(s"Unclosed string: \"${buf.toString}\" $position") else
+         if (in.ch=='\u0000') throw Language.SyntaxError(s"Unclosed string: \"${buf.toString}\" $position") else
          getNext()
          Str(buf.toString())
 
@@ -175,7 +178,7 @@ class Parser(source: io.Source, val path: String="") {
      symb
    }
 
-    import Syntax.SExp
+    import Language.SExp
 
    def exprs: List[SExp] = symb match {
      case Ket         => Nil
@@ -201,15 +204,15 @@ class Parser(source: io.Source, val path: String="") {
     val pos = this.position
     val res =
     symb match {
-      case Quote => nextSymb(); Syntax.Quote(expr)
-      case Bra   =>  Syntax.SExps(after { exprs } (Ket))
-      case SqBra =>  Syntax.SExps(after { exprs } (SqKet))
-      case Chunk(text, symbolic) => nextSymb(); (if (symbolic) Syntax.Variable else Syntax.Symbol)(text)
-      case Num(value) => nextSymb(); Syntax.Num(value)
-      case Str(text) => nextSymb(); Syntax.Str(text)
-      case True => nextSymb(); Syntax.Bool(true)
-      case False => nextSymb(); Syntax.Bool(false)
-      case other => nextSymb(); Syntax.Variable(other.toString)
+      case Quote => nextSymb(); Language.Quote(expr)
+      case Bra   =>  Language.SExps(after { exprs } (Ket))
+      case SqBra =>  Language.SExps(after { exprs } (SqKet))
+      case Chunk(text, symbolic) => nextSymb(); (if (symbolic) Language.Variable else Language.Symbol)(text)
+      case Num(value) => nextSymb(); Language.Num(value)
+      case Str(text) => nextSymb(); Language.Str(text)
+      case True => nextSymb(); Language.Bool(true)
+      case False => nextSymb(); Language.Bool(false)
+      case other => nextSymb(); Language.Variable(other.toString)
     }
     res.position = pos
     res
@@ -223,7 +226,7 @@ class Parser(source: io.Source, val path: String="") {
       case SqBra => expr
       case other => exprs match {
         case List(e)     => e
-        case application => Syntax.SExps(application)
+        case application => Language.SExps(application)
       }
     }
   }
