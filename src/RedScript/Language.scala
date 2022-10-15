@@ -23,6 +23,8 @@ object Language {
     /** Value of this expression in `env` */
     def eval(env: Env): Const
 
+    def opVal(env: Env): Const = eval(env)
+
     /** Most expressions have no lvalue  */
     def lval(env: Env): Ref = throw RuntimeError(s"$this cannot be assigned to $position")
 
@@ -62,8 +64,17 @@ object Language {
     override def toString = name
   }
 
+  /** A symbol interprets as itself: except in an operator position */
   case class Symbol(name: String) extends Const {
     override def eval(env: Env): Const = this
+
+    override def opVal(env: Env): Const = env(name) match {
+      case None => throw RuntimeError(s"Unbound variable $name ($position)")
+      case Some(v) => v match {
+        case Ref(value) => value
+        case _ => v
+      }
+    }
 
     override def toString = name
   }
@@ -95,7 +106,7 @@ object Language {
 
     def eval(env0: Env): Const =
       if (elements.isEmpty) Seq(Nil) else {
-          val operator = elements.head.eval(env0)
+          val operator = elements.head.opVal(env0)
           val result =
             operator match {
               case Subr(_, scala) =>

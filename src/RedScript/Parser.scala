@@ -166,7 +166,7 @@ class Parser(source: io.Source, val path: String="") {
          buf.toString match {
            case "true"  => True
            case "false" => False
-           case text    => Chunk(text)
+           case text    => Chunk(text, symbolic = false)
          }
 
        case other if inSymbol =>
@@ -207,7 +207,7 @@ class Parser(source: io.Source, val path: String="") {
       case Quote => nextSymb(); Language.Quote(expr)
       case Bra   =>  Language.SExps(after { exprs } (Ket))
       case SqBra =>  Language.SExps(after { exprs } (SqKet))
-      case Chunk(text, symbolic) => nextSymb(); (if (symbolic) Language.Variable else Language.Symbol)(text)
+      case Chunk(text, symbolic) => nextSymb(); (if (symbolic) Language.Symbol else Language.Variable)(text)
       case Num(value) => nextSymb(); Language.Num(value)
       case Str(text) => nextSymb(); Language.Str(text)
       case True => nextSymb(); Language.Bool(true)

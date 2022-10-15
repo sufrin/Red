@@ -127,6 +127,12 @@ class Evaluator {
     fun(name, { case List(Num(arg)) => Num(op(0, arg)); case args: List[Const] => args.reduceLeft(opn(_,_)) })
   }
 
+  def rel(name: String, op: (Const, Const) => Boolean):Subr = {
+    fun(name, { case List(a: Const, b: Const) => Bool(op(a,b)) })
+  }
+
+
+
 
   val primitives: List[(String, Const)] = List(
     "nil"       -> nil,
@@ -160,6 +166,7 @@ class Evaluator {
     "-"         -> red1("-", (_.-(_))),
     "*"         -> red("*", (_.*(_))),
     "/"         -> red("/", (_./(_))),
+    "="         -> rel("=", (_.equals(_))),
   )
 
   def Run(sexp: SExp): Const =
@@ -168,5 +175,7 @@ class Evaluator {
     }
 
   for { (name, value) <- primitives } global.define(name, value)
+
+
 }
 

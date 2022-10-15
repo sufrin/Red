@@ -49,17 +49,17 @@ RedScript.Test.rep(
     "A non-unicode (uabc) at the end of the string (too short) ${u}abc"
     """)
 
-RedScript.Test.rep("""
+RedScript.Test.rp(s"""
                    "A non-unicode (uabc) at the end of a line (too short) ${u}abc
                      def"
                 """)
 
-RedScript.Test.rep("""
+RedScript.Test.rp("""
                    "A string ending at the end of a line (too short)
                      def"
                 """)
 
-RedScript.Test.rep("""
+RedScript.Test.rp("""
                    "A string ending at the end of a line with a \\\
                      def"
                 """)

@@ -1,5 +1,8 @@
 
-
+RedScript.Test.rep("(def f(a b c) b)\n(f 1 2 3)\n")
+RedScript.Test.rep("= + 3\n= (+ 1 2) 3\n")
+RedScript.Test.rep("= (list 1 2) (list (- 2 1) (+ 1 2))")
+RedScript.Test.rep("= (list 1 3) (list (- 2 1) (+ 1 2))")
 
 val s1  =
   """  zsugar
@@ -63,6 +66,7 @@ val s2=
   """
      (+ 1)
      (* 1 2 3)
+     (printenv)
      variable m1 (- 0 1)
      m1
      set m1 (+ m1 m1)
