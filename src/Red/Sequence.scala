@@ -6,13 +6,13 @@ import scala.reflect.ClassTag
  *
  *  '''Represents'''
  *  {{{
- *         elements: SExps[T]
+ *         elements: [T]
  *  }}}
  *
  *  '''Technicality'''
  *
  *  The `ClassTag` constraint on the type parameter `T`  is present so that
- *  concrete arrays of `[T]` can be built. It won't require any special
+ *  concrete arrays of type `Array[T]` can be built. It won't require any special
  *  action from clients of this class.
  *
  *  Copyright (C) B.A. Sufrin, 2021 and J.M. Spivey. 2015
@@ -33,7 +33,7 @@ import scala.reflect.ClassTag
 class Sequence [T: ClassTag](initialSize: Int=20) extends scala.collection.mutable.Seq[T] {
   /**
    * '''Represents''' {{{
-   *  elements: SExps[T]
+   *  elements: [T]
    * }}}
    *
    * '''Abstraction invariant'''

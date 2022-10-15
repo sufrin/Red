@@ -1,5 +1,6 @@
-import RedLisp.Test._
-import RedLisp.Syntax._
+
+import RedScript.Test._
+import RedScript.Language._
 
 run()
 

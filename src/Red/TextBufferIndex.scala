@@ -17,7 +17,7 @@ package Red
   *  {{{ flatten = foldr (\ line flat -> line ++ '\n' : flat) [END] }}}
   *
   *  '''Specification'''
-  *  {{{ (ix: TextBufferIndex)  indexes  (characters: SExps[Char]) }}}
+  *  {{{ (ix: TextBufferIndex)  indexes  (characters: [Char]) }}}
   *  '''iff'''
   *  {{{  ix.length == length(parse characters) && }}}
   *  {{{  ∀ i∈[0..ix.length) (ix.lineIndex(i)==length(parse characters i)) }}}
