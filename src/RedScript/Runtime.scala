@@ -63,7 +63,7 @@ class Runtime {
 
   def evGlobal(isVar: Boolean)(env: Env, body: SExp): Const = {
     body match {
-      case SExps(List(Atom(name), value)) =>
+      case SExps(List(Variable(name), value)) =>
            val v = value.eval(env)
            global.define(name, if (isVar) Ref(v) else v)
            nil
@@ -82,7 +82,7 @@ class Runtime {
     }
   }
 
-  @inline def isAtom(pattern: SExp): Boolean = pattern match { case Atom(_) => true ; case _ => false }
+  @inline def isAtom(pattern: SExp): Boolean = pattern match { case Variable(_) => true ; case _ => false }
   @inline def isPattern(pattern: SExp): Boolean = pattern match {
     case SExps(params) if params.forall(isAtom) => true
     case _             if isAtom(pattern)       => true
@@ -91,15 +91,15 @@ class Runtime {
 
   def evDef(env: Env, body: SExp): Const = {
     body match {
-      case SExps(Atom(name) :: pattern :: body:: Nil) if isPattern(pattern) => global.define(name, Expr(global, pattern, body)); nil
-      case SExps(Atom(name) :: pattern :: body:: rest) if isPattern(pattern) => global.define(name, Expr(global, pattern, SExps(mkAtom("seq", body.position) :: body:: rest))); nil
-      case SExps(List(Atom(name), pattern, body)) if !isPattern(pattern) => throw SyntaxError(s"Malformed parameter(s) in definition: ")
+      case SExps(Variable(name) :: pattern :: body:: Nil) if isPattern(pattern) => global.define(name, Expr(global, pattern, body)); nil
+      case SExps(Variable(name) :: pattern :: body:: rest) if isPattern(pattern) => global.define(name, Expr(global, pattern, SExps(mkAtom("seq", body.position) :: body:: rest))); nil
+      case SExps(List(Variable(name), pattern, body)) if !isPattern(pattern) => throw SyntaxError(s"Malformed parameter(s) in definition: ")
       case _ => throw SyntaxError(s"Malformed definition")
     }
   }
 
-  def mkAtom(name: String, pos: SourcePosition): Atom = {
-    val atom = Atom(name)
+  def mkAtom(name: String, pos: SourcePosition): Variable = {
+    val atom = Variable(name)
     atom.position=pos
     atom
   }
@@ -117,11 +117,16 @@ class Runtime {
     Subr(name, { args => Bool(args.forall(test)) })
 
   def fun(name: String, op: List[Const]=>Const): Subr  =
-    Subr(name, { case args => try op(args) catch { case exn: MatchError => throw RuntimeError(s"Mismatched arguments to $name: ${Seq(args)}")}})
+    Subr(name, { case args => try op(args) catch { case exn: MatchError => throw RuntimeError(s"Badly typed or mismatched arguments to $name: ${Seq(args)}")}})
 
   def red(name: String, op: (Int,Int)=>Int):Subr = {
     val opn: (Const,Const)=>Const  = { case (Num(a),Num(b)) => Num(op(a,b)) }
     fun(name, { args: List[Const] => args.reduceLeft(opn(_,_)) })
+  }
+
+  def red1(name: String, op: (Int,Int)=>Int):Subr = {
+    val opn: (Const,Const)=>Const  = { case (Num(a),Num(b)) => Num(op(a,b)) }
+    fun(name, { case List(Num(arg)) => Num(op(0, arg)); case args: List[Const] => args.reduceLeft(opn(_,_)) })
   }
 
 
@@ -147,14 +152,14 @@ class Runtime {
                                          case (env, SExps(List(exp))) => env.print(); exp.eval(env)
                                        }),
     "list"      -> Subr  ("list", { args => Seq(args)}),
-    "isAtom"    -> predSubr("isAtom") { case Atom(_)=>true; case _ => false },
+    "isAtom"    -> predSubr("isAtom") { case Variable(_)=>true; case _ => false },
     "isNum"     -> predSubr("isNum")  { case Num(_)=>true; case _ => false },
     "isList"    -> predSubr("isList") { case Seq(_)=>true; case _ => false },
     "isString"  -> predSubr("isString") { case Str(_)=>true; case _ => false },
     "toString"  -> Subr("toString", { case List(const) => Str(const.toString);  case other => throw RuntimeError(s"malformed toString: $other") }),
     "eval"      -> FSubr("eval", { case (env, SExps(List(expr))) => expr.eval(env).evalQuote(env)}),
     "+"         -> red("+", (_.+(_))),
-    "-"         -> red("-", (_.-(_))),
+    "-"         -> red1("-", (_.-(_))),
     "*"         -> red("*", (_.*(_))),
     "/"         -> red("/", (_./(_))),
   )

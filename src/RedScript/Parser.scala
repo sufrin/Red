@@ -1,10 +1,11 @@
 package RedScript
 
+import RedScript.Syntax.SyntaxError
+
 
 object Lexical {
 
-  trait Symbol {
-  }
+  trait Symbol
 
   case object Bra extends Symbol {
     override def toString = "("
@@ -14,35 +15,29 @@ object Lexical {
     override def toString = ")"
   }
 
-  case object True extends Symbol {
-    override def toString = "true"
+  case object SqBra extends Symbol {
+    override def toString = "["
   }
 
-  case object False extends Symbol {
-    override def toString = "false"
+  case object SqKet extends Symbol {
+    override def toString = "]"
   }
+
+  case object True extends Symbol
+
+  case object False extends Symbol
 
   case object EOF extends Symbol
 
   case object EOL extends Symbol
 
-  case object Quote extends Symbol {
-    override def toString = "'"
-  }
+  case object Quote extends Symbol
 
+  case class Chunk(text: String, symbolic: Boolean=false) extends Symbol
 
+  case class Str(text: String) extends Symbol
 
-  case class Atom(text: String) extends Symbol {
-    override def toString = text
-  }
-
-  case class Str(text: String) extends Symbol {
-    override def toString = text
-  }
-
-  case class Num(value: Int) extends Symbol {
-    override def toString = value.toString
-  }
+  case class Num(value: Int) extends Symbol
 
 }
 
@@ -68,7 +63,7 @@ class Parser(source: io.Source, val path: String="") {
 
    import Lexical._
 
-   def inAtom: Boolean = in.ch match {
+   def inSymbol: Boolean = in.ch match {
      case ')'   => false
      case '('   => false
      case '#'   => false
@@ -76,7 +71,7 @@ class Parser(source: io.Source, val path: String="") {
      case '"'   => false
      case '\u0000' => false
      case '\''  => false
-     case other => !other.isSpaceChar
+     case other => !other.isSpaceChar & !other.isLetterOrDigit
    }
 
    def getNext(): Char = {
@@ -98,6 +93,8 @@ class Parser(source: io.Source, val path: String="") {
        case '\'' => getNext(); Quote
        case ')' => braCount = 0 max (braCount-1); getNext(); Ket
        case '(' => braCount+=1; getNext(); Bra
+       case ']' => braCount = 0 max (braCount-1); getNext(); SqKet
+       case '[' => braCount+=1; getNext(); SqBra
        case '#' =>
          while (getNext()!='\n') {}
          nextSymb()
@@ -160,15 +157,20 @@ class Parser(source: io.Source, val path: String="") {
          while (getNext().isDigit) n = n*10 + (in.ch-'0')
          Num(n)
 
-       case other if inAtom =>
+       case other if (other.isLetterOrDigit) =>
          val buf = new collection.mutable.StringBuilder()
-         buf.append(in.ch)
-         while ({getNext(); inAtom}) buf.append(in.ch)
+         while (in.ch.isLetterOrDigit) { buf.append(in.ch); getNext() }
          buf.toString match {
            case "true"  => True
            case "false" => False
-           case text    => Atom(text)
+           case text    => Chunk(text)
          }
+
+       case other if inSymbol =>
+         val buf = new collection.mutable.StringBuilder()
+         buf.append(in.ch)
+         while ({getNext(); inSymbol}) buf.append(in.ch)
+         Chunk(buf.toString(), symbolic = true)
      }
      symb
    }
@@ -176,23 +178,38 @@ class Parser(source: io.Source, val path: String="") {
     import Syntax.SExp
 
    def exprs: List[SExp] = symb match {
-     case Ket         => nextSymb(); Nil
+     case Ket         => Nil
+     case SqKet       => Nil
      case EOF | EOL   => Nil
      case _           => expr :: exprs
    }
+
+  /** `nextSymbol()`; parse using `expr`; check it ends with `symb`, which is to be skipped if so.  */
+  def after(expr: => List[SExp])(symb: Symbol): List[SExp] = {
+      val start = position
+      nextSymb()
+      val e = expr
+      if (this.symb!=symb)
+         throw SyntaxError(s"Expecting $symb after expression starting at $start. Seeing ${this.symb} (${position})")
+      else {
+        nextSymb()
+        e
+      }
+  }
 
   def expr: SExp = {
     val pos = this.position
     val res =
     symb match {
       case Quote => nextSymb(); Syntax.Quote(expr)
-      case Bra =>  nextSymb(); Syntax.SExps(exprs)
-      case Atom(text) => nextSymb(); Syntax.Atom(text)
+      case Bra   =>  Syntax.SExps(after { exprs } (Ket))
+      case SqBra =>  Syntax.SExps(after { exprs } (SqKet))
+      case Chunk(text, symbolic) => nextSymb(); (if (symbolic) Syntax.Variable else Syntax.Symbol)(text)
       case Num(value) => nextSymb(); Syntax.Num(value)
       case Str(text) => nextSymb(); Syntax.Str(text)
       case True => nextSymb(); Syntax.Bool(true)
       case False => nextSymb(); Syntax.Bool(false)
-      case other => nextSymb(); Syntax.Atom(other.toString)
+      case other => nextSymb(); Syntax.Variable(other.toString)
     }
     res.position = pos
     res
@@ -203,6 +220,7 @@ class Parser(source: io.Source, val path: String="") {
     while (symb==EOL) nextSymb()
     symb match {
       case Bra   => expr
+      case SqBra => expr
       case other => exprs match {
         case List(e)     => e
         case application => Syntax.SExps(application)

@@ -25,9 +25,12 @@ object Test extends Runtime {
   }
   def rp(source: String): Unit = {
     val p = new Parser(Source.fromString(source))
-    while (p.nextSymb()!=Lexical.EOF)  {
+    while (p.nextSymb()!=Lexical.EOF) {
+      try {
       val e = p.read
-      println(s"$e => ")
+      println(s"${e.position}: $e => ")
+    } catch {
+      case exn: SyntaxError =>  println(s"${p.position}: $exn")}
     }
   }
 }

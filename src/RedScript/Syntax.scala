@@ -18,7 +18,7 @@ object Syntax {
   }
 
 
-  case class Atom(name: String) extends SExp {
+  case class Variable(name: String) extends SExp {
     def eval(env: Env): Const = env(name) match {
       case None => throw RuntimeError(s"Unbound variable $name ($position)")
       case Some(v) => v match {
@@ -34,6 +34,12 @@ object Syntax {
         case _         => throw RuntimeError(s"Not an lvalue $name ($position)")
       }
     }
+
+    override def toString = name
+  }
+
+  case class Symbol(name: String) extends Const {
+    override def eval(env: Env): Const = this
 
     override def toString = name
   }

@@ -68,6 +68,13 @@ val s2=
      set m1 (+ m1 m1)
      m1
      def m1()  ()
+     set m1 (* 3 m1)
+     m1
+     * m1 3 4 "foo"
+     / 12 2 3
+     - 12 2 3
+     -3
+     --><--
   """
 RedScript.Test.rep(s2)
 

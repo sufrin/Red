@@ -1,27 +1,18 @@
 import RedScript._
 
-import scala.io.Source
-
 val s1 =
   """
     |true
     |false
     |( if true false true)
     |   # comments
-    |   # comments
-    |   (' farly)
-    |   -->Oxymoron<--
+    |   # more comments
+    |   (' farly) # a line-ending comment
+    |   -->\Oxymoron<-- # three atoms
     |   234
     |   "foobaz"
     |   456
     |""".stripMargin
-
-val p2 = new Parser(Source.fromString(s1))
-while (p2.nextSymb()!=Lexical.EOF) { print(s"${p2.position}: "); println(p2.read) }
-
-val p1 = new Parser(Source.fromString(s1))
-while (p1.hasNextSymb) { print(s"$p1: "); println(p1.nextSymb()) }
-
 
 val s2 =
   """
@@ -33,9 +24,20 @@ val s2 =
     |(fst 3 4)
     |(snd 3 4)
     |list 1 2 3 (fst 4 5) (list 6 "seven" 7 8)
+    |-->> Oxymoron <<-
+    |(((foo ))]
     |""".stripMargin
 
-Test.rep(s2)
+
+//val p1 = new Parser(Source.fromString(s1))
+//while (p1.hasNextSymb) { print(s"$p1: "); println(p1.nextSymb()) }
+
+
+//Test.rp(s1)
+
+Test.rp(s2)
+Test.rp("able baker foonly\n")
+Test.rp("able baker foonly")
 
 
 

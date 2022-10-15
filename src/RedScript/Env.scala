@@ -20,17 +20,17 @@ trait Env {
   def extend(pattern: SExp, values: List[Const]): Env = {
     val newEnv =
     pattern match {
-      case Atom(name) =>
+      case Variable(name) =>
         val newPairs: List[(String, Const)] = List((name, Syntax.Seq(values)))
         new LocalEnv(newPairs, Some(this))
 
-      case SExps(patterns) if patterns.forall(_.isInstanceOf[Atom]) =>
+      case SExps(patterns) if patterns.forall(_.isInstanceOf[Variable]) =>
         if (patterns.length==values.length)
-           new LocalEnv(patterns.map {  case Atom(v) => v }.zip(values), Some(thisEnv))
+           new LocalEnv(patterns.map {  case Variable(v) => v }.zip(values), Some(thisEnv))
         else
            throw RuntimeError(s"Not enough values: binding $patterns to $values")
 
-      case SExps(patterns) if !patterns.forall(_.isInstanceOf[Atom]) =>
+      case SExps(patterns) if !patterns.forall(_.isInstanceOf[Variable]) =>
         throw SyntaxError(s"Pattern must be a sequence of variables: binding $patterns to $values")
 
       /** One layer of matching */
