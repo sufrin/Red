@@ -39,3 +39,6 @@ AppleRed/AppleRed-new.app/Contents/Info.plist
 out/test/Jed/parsetest.sc
 out/test/Jed/parsetest.sc
 out/test/Jed/evaltest.sc
+.idea/libraries/regexkit.xml
+.idea/libraries/scala_swing.xml
+.idea/libraries/scala_swing.xml
