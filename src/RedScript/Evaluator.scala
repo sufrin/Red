@@ -59,22 +59,24 @@ class Evaluator {
     }
   }
 
+  // TODO: generalise to multiple declarations
   def evGlobal(isVar: Boolean)(env: Env, body: SExp): Const = {
     body match {
       case SExps(List(Variable(name), value)) =>
            val v = value.eval(env)
-           global.define(name, if (isVar) Ref(v) else v)
+           global.define(name, if (isVar) Ref(name, v) else v)
            nil
       case other => throw SyntaxError(s"Malformed global declaration: $other")
     }
   }
 
+  // TODO: generalise to multiple declarations
   def evLet(isVar: Boolean)(env: Env, body: SExp): Const = {
     body match {
       case SExps(List(bv, value, body)) =>
         val v = value.eval(env)
         val params = SExps(List(bv))
-        val args   = List(if (isVar) Ref(v) else v)
+        val args   = List(if (isVar) Ref(bv.toString, v) else v)
         body.eval(env.extend(params, args))
       case other => throw SyntaxError(s"Malformed let declaration: $other")
     }
@@ -131,9 +133,13 @@ class Evaluator {
     fun(name, { case List(a: Const, b: Const) => Bool(op(a,b)) })
   }
 
-
-
-
+  /**
+   *  The top-level environment binds, as constants, names subject to "just-in-time"
+   *  translation in the parser. When any of the names defined here appear
+   *  in an expression they are JIT-translated into their value. This
+   *  means that the cost of evaluating a predefined language form is not
+   *  dependent on the length of the environment at the time of its evaluation.
+   */
   val primitives: List[(String, Const)] = List(
     "nil"       -> nil,
     "null"      -> Subr("null", { case List(Seq(Nil)) => Bool(true); case List(_) => Bool(false); case other => throw RuntimeError(s"malformed null: $other") }),
@@ -176,6 +182,39 @@ class Evaluator {
 
   for { (name, value) <- primitives } global.define(name, value)
 
+
+  def rep(source: String): Unit = rep(new Parser(io.Source.fromString(source)))
+
+  def rep(parser: Parser): Unit = {
+    parser.constantEnv=global // for JIT compilation of operators
+    try {
+      while (parser.nextSymb() != Lexical.EOF) try {
+        val e = parser.read
+        val r = try Run(e).toString catch {
+          case exn: RuntimeError => exn
+        }
+        println(s"$e => $r")
+      } catch {
+        case exn: SyntaxError => println(exn)
+      }
+    }
+    catch {
+      case exn: SyntaxError => println(exn)
+      case exn: Exception => println(exn)
+    }
+  }
+
+  def rp(source: String): Unit = {
+    val p = new Parser(io.Source.fromString(source))
+    while (p.nextSymb() != Lexical.EOF) {
+      try {
+        val e = p.read
+        println(s"${e.position}: $e => ")
+      } catch {
+        case exn: SyntaxError => println(s"${p.position}: $exn")
+      }
+    }
+  }
 
 }
 

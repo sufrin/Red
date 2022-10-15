@@ -49,6 +49,8 @@ class Parser(source: io.Source, val path: String="") {
   def position: SourcePosition = lastPosition
   var lastPosition: SourcePosition = SourcePosition(path,-1,-1)
 
+  var constantEnv: Env = null
+
    private var braCount = 0
 
    @inline def char: String = in.ch match {
@@ -163,11 +165,7 @@ class Parser(source: io.Source, val path: String="") {
        case other if (other.isLetterOrDigit) =>
          val buf = new collection.mutable.StringBuilder()
          while (in.ch.isLetterOrDigit) { buf.append(in.ch); getNext() }
-         buf.toString match {
-           case "true"  => True
-           case "false" => False
-           case text    => Chunk(text, symbolic = false)
-         }
+         Chunk(buf.toString, symbolic = false)
 
        case other if inSymbol =>
          val buf = new collection.mutable.StringBuilder()
@@ -207,7 +205,11 @@ class Parser(source: io.Source, val path: String="") {
       case Quote => nextSymb(); Language.Quote(expr)
       case Bra   =>  Language.SExps(after { exprs } (Ket))
       case SqBra =>  Language.SExps(after { exprs } (SqKet))
-      case Chunk(text, symbolic) => nextSymb(); (if (symbolic) Language.Symbol else Language.Variable)(text)
+      case Chunk(text, symbolic) => nextSymb()
+        constantEnv(text) match {
+          case None => (if (symbolic) Language.Symbol else Language.Variable) (text)
+          case Some(constant) => constant
+        }
       case Num(value) => nextSymb(); Language.Num(value)
       case Str(text) => nextSymb(); Language.Str(text)
       case True => nextSymb(); Language.Bool(true)

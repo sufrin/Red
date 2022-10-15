@@ -48,7 +48,7 @@ object Language {
     def eval(env: Env): Const = env(name) match {
       case None => throw RuntimeError(s"Unbound variable $name ($position)")
       case Some(v) => v match {
-        case Ref(value) => value
+        case Ref(_, value) => value
         case _ => v
       }
     }
@@ -71,7 +71,7 @@ object Language {
     override def opVal(env: Env): Const = env(name) match {
       case None => throw RuntimeError(s"Unbound variable $name ($position)")
       case Some(v) => v match {
-        case Ref(value) => value
+        case Ref(_, value) => value
         case _ => v
       }
     }
@@ -79,9 +79,11 @@ object Language {
     override def toString = name
   }
 
-  case class Ref(var value: Const) extends Const {
+  case class Ref(name: String, var value: Const) extends Const {
     override def eval(env: Env): Const = value
     override def lval(env: Env): Ref = this
+
+    override def toString: String = name
   }
 
   case class Seq(elements: List[Const]) extends Const {
@@ -161,11 +163,11 @@ object Language {
   }
 
   case class Subr(name: String, scala: List[Const] => Const) extends Const {
-    override def toString = s"Strict: $name"
+    override def toString = name // s"Strict: $name"
   }
 
   case class FSubr(name: String, scala: (Env, SExp) => Const) extends Const {
-    override def toString = s"Lazy: $name"
+    override def toString = name // s"Lazy: $name"
   }
 
   case class Opaque(value: Any) extends Const {
