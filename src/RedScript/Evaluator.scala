@@ -48,8 +48,8 @@ class Evaluator {
     case other => throw SyntaxError(s"Malformed if: (if $other)")
   }
 
-  val global = new MutableEnv
-  val constantEnv = new MutableEnv
+  val global    = new MutableEnv
+  val syntaxEnv = new MutableEnv
 
   def evSet(env: Env, body: SExp): Const = {
     body match {
@@ -115,11 +115,11 @@ class Evaluator {
   }
 
   // Needs to be lazy
-  def forAll(name: String)(test: SExp => Boolean): Const =
-    Subr(name, { args => Bool(args.forall(test)) })
+  def forall(name: String)(test: SExp => Boolean): Const =
+    FSubr(name, { case (env, SExps(exprs)) => Bool(exprs.forall(expr => test(expr.eval(env))))})
 
-  def exists(name: String)(test: Const => Boolean): Const =
-    Subr(name, { args => Bool(args.exists(test)) })
+  def exists(name: String)(test: SExp => Boolean): Const =
+    FSubr(name, { case (env, SExps(exprs)) => Bool(exprs.exists(expr => test(expr.eval(env))))})
 
   def fun(name: String, op: List[Const]=>Const): Subr  =
     Subr(name, { case args => try op(args) catch { case exn: MatchError => throw RuntimeError(s"Badly typed or mismatched arguments to $name: ${Seq(args)}")}})
@@ -152,7 +152,7 @@ class Evaluator {
     "tl"        -> Subr("tl", { case List(Seq((h::t))) => Seq(t); case List(Seq(Nil)) => throw RuntimeError(s"(tl nil)"); case other => RuntimeError("Non-list: (tl $other)")  } ),
     "cons"      -> Subr("cons", { case List(const, Seq(consts)) => Seq(const :: consts); case other => throw RuntimeError(s"malformed cons: ${SExps(other)}") } ),
     "fun"       -> FSubr ("fun", evFun),
-    "set"       -> FSubr ("set", evSet),
+    ":="        -> FSubr (":=", evSet),
     "variable"  -> FSubr ("variable", evGlobal(true)),
     "constant"  -> FSubr ("constant", evGlobal(false)),
     "var"       -> FSubr ("var", evLet(true)),
@@ -167,12 +167,12 @@ class Evaluator {
                                          case (env, SExps(List(exp))) => env.print(); exp.eval(env)
                                        }),
     "list"      -> Subr  ("list", { args => Seq(args)}),
-    "isAtom"    -> forAll("isAtom") { case Variable(_)=>true; case Symbol(_) => true; case _ => false },
-    "isVar"     -> forAll("isVar") { case Variable(_)=>true; case _ => false },
-    "isSymb"    -> forAll("isSymb") { case Symbol(_) => true; case _ => false },
-    "isNum"     -> forAll("isNum")  { case Num(_)=>true; case _ => false },
-    "isList"    -> forAll("isList") { case Seq(_)=>true; case _ => false },
-    "isString"  -> forAll("isString") { case Str(_)=>true; case _ => false },
+    "isAtom"    -> forall("isAtom") { case Variable(_)=>true; case Symbol(_) => true; case _ => false },
+    "isVar"     -> forall("isVar") { case Variable(_)=>true; case _ => false },
+    "isSymb"    -> forall("isSymb") { case Symbol(_) => true; case _ => false },
+    "isNum"     -> forall("isNum")  { case Num(_)=>true; case _ => false },
+    "isList"    -> forall("isList") { case Seq(_)=>true; case _ => false },
+    "isString"  -> forall("isString") { case Str(_)=>true; case _ => false },
     "toString"  -> Subr("toString", { case List(const) => Str(const.toString);  case other => throw RuntimeError(s"malformed toString: $other") }),
     "eval"      -> FSubr("eval", { case (env, SExps(List(expr))) => expr.eval(env).evalQuote(env)}),
     "+"         -> red("+", (_.+(_))),
@@ -182,25 +182,26 @@ class Evaluator {
     "="         -> rel("=", (_.equals(_))),
     "true"      -> Bool(true),
     "false"     -> Bool(false),
-    "&&"        -> forAll("&&"){ case Bool(b)=> b },
+    "&&"        -> forall("&&"){ case Bool(b)=> b },
+    "||"        -> exists("||"){ case Bool(b)=> b },
   )
 
-  def Run(sexp: SExp): Const =
+  def run(sexp: SExp): Const =
     try sexp.eval(global) catch {
       case exn: scala.Error => Str(s"RuntimeError: ${exn.getMessage}")
     }
 
-  for { (name, value) <- primitives } constantEnv.define(name, value)
+  for { (name, value) <- primitives } syntaxEnv.define(name, value)
 
 
   def rep(source: String): Unit = rep(new Parser(io.Source.fromString(source)))
 
   def rep(parser: Parser): Unit = {
-    parser.constantEnv=constantEnv // for JIT compilation of operators
+    parser.syntaxEnv=syntaxEnv // for JIT compilation of operators
     try {
       while (parser.nextSymb() != Lexical.EOF) try {
         val e = parser.read
-        val r = try Run(e).toString catch {
+        val r = try run(e).toString catch {
           case exn: RuntimeError => exn
         }
         println(s"$e => $r")

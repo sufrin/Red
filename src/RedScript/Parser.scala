@@ -49,7 +49,7 @@ class Parser(source: io.Source, val path: String="") {
   def position: SourcePosition = lastPosition
   var lastPosition: SourcePosition = SourcePosition(path,-1,-1)
 
-  var constantEnv: Env = null
+  var syntaxEnv: Env = null
 
    private var braCount = 0
 
@@ -206,7 +206,7 @@ class Parser(source: io.Source, val path: String="") {
       case Bra   =>  Language.SExps(after { exprs } (Ket))
       case SqBra =>  Language.SExps(after { exprs } (SqKet))
       case Chunk(text, symbolic) => nextSymb()
-        constantEnv(text) match {
+        syntaxEnv(text) match {
           case None => (if (symbolic) Language.Symbol else Language.Variable) (text)
           case Some(constant) => constant
         }
