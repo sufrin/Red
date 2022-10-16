@@ -49,6 +49,7 @@ class Evaluator {
   }
 
   val global = new MutableEnv
+  val constantEnv = new MutableEnv
 
   def evSet(env: Env, body: SExp): Const = {
     body match {
@@ -113,8 +114,12 @@ class Evaluator {
     }
   }
 
-  def predSubr(name: String)(test: SExp=>Boolean): Const =
+  // Needs to be lazy
+  def forAll(name: String)(test: SExp => Boolean): Const =
     Subr(name, { args => Bool(args.forall(test)) })
+
+  def exists(name: String)(test: Const => Boolean): Const =
+    Subr(name, { args => Bool(args.exists(test)) })
 
   def fun(name: String, op: List[Const]=>Const): Subr  =
     Subr(name, { case args => try op(args) catch { case exn: MatchError => throw RuntimeError(s"Badly typed or mismatched arguments to $name: ${Seq(args)}")}})
@@ -152,7 +157,7 @@ class Evaluator {
     "constant"  -> FSubr ("constant", evGlobal(false)),
     "var"       -> FSubr ("var", evLet(true)),
     "val"       -> FSubr ("val", evLet(false)),
-    "if*"       -> FSubr ("if*", evCond),
+    "if'"       -> FSubr ("if'", evCond),
     "if"        -> FSubr ("if", evIf),
     "def"       -> FSubr ("def", evDef),
     "seq"       -> Subr  ("seq", { case Nil => nil; case args => args.last }),
@@ -162,10 +167,12 @@ class Evaluator {
                                          case (env, SExps(List(exp))) => env.print(); exp.eval(env)
                                        }),
     "list"      -> Subr  ("list", { args => Seq(args)}),
-    "isAtom"    -> predSubr("isAtom") { case Variable(_)=>true; case _ => false },
-    "isNum"     -> predSubr("isNum")  { case Num(_)=>true; case _ => false },
-    "isList"    -> predSubr("isList") { case Seq(_)=>true; case _ => false },
-    "isString"  -> predSubr("isString") { case Str(_)=>true; case _ => false },
+    "isAtom"    -> forAll("isAtom") { case Variable(_)=>true; case Symbol(_) => true; case _ => false },
+    "isVar"     -> forAll("isVar") { case Variable(_)=>true; case _ => false },
+    "isSymb"    -> forAll("isSymb") { case Symbol(_) => true; case _ => false },
+    "isNum"     -> forAll("isNum")  { case Num(_)=>true; case _ => false },
+    "isList"    -> forAll("isList") { case Seq(_)=>true; case _ => false },
+    "isString"  -> forAll("isString") { case Str(_)=>true; case _ => false },
     "toString"  -> Subr("toString", { case List(const) => Str(const.toString);  case other => throw RuntimeError(s"malformed toString: $other") }),
     "eval"      -> FSubr("eval", { case (env, SExps(List(expr))) => expr.eval(env).evalQuote(env)}),
     "+"         -> red("+", (_.+(_))),
@@ -173,6 +180,9 @@ class Evaluator {
     "*"         -> red("*", (_.*(_))),
     "/"         -> red("/", (_./(_))),
     "="         -> rel("=", (_.equals(_))),
+    "true"      -> Bool(true),
+    "false"     -> Bool(false),
+    "&&"        -> forAll("&&"){ case Bool(b)=> b },
   )
 
   def Run(sexp: SExp): Const =
@@ -180,13 +190,13 @@ class Evaluator {
       case exn: scala.Error => Str(s"RuntimeError: ${exn.getMessage}")
     }
 
-  for { (name, value) <- primitives } global.define(name, value)
+  for { (name, value) <- primitives } constantEnv.define(name, value)
 
 
   def rep(source: String): Unit = rep(new Parser(io.Source.fromString(source)))
 
   def rep(parser: Parser): Unit = {
-    parser.constantEnv=global // for JIT compilation of operators
+    parser.constantEnv=constantEnv // for JIT compilation of operators
     try {
       while (parser.nextSymb() != Lexical.EOF) try {
         val e = parser.read

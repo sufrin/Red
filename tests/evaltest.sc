@@ -1,5 +1,5 @@
 
-RedScript.Test.rep("(def f(a b c) b)\n(f 1 2 3)\n")
+RedScript.Test.rep("(def f(a b c) (+ a b c))\n(f 1 2 3)\n")
 RedScript.Test.rep("= + 3\n= (+ 1 2) 3\n")
 RedScript.Test.rep("= (list 1 2) (list (- 2 1) (+ 1 2))")
 RedScript.Test.rep("= (list 1 3) (list (- 2 1) (+ 1 2))")
@@ -16,13 +16,13 @@ val s1  =
     |? "A line"
     |' (c d e)
     |"A bracketed line"
-    |set a (fun (x) (cons x (list 'c 'd 'e)))
+    |constant a (fun (x) (cons x (list 'c 'd 'e)))
     |a
     |'Z
     |(a 'Z)
     |f (list 'c 'd 'e) 'hooh 'hah
     |eval '(a 'Y)
-    |set ay (list 'a ''Y)
+    |variable ay (list 'a ''Y)
     |ay
     |eval ay
     |cons 'k ay
@@ -31,7 +31,7 @@ val s1  =
     |(tl ay)
     |(null nil)
     |(3 4 5)
-    |(def copy(xs) (if* ((null xs) (hd xs))
+    |(def copy(xs) (if' ((null xs) (hd xs))
     |                  ( true
     |                   (cons (hd xs)
     |                         (copy (tl xs))

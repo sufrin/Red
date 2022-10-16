@@ -164,7 +164,7 @@ class Parser(source: io.Source, val path: String="") {
 
        case other if (other.isLetterOrDigit) =>
          val buf = new collection.mutable.StringBuilder()
-         while (in.ch.isLetterOrDigit) { buf.append(in.ch); getNext() }
+         while (in.ch.isLetterOrDigit || in.ch=='\'') { buf.append(in.ch); getNext() }
          Chunk(buf.toString, symbolic = false)
 
        case other if inSymbol =>
