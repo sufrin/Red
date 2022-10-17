@@ -1,46 +1,71 @@
+import RedScript.Test.rep
 
-RedScript.Test.rep("(def f(a b c) (+ a b c))\n(f 1 2 3)\n")
-RedScript.Test.rep("= + 3\n= (+ 1 2) 3\n")
-RedScript.Test.rep("= (list 1 2) (list (- 2 1) (+ 1 2))")
-RedScript.Test.rep("= (list 1 3) (list (- 2 1) (+ 1 2))")
+rep("(seq 1 2 3)")
+rep("(def Ω(a b c) 43 (+ a b c))")
+rep("(def ΩΩ(a b c) (seq 43 (+ a b c)))")
+rep("Ω\nΩΩ")
+rep("(Ω 1 2 3)\n")
+rep("= + 3\n= (+ 1 2) 3\n")
+rep("= (list 1 2) (list (- 2 1) (+ 1 2))")
+rep("= (list 1 3) (list (- 2 1) (+ 1 2))")
+rep("nil")
+rep("< 2 2\n< 2 3\n<= true false\n<= false true")
 
-val s1  =
-  """  zsugar
-    |
-    |
-    |
+if (true)  rep {
+  """ def >>(x) (seq)
+    | >> "Three runtime errors"
+    | zsugar
     |("foo" x)
     |(foo x)
-    |
+    | >> "A definition"
     |def f(a b c) b
-    |? "A line"
-    |' (c d e)
-    |"A bracketed line"
-    |constant a (fun (x) (cons x (list 'c 'd 'e)))
+    |f
+    |>> "A sequence of print; yields the value of the last of them"
+    |? "the" "rain" "in" "spain"
+    |seq (println) (println "the" "rain" "in" "spain")
+    |seq (println) (print "the" "rain" "in" "spain")
+    |>>"A quoted list"
+    |` (c d e)
+    |>>"An unbracketed composite sexpr on a single line"
+    |constant a (fun (x) (cons x (list `c `d `e)))
     |a
-    |'Z
-    |(a 'Z)
-    |f (list 'c 'd 'e) 'hooh 'hah
-    |eval '(a 'Y)
-    |variable ay (list 'a ''Y)
+    |>>"This is a quotation over three lines"
+    |`(this is
+    |  a quotation
+    |  over three lines)
+    | >> "A strange identifier"
+    | (constant åçé 35)
+    | åçé
+    | >> "Symbols can be bound, too."
+    | def ∫(a b c)(list `∫ a b c)
+    | ∫ 1 2 3
+    | constant π `π
+    | π
+    | (eval π)
+    |
+    |`Z
+    |(a `Z)
+    |f (list `c `d `e) `hooh `hah
+    |eval `(a `Y)
+    |variable ay (list `a ``Y)
     |ay
     |eval ay
-    |cons 'k ay
+    |cons `k ay
     |(null ay)
     |(hd ay)
     |(tl ay)
     |(null nil)
-    |(3 4 5)
-    |(def copy(xs) (if' ((null xs) (hd xs))
-    |                  ( true
-    |                   (cons (hd xs)
-    |                         (copy (tl xs))
-    |                   )))))
+    |
+    |(def copy(xs) (if' [(null xs) nil]
+    |                   [true
+    |                    (cons (hd xs)
+    |                          (copy (tl xs)))]
+    |                   )))
     |(copy ay)
     |
     |(def cat(xs ys)
     |     (if (null xs)
-    |         nil
+    |         ys
     |         (cons (hd xs)
     |               (cat (tl xs) ys)
     |         )
@@ -49,27 +74,22 @@ val s1  =
     |
     |(cat ay ay)
     |(cat (dog ay) ay)
-    |37
+    | >> "Miscellaneous, including some errors"
     |(def f(3)4)
-    |(def pr(title xs) (seq (print title) (print xs) xs))
-    |(pr "foo" ay)
     |
     |(def prr(title xs) (print title) (print xs) xs)
     |(prr "foo" ay)
     |
     |""".stripMargin
+}
 
-
-RedScript.Test.rep(s1)
-
-val s2=
+if (true) rep {
   """
      (+ 1)
      (* 1 2 3)
      (&& (= 3 3) (= 4 4))
      (|| (= 3 4) (= 4 4))
      (&& (= 4 4) 5 (= 3 4))
-     (printenv)
      variable m1 (- 0 1)
      m1
      := m1 (+ m1 m1)
@@ -83,5 +103,6 @@ val s2=
      -3
      --><--
   """
-RedScript.Test.rep(s2)
+}
+
 

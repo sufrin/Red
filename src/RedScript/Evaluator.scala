@@ -10,16 +10,17 @@ class Evaluator {
   import RedScript.Language._
 
   /**
-   * A cases expression takes one of the following forms:
+   * A multi-branched conditional expression takes the form:
    *
-   * `(if* (condition thenExpr)*)` - zero or more condition, expr pairs
+   * `(if' (cond thenExpr)*)` -- zero or more (condition, expr) pairs
    *
-   * `(if* (condition thenExpr)* elseExpr)` - zero or more condition, expr pairs, followed by an expr
-   *
+   * It yields `Nothing` if no condition yields true; else
+   * it yields the value of the `thenExpr` paired with the first
+   * of the conditions that yields `true`.
    */
   def evCond(env: Env, body: SExp): Const = {
     def evCases(cases: List[SExp]): Const = cases match {
-      case Nil => nil
+      case Nil => Nothing
 
       case SExps(List(pred, thenPart)) :: cases =>
         pred.eval(env) match {
@@ -28,7 +29,7 @@ class Evaluator {
           case other => throw RuntimeError(s"condition evaluates to a non-Bool: $other", Some(pred))
         }
 
-      case other => throw SyntaxError(s"Malformed if*: ${cases.mkString(" ")}")
+      case other => throw SyntaxError(s"Malformed if': ${cases.mkString(" ")}")
     }
     body match {
       case SExps(cases) => evCases(cases)
@@ -36,8 +37,13 @@ class Evaluator {
     }
   }
 
-  /**
-   *  `(if condition thenExpr elseExpr)` - a condition followed by two expressions
+  /** A single-branched conditional expression takes the form:
+   *
+   *  `(if condition thenExpr elseExpr)` -- a condition followed by two expressions
+   *
+   *  It yields the same as
+   *
+   *  `(if' (condition thenExpr) (true elseExpr))`
    */
   def evIf(env: Env, body: SExp): Const = body match {
     case SExps(List(pred, thenPart, elsePart)) => pred.eval(env) match {
@@ -48,14 +54,20 @@ class Evaluator {
     case other => throw SyntaxError(s"Malformed if: (if $other)")
   }
 
+  /**
+   * User-declared constants and variables
+   */
   val global    = new MutableEnv
+  /**
+   * Built-in named unchangeable forms
+   */
   val syntaxEnv = new MutableEnv
 
   def evSet(env: Env, body: SExp): Const = {
     body match {
       case SExps(List(lvalue, rvalue)) =>
         lvalue.lval(env).value = rvalue.eval(env);
-        nil
+        Nothing
       case other => throw SyntaxError(s"Malformed assignment: $other")
     }
   }
@@ -66,7 +78,7 @@ class Evaluator {
       case SExps(List(Variable(name), value)) =>
            val v = value.eval(env)
            global.define(name, if (isVar) Ref(name, v) else v)
-           nil
+           Nothing
       case other => throw SyntaxError(s"Malformed global declaration: $other")
     }
   }
@@ -90,11 +102,9 @@ class Evaluator {
     case _                                      => false
   }
 
-  def evDef(env: Env, body: SExp): Const = {
-    body match {
-      case SExps(Variable(name) :: pattern :: body:: Nil) if isPattern(pattern) => global.define(name, Expr(global, pattern, body)); nil
-      case SExps(Variable(name) :: pattern :: body:: rest) if isPattern(pattern) => global.define(name, Expr(global, pattern, SExps(mkAtom("seq", body.position) :: body:: rest))); nil
-      case SExps(List(Variable(name), pattern, body)) if !isPattern(pattern) => throw SyntaxError(s"Malformed parameter(s) in definition: ")
+  def evDef(env: Env, form: SExp): Const = {
+    form match {
+      case SExps(Variable(name) :: pattern :: body) if isPattern(pattern) => global.define(name, Expr(global, pattern, mkSequential(body))); Nothing
       case _ => throw SyntaxError(s"Malformed definition")
     }
   }
@@ -105,12 +115,27 @@ class Evaluator {
     atom
   }
 
-  def evFun(env: Env, body: SExp): Const = {
-    body match {
-      case SExps(pattern :: body :: Nil)  if isPattern(pattern) => Expr(env, pattern, body)
-      case SExps(pattern :: body :: rest) if isPattern(pattern) => Expr(env, pattern, SExps(mkAtom("seq", body.position) :: body:: rest))
-      case SExps(pattern :: rest) if !isPattern(pattern) => throw SyntaxError(s"Malformed parameter(s) in abstraction: ")
-      case _ => throw SyntaxError(s"malformed function body: $body")
+  /**  Workhorse to implement the transformations (for N>1):
+   *
+   *   {{{
+   *   (expr params e1 e2 eN) => (expr params (Seq e1 e2 eN))
+   *   }}}
+   *   and
+   *
+   *   {{{
+   *   (def f(params) e1 e2 eN) => (def  f(params) (Seq e1 e2 eN))
+   *   }}}
+   */
+  def mkSequential(exprs: List[SExp]): SExp = exprs match {
+    case List(expr) => expr
+    case exprs => SExps(syntaxEnv("seq").get :: exprs)
+  }
+
+  def evFun(env: Env, form: SExp): Const = {
+    form match {
+      case SExps(pattern :: body) if isPattern(pattern) => Expr(env, pattern, mkSequential(body))
+      case SExps(pattern :: body) if !isPattern(pattern) => throw SyntaxError(s"Malformed parameter(s) in abstraction: ${pattern.position}")
+      case _ => throw SyntaxError(s"malformed function body: $form")
     }
   }
 
@@ -147,43 +172,43 @@ class Evaluator {
    */
   val primitives: List[(String, Const)] = List(
     "nil"       -> nil,
-    "null"      -> Subr("null", { case List(Seq(Nil)) => Bool(true); case List(_) => Bool(false); case other => throw RuntimeError(s"malformed null: $other") }),
-    "hd"        -> Subr("hd", { case List(Seq((h::t))) => h; case List(Seq(Nil)) => throw RuntimeError(s"(hd nil)"); case other => RuntimeError("Non-list: (hd $other)") } ),
-    "tl"        -> Subr("tl", { case List(Seq((h::t))) => Seq(t); case List(Seq(Nil)) => throw RuntimeError(s"(tl nil)"); case other => RuntimeError("Non-list: (tl $other)")  } ),
-    "cons"      -> Subr("cons", { case List(const, Seq(consts)) => Seq(const :: consts); case other => throw RuntimeError(s"malformed cons: ${SExps(other)}") } ),
-    "fun"       -> FSubr ("fun", evFun),
-    ":="        -> FSubr (":=", evSet),
+    "null"      -> Subr("null",       { case List(Seq(Nil)) => Bool(true); case List(_) => Bool(false); case other => throw RuntimeError(s"malformed null: $other") }),
+    "hd"        -> Subr("hd",         { case List(Seq((h::t))) => h; case List(Seq(Nil)) => throw RuntimeError(s"(hd nil)"); case other => RuntimeError("Non-list: (hd $other)") } ),
+    "tl"        -> Subr("tl",         { case List(Seq((h::t))) => Seq(t); case List(Seq(Nil)) => throw RuntimeError(s"(tl nil)"); case other => RuntimeError("Non-list: (tl $other)")  } ),
+    "cons"      -> Subr("cons",       { case List(const, Seq(consts)) => Seq(const :: consts); case other => throw RuntimeError(s"malformed cons: ${SExps(other)}") } ),
+    "fun"       -> FSubr ("fun",      evFun),
+    ":="        -> FSubr (":=",       evSet),
     "variable"  -> FSubr ("variable", evGlobal(true)),
     "constant"  -> FSubr ("constant", evGlobal(false)),
-    "var"       -> FSubr ("var", evLet(true)),
-    "val"       -> FSubr ("val", evLet(false)),
-    "if'"       -> FSubr ("if'", evCond),
-    "if"        -> FSubr ("if", evIf),
-    "def"       -> FSubr ("def", evDef),
-    "seq"       -> Subr  ("seq", { case Nil => nil; case args => args.last }),
-    "print"     -> Subr  ("print", { case args => args.foreach(println(_)); nil}),
-    "?"          -> Subr  ("?",    { case args => args.foreach(println(_)); args.last}),
-    "printenv"  -> FSubr  ("printenv", { case (env, SExps(Nil)) => env.print(); nil
-                                         case (env, SExps(List(exp))) => env.print(); exp.eval(env)
-                                       }),
-    "list"      -> Subr  ("list", { args => Seq(args)}),
-    "isAtom"    -> forall("isAtom") { case Variable(_)=>true; case Symbol(_) => true; case _ => false },
-    "isVar"     -> forall("isVar") { case Variable(_)=>true; case _ => false },
-    "isSymb"    -> forall("isSymb") { case Symbol(_) => true; case _ => false },
-    "isNum"     -> forall("isNum")  { case Num(_)=>true; case _ => false },
-    "isList"    -> forall("isList") { case Seq(_)=>true; case _ => false },
+    "var"       -> FSubr ("var",      evLet(true)),
+    "val"       -> FSubr ("val",      evLet(false)),
+    "if'"       -> FSubr ("if'",      evCond),
+    "if"        -> FSubr ("if",       evIf),
+    "def"       -> FSubr ("def",      evDef),
+    "seq"       -> Subr  ("seq",      { case Nil => Nothing; case args => args.last }),
+    "print"     -> Subr  ("print",    { case args => args.foreach{ case k => print(k.show) } ; Console.flush(); Nothing }),
+    "println"   -> Subr  ("println",  { case Nil => println(); Nothing; case args => args.foreach{ case k => println(k.show) } ; Console.flush(); Nothing }),
+    "?"         -> Subr  ("?",        { case args => args.foreach{ case k => print(k.show); print(" ") }; Console.flush(); args.last}),
+    "list"      -> Subr  ("list",     { args => Seq(args)}),
+    "isAtom"    -> forall("isAtom")   { case Variable(_) => true; case _ => false },
+    "isSymb"    -> forall("isSymb")   { case v@Variable(_) => v.symbolic; case _ => false },
+    "isVar"     -> forall("isSymb")   { case v@Variable(_) => !v.symbolic; case _ => false },
+    "isNum"     -> forall("isNum")    { case Num(_)=>true; case _ => false },
+    "isList"    -> forall("isList")   { case Seq(_)=>true; case _ => false },
     "isString"  -> forall("isString") { case Str(_)=>true; case _ => false },
-    "toString"  -> Subr("toString", { case List(const) => Str(const.toString);  case other => throw RuntimeError(s"malformed toString: $other") }),
-    "eval"      -> FSubr("eval", { case (env, SExps(List(expr))) => expr.eval(env).evalQuote(env)}),
-    "+"         -> red("+", (_.+(_))),
-    "-"         -> red1("-", (_.-(_))),
-    "*"         -> red("*", (_.*(_))),
-    "/"         -> red("/", (_./(_))),
-    "="         -> rel("=", (_.equals(_))),
+    "toString"  -> Subr("toString",   { case List(const) => Str(const.toString);  case other => throw RuntimeError(s"malformed toString: $other") }),
+    "eval"      -> FSubr("eval",      { case (env, SExps(List(expr))) => expr.eval(env).evalQuote(env)}),
+    "&&"        -> forall("&&")       { case Bool(b)=> b },
+    "||"        -> exists("||")       { case Bool(b)=> b },
+    "+"         -> red("+",   (_.+(_))),
+    "-"         -> red1("-",  (_.-(_))),
+    "*"         -> red("*",   (_.*(_))),
+    "/"         -> red("/",   (_./(_))),
+    "="         -> rel("=",   (_.equals(_))),
+    "<"         -> rel("<",   { case (Num(a), Num(b))=>a<b;  case (Str(a), Str(b))=>a<b;  case (Bool(a), Bool(b))=>a<b  }),
+    "<="        -> rel("<=",  { case (Num(a), Num(b))=>a<=b; case (Str(a), Str(b))=>a<=b; case (Bool(a), Bool(b))=>a<=b }),
     "true"      -> Bool(true),
     "false"     -> Bool(false),
-    "&&"        -> forall("&&"){ case Bool(b)=> b },
-    "||"        -> exists("||"){ case Bool(b)=> b },
   )
 
   def run(sexp: SExp): Const =
@@ -196,15 +221,16 @@ class Evaluator {
 
   def rep(source: String): Unit = rep(new Parser(io.Source.fromString(source)))
 
-  def rep(parser: Parser): Unit = {
+  def rep(parser: Parser, show: Boolean=true): Unit = {
     parser.syntaxEnv=syntaxEnv // for JIT compilation of operators
     try {
       while (parser.nextSymb() != Lexical.EOF) try {
         val e = parser.read
+        if (show) print(s"${e.position}: $e => ")
         val r = try run(e).toString catch {
           case exn: RuntimeError => exn
         }
-        println(s"$e => $r")
+        println(s"$r")
       } catch {
         case exn: SyntaxError => println(exn)
       }
@@ -215,17 +241,7 @@ class Evaluator {
     }
   }
 
-  def rp(source: String): Unit = {
-    val p = new Parser(io.Source.fromString(source))
-    while (p.nextSymb() != Lexical.EOF) {
-      try {
-        val e = p.read
-        println(s"${e.position}: $e => ")
-      } catch {
-        case exn: SyntaxError => println(s"${p.position}: $exn")
-      }
-    }
-  }
+
 
 }
 

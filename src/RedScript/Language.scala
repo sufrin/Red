@@ -41,12 +41,18 @@ object Language {
      */
     var position: SourcePosition = SourcePosition("",-1,-1)
 
+    def show: String              = toString
+    override def toString: String = show
+
   }
 
 
-  case class Variable(name: String) extends SExp {
+  case class Variable(name: String)  extends SExp {
+    var symbolic: Boolean = false
+
     def eval(env: Env): Const = env(name) match {
-      case None => throw RuntimeError(s"Unbound variable $name ($position)")
+      case None =>
+        if (symbolic) Quote(this) else throw RuntimeError(s"Unbound variable $name ($position)")
       case Some(v) => v match {
         case Ref(_, value) => value
         case _ => v
@@ -58,21 +64,6 @@ object Language {
         case Some(v)   => v match {
         case r: Ref    => r
         case _         => throw RuntimeError(s"Not an lvalue $name ($position)")
-      }
-    }
-
-    override def toString = name
-  }
-
-  /** A symbol interprets as itself: except in an operator position */
-  case class Symbol(name: String) extends Const {
-    override def eval(env: Env): Const = this
-
-    override def opVal(env: Env): Const = env(name) match {
-      case None => throw RuntimeError(s"Unbound variable $name ($position)")
-      case Some(v) => v match {
-        case Ref(_, value) => value
-        case _ => v
       }
     }
 
@@ -157,6 +148,7 @@ object Language {
 
   case class Str(value: String) extends Const {
     override def toString = s"\"$value\""
+    override def show = value
   }
 
   case class Expr(env: Env, pattern: SExp, body: SExp) extends Const {
@@ -176,8 +168,12 @@ object Language {
   }
 
   case class Quote(value: SExp) extends Const {
-    override def toString = s"'$value"
+    override def toString = s"`$value"
     override def evalQuote(env: Env): Const = value.evalQuote(env)
+  }
+
+  case object Nothing extends Const {
+    override def toString = ""
   }
 
   case class RuntimeError(why: String, description: Option[Any] = None, level: Int=0) extends scala.Error(why) with Const {

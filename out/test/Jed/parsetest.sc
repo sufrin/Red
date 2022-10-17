@@ -1,7 +1,45 @@
 
-import RedScript._
+import RedScript.Test._
 
-val s1 =
+
+rp(""" "\n" """)
+rp("     able\nbaker\nfoonly\n")
+rp("  able baker \nfoonly")
+rp(">>>---<<<\n --==")
+rp("xyzzy\n --==")
+rp("\n>>>---<<<\n --==")
+rp("\n(list >>>---<<< 1 2 3)\n(list --== 1 2 3))")
+rep("\n>>>---<<<\n --==")
+rep("\n(list >>>---<<< 1 2 3)\n(list --== 1 2 3))")
+
+val u = "\\u"
+rp(
+  s"""
+    "A valid unicode u1234 at the end of a line ${u}1234"
+    "A valid unicode uaa0a within a line ${u}aa0a is best"
+    "A valid unicode u2283 within a line ${u}2283 is best"
+    "A non-unicode (uabc) ${u}abc xyz"
+    "A non-unicode (uaXcd) ${u}aXcd xyz"
+    "A non-unicode (uabc) at the end of the string (too short) ${u}abc"
+    """)
+
+rp(s"""
+                   "A non-unicode (uabc) at the end of a line (too short) ${u}abc
+                     def"
+                """)
+
+rp("""
+                   "A string ending at the end of a line (too short)
+                     def"
+                """)
+
+rp("""
+                   "A string ending at the end of a line with a \\\
+                     def"
+                """)
+
+
+rp {
   """
     |true
     |false
@@ -9,14 +47,16 @@ val s1 =
     |   # comments
     |   # more comments
     |   (' farly) # a line-ending comment
+    | position
     |   -->\Oxymoron<-- # three atoms
     |   234
     |   "foobaz"
     |   456
     |""".stripMargin
+}
 
-val s2 =
-  """
+rp {
+    """
     |23
     |24
     |(if true 23 24)
@@ -28,42 +68,7 @@ val s2 =
     |-->> Oxymoron <<-
     |(((foo ))]
     |""".stripMargin
-
-
-//val p1 = new Parser(Source.fromString(s1))
-//while (p1.hasNextSymb) { print(s"$p1: "); println(p1.nextSymb()) }
-
-
-Test.rp(s1)
-Test.rp(s2)
-Test.rp("able baker foonly\n")
-Test.rp("able baker foonly")
-
-val u = "\\u"
-RedScript.Test.rep(
-  s"""
-    "A valid unicode u1234 at the end of a line ${u}1234"
-    "A valid unicode uaa0a within a line ${u}aa0a is best"
-    "A valid unicode u2283 within a line ${u}2283 is best"
-    "A non-unicode (uabc) ${u}abc xyz"
-    "A non-unicode (uaXcd) ${u}aXcd xyz"
-    "A non-unicode (uabc) at the end of the string (too short) ${u}abc"
-    """)
-
-RedScript.Test.rp(s"""
-                   "A non-unicode (uabc) at the end of a line (too short) ${u}abc
-                     def"
-                """)
-
-RedScript.Test.rp("""
-                   "A string ending at the end of a line (too short)
-                     def"
-                """)
-
-RedScript.Test.rp("""
-                   "A string ending at the end of a line with a \\\
-                     def"
-                """)
+}
 
 
 

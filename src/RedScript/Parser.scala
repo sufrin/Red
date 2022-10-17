@@ -23,9 +23,9 @@ object Lexical {
     override def toString = "]"
   }
 
-  case object True extends Symbol
+  //case object True extends Symbol
 
-  case object False extends Symbol
+  //case object False extends Symbol
 
   case object EOF extends Symbol
 
@@ -47,7 +47,7 @@ class Parser(source: io.Source, val path: String="") {
   private val in = new source.Positioner()
 
   def position: SourcePosition = lastPosition
-  var lastPosition: SourcePosition = SourcePosition(path,-1,-1)
+  var lastPosition: SourcePosition = SourcePosition(path,1,0)
 
   var syntaxEnv: Env = null
 
@@ -61,7 +61,10 @@ class Parser(source: io.Source, val path: String="") {
    }
    override def toString: String = s"Parser(${char}@${(in.cline,in.ccol)})"
 
-   locally { getNext() }
+   locally {
+     getNext()
+     lastPosition = SourcePosition(path, in.cline, in.ccol-1)
+   }
 
    import Lexical._
 
@@ -72,12 +75,17 @@ class Parser(source: io.Source, val path: String="") {
      case '\n'  => false
      case '"'   => false
      case '\u0000' => false
-     case '\''  => false
+     case '`'  => false
      case other => !other.isSpaceChar & !other.isLetterOrDigit
    }
 
    def getNext(): Char = {
-     if (source.hasNext) in.next() else { in.ch = '\u0000'; in.ch }
+     if (source.hasNext)
+     {  val c =  in.next()
+       c
+     }
+     else
+     { in.ch = '\u0000'; in.ch }
    }
 
    def hasNextSymb: Boolean = in.ch != '\u0000'
@@ -92,7 +100,7 @@ class Parser(source: io.Source, val path: String="") {
      symb =
      in.ch match {
        case '\u0000' => EOF
-       case '\'' => getNext(); Quote
+       case '`' => getNext(); Quote
        case ')' => braCount = 0 max (braCount-1); getNext(); Ket
        case '(' => braCount+=1; getNext(); Bra
        case ']' => braCount = 0 max (braCount-1); getNext(); SqKet
@@ -110,10 +118,9 @@ class Parser(source: io.Source, val path: String="") {
          getNext()
          nextSymb()
 
-       // So as to avoid tedious error reports, we have a philistine approach:
-       // Newlines are accepted within strings
-       // Malformed `\u` escapes are not flagged as errors but treated literally
-       // End-of-file within a string is a (fatal) lexical error
+       // So as to avoid tedious error reports, we have a somewhat philistine approach:
+       // * Malformed `\u` escapes are not flagged as errors but treated literally
+       // * End-of-file within a string is a (fatal) lexical error
        case '"' =>
          val buf = new collection.mutable.StringBuilder()
          var going = true
@@ -123,9 +130,9 @@ class Parser(source: io.Source, val path: String="") {
            in.ch match {
              case '\n' => throw Language.SyntaxError(s"Unclosed string: \"${buf.toString}\" $position")
              case '\\' => getNext() match {
-               case '\\' => getNext(); '\\'
-               case 'n' => getNext(); '\n'
-               case 's' => getNext(); ' '
+               case '\\' => '\\'
+               case 'n'  => '\n'
+               case 's'  => ' '
                case '\n' => throw Language.SyntaxError(s"Character escape \\ at the end of a line: \"${buf.toString}\" $position")
 
                case 'u' | 'U' => {
@@ -134,12 +141,12 @@ class Parser(source: io.Source, val path: String="") {
                  while (s.length<6 && isHexit(getNext())) s = s + in.ch
                  if (in.ch=='"' || in.ch=='\n') going = false
                  if (s.length==6) {
-                   // 6 hex digits
+                   // 6 characters; the last 4 are hexits.
                    s.toUnicode match {
                      case Some(ch) => ch
                      case None     => throw new IllegalStateException(s"\"$s\".toUnicode fails")
                  }
-                 } else  {
+                 } else {
                    buf.append(s)
                    in.ch
                  }
@@ -150,7 +157,7 @@ class Parser(source: io.Source, val path: String="") {
              // 'ch'
              case ch => ch
            }
-           buf.append(theChar)
+           if (going) buf.append(theChar)
          }
          //
          if (in.ch=='\u0000') throw Language.SyntaxError(s"Unclosed string: \"${buf.toString}\" $position") else
@@ -207,22 +214,56 @@ class Parser(source: io.Source, val path: String="") {
       case SqBra =>  Language.SExps(after { exprs } (SqKet))
       case Chunk(text, symbolic) => nextSymb()
         syntaxEnv(text) match {
-          case None => (if (symbolic) Language.Symbol else Language.Variable) (text)
-          case Some(constant) => constant
+          case None                =>
+               val v = Language.Variable (text)
+               v.symbolic=symbolic
+               v
+          case Some(syntacticForm) => syntacticForm
         }
       case Num(value) => nextSymb(); Language.Num(value)
       case Str(text) => nextSymb(); Language.Str(text)
-      case True => nextSymb(); Language.Bool(true)
-      case False => nextSymb(); Language.Bool(false)
+      //case True => nextSymb(); Language.Bool(true)
+      //case False => nextSymb(); Language.Bool(false)
       case other => nextSymb(); Language.Variable(other.toString)
     }
     res.position = pos
     res
   }
 
-  /** Read a top-level expression: it can consist of a non-bracketed line */
+  /** Read a top-level expression, viz:
+   *
+   *   A composite, properly bracketed, s-expression starting with an
+   *   opening bracket and terminated by an "unprotected" EOL/EOF. The following
+   *   are equivalent:
+   *   {{{
+   *     (foo baz)
+   *     ( foo
+   *       baz
+   *     )
+   *   }}}
+   *
+   *   a single primitive expression: variable, symbol, string, number
+   *   {{{
+   *     foo
+   *     "foo"
+   *     1234
+   *     -->
+   *   }}}
+   *
+   *   A composite, properly bracketed, s-expression starting with a
+   *   primitive expression and terminated by an "unprotected" EOL/EOF.
+   *   The following are equivalent:
+   *   {{{
+   *     list `("this" "machine" "kills")
+   *     list `("this"
+   *     "machine"
+   *     "kills")
+   *   }}}
+   */
   def read: SExp = {
     while (symb==EOL) nextSymb()
+    val pos = position
+    val res: SExp =
     symb match {
       case Bra   => expr
       case SqBra => expr
@@ -231,6 +272,8 @@ class Parser(source: io.Source, val path: String="") {
         case application => Language.SExps(application)
       }
     }
+    res.position=pos
+    res
   }
   
 
