@@ -86,12 +86,12 @@ class Evaluator {
   // TODO: generalise to multiple declarations
   def evLet(isVar: Boolean)(env: Env, body: SExp): Const = {
     body match {
-      case SExps(List(bv, value, body)) =>
+      case SExps(List(SExps(List(bv, value)), body)) =>
         val v = value.eval(env)
         val params = SExps(List(bv))
         val args   = List(if (isVar) Ref(bv.toString, v) else v)
         body.eval(env.extend(params, args))
-      case other => throw SyntaxError(s"Malformed let declaration: $other")
+      case other => throw SyntaxError(s"Malformed declaration: $other")
     }
   }
 
@@ -219,9 +219,9 @@ class Evaluator {
   for { (name, value) <- primitives } syntaxEnv.define(name, value)
 
 
-  def rep(source: String): Unit = rep(new Parser(io.Source.fromString(source)))
+  def rep(source: String, show: Boolean=true): Unit = readEvalPrint(new Parser(io.Source.fromString(source)), show)
 
-  def rep(parser: Parser, show: Boolean=true): Unit = {
+  def readEvalPrint(parser: Parser, show: Boolean=true): Unit = {
     parser.syntaxEnv=syntaxEnv // for JIT compilation of operators
     try {
       while (parser.nextSymb() != Lexical.EOF) try {

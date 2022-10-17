@@ -1,18 +1,30 @@
-import RedScript.Test.rep
+import RedScript.Test._
 
-rep("(seq 1 2 3)")
-rep("(def Ω(a b c) 43 (+ a b c))")
-rep("(def ΩΩ(a b c) (seq 43 (+ a b c)))")
-rep("Ω\nΩΩ")
-rep("(Ω 1 2 3)\n")
-rep("= + 3\n= (+ 1 2) 3\n")
-rep("= (list 1 2) (list (- 2 1) (+ 1 2))")
-rep("= (list 1 3) (list (- 2 1) (+ 1 2))")
-rep("nil")
-rep("< 2 2\n< 2 3\n<= true false\n<= false true")
+"(seq 1 2 3)".rep
+"(def Ω(a b c) 43 (+ a b c))".rep
+"(def ΩΩ(a b c) (seq 43 (+ a b c)))".rep
+"Ω\nΩΩ".rep
+"(Ω 1 2 3)\n".rep
+"= + 3\n= (+ 1 2) 3\n".rep
+"= (list 1 2) (list (- 2 1) (+ 1 2))".rep
+"= (list 1 3) (list (- 2 1) (+ 1 2))".rep
+"nil".rep
+"< 2 2\n< 2 3\n<= true false\n<= false true".rep
+"""(val (a 1) a)
+  |
+  |""".stripMargin.rep
 
-if (true)  rep {
-  """ def >>(x) (seq)
+"""
+  def until (a b) (if (<= b a) () (cons a (until (+ 1 a) b))))
+  def to (a b) (if (< b a) () (cons a (to (+ 1 a) b))))
+  (until 0 10)
+  (to 0 10)
+  (eval (cons `* (to 1 5)))
+  (eval (cons `+ (to 1 5)))
+""".eval
+
+
+  """def >>(x) (seq)
     | >> "Three runtime errors"
     | zsugar
     |("foo" x)
@@ -80,10 +92,8 @@ if (true)  rep {
     |(def prr(title xs) (print title) (print xs) xs)
     |(prr "foo" ay)
     |
-    |""".stripMargin
-}
+    |""".stripMargin.rep
 
-if (true) rep {
   """
      (+ 1)
      (* 1 2 3)
@@ -102,7 +112,6 @@ if (true) rep {
      - 12 2 3
      -3
      --><--
-  """
-}
+  """.rep
 
 
