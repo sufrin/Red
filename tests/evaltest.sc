@@ -1,18 +1,25 @@
 import RedScript.Test._
 
 "(seq 1 2 3)".rep
+"(+)".rep
+"(null)\n(null 42)\n(cons `a 3)".rep
 "(def Ω(a b c) 43 (+ a b c))".rep
 "(def ΩΩ(a b c) (seq 43 (+ a b c)))".rep
 "Ω\nΩΩ".rep
 "(Ω 1 2 3)\n".rep
+"-->\nisSymb -->\nisAtom -->\nisVar -->\nisVar `abc".rep
 "= + 3\n= (+ 1 2) 3\n".rep
 "= (list 1 2) (list (- 2 1) (+ 1 2))".rep
 "= (list 1 3) (list (- 2 1) (+ 1 2))".rep
 "nil".rep
 "< 2 2\n< 2 3\n<= true false\n<= false true".rep
-"""(val (a 1) a)
-  |
-  |""".stripMargin.rep
+"""(val (a 1) (b 2) (+ a b))
+  (var (a 1) (b 2) (seq (:= a 3)
+                        (:= a (+ a b))
+                        (print "a: " a)))
+  (val a 3 b 4 3)
+  (val a 3 (b 4) b)
+  """.rep
 
 """
   def until (a b) (if (<= b a) () (cons a (until (+ 1 a) b))))

@@ -84,14 +84,26 @@ class Evaluator {
   }
 
   // TODO: generalise to multiple declarations
-  def evLet(isVar: Boolean)(env: Env, body: SExp): Const = {
-    body match {
-      case SExps(List(SExps(List(bv, value)), body)) =>
-        val v = value.eval(env)
-        val params = SExps(List(bv))
-        val args   = List(if (isVar) Ref(bv.toString, v) else v)
-        body.eval(env.extend(params, args))
-      case other => throw SyntaxError(s"Malformed declaration: $other")
+  def evLet(isVar: Boolean)(env: Env, form: SExp): Const = {
+    form match {
+      case SExps(pairs) if pairs.length >= 2 =>
+        try {
+          val bindings = (for {i <- 0 until pairs.length - 1} yield pairs(i)).toList
+          val bvs = bindings.map { case SExps(List(bv, _)) => bv }
+          // val bvs = (for { SExps(List(bv, _)) <- bindings } yield bv).toList
+          val args =
+            if (isVar)
+              for {SExps(List(bv, expr)) <- bindings} yield Ref(bv.toString, expr.eval(env))
+            else
+              for {SExps(List(_, expr)) <- bindings} yield expr.eval(env)
+
+          val body = pairs.last
+            body.eval(env.extend(SExps(bvs), args.toList))
+        } catch {
+          case exn: MatchError => throw SyntaxError(s"Malformed declaration")
+        }
+
+      case other => throw SyntaxError(s"Malformed declaration")
     }
   }
 
@@ -134,34 +146,41 @@ class Evaluator {
   def evFun(env: Env, form: SExp): Const = {
     form match {
       case SExps(pattern :: body) if isPattern(pattern) => Expr(env, pattern, mkSequential(body))
-      case SExps(pattern :: body) if !isPattern(pattern) => throw SyntaxError(s"Malformed parameter(s) in abstraction: ${pattern.position}")
-      case _ => throw SyntaxError(s"malformed function body: $form")
+      case SExps(pattern :: body) if !isPattern(pattern) => throw SyntaxError(s"Malformed parameter(s): ${pattern.position}")
+      case _ => throw SyntaxError(s"Malformed function body: $form")
     }
   }
 
-  // Needs to be lazy
+  /** Lazy conjunction of `test` applied to the value of each argument */
   def forall(name: String)(test: SExp => Boolean): Const =
     FSubr(name, { case (env, SExps(exprs)) => Bool(exprs.forall(expr => test(expr.eval(env))))})
 
+  /** Lazy disjunction of `test` applied to the value of each argument */
   def exists(name: String)(test: SExp => Boolean): Const =
     FSubr(name, { case (env, SExps(exprs)) => Bool(exprs.exists(expr => test(expr.eval(env))))})
 
-  def fun(name: String, op: List[Const]=>Const): Subr  =
-    Subr(name, { case args => try op(args) catch { case exn: MatchError => throw RuntimeError(s"Badly typed or mismatched arguments to $name: ${Seq(args)}")}})
+  /** Application of `op` to the arguments as a whole */
+  def fun(name: String, op: List[Const]=>Const): Subr  =  Subr(name, op)
 
+  /** `op`-(left)reduction of the arguments as a whole */
   def red(name: String, op: (Int,Int)=>Int):Subr = {
     val opn: (Const,Const)=>Const  = { case (Num(a),Num(b)) => Num(op(a,b)) }
-    fun(name, { args: List[Const] => args.reduceLeft(opn(_,_)) })
+    fun(name, { case args: List[Const] if (args.nonEmpty) => args.reduceLeft(opn(_,_)) })
   }
 
-  def red1(name: String, op: (Int,Int)=>Int):Subr = {
-    val opn: (Const,Const)=>Const  = { case (Num(a),Num(b)) => Num(op(a,b)) }
-    fun(name, { case List(Num(arg)) => Num(op(0, arg)); case args: List[Const] => args.reduceLeft(opn(_,_)) })
-  }
+  /**
+   * `op`-(left)reduction of the arguments as a whole; unless there is a single argument, in which case `op(z, arg)`
+   *
+   * This permits unary negation straightforwardly
+   * Thus: (- x) means negated x, and (- x1 x2 ...) means (x1-x2)-x3)-...
+   */
+  def minus: Subr = {
+    val opn: (Const,Const)=>Const  = { case (Num(a),Num(b)) => Num(a-b) }
+    fun("-", { case List(Num(arg))    => Num(- arg)
+               case args: List[Const] => args.reduceLeft(opn(_,_)) }) }
 
-  def rel(name: String, op: (Const, Const) => Boolean):Subr = {
+  def rel(name: String, op: (Const, Const) => Boolean):Subr =
     fun(name, { case List(a: Const, b: Const) => Bool(op(a,b)) })
-  }
 
   /**
    *  The top-level environment binds, as constants, names subject to "just-in-time"
@@ -172,10 +191,11 @@ class Evaluator {
    */
   val primitives: List[(String, Const)] = List(
     "nil"       -> nil,
-    "null"      -> Subr("null",       { case List(Seq(Nil)) => Bool(true); case List(_) => Bool(false); case other => throw RuntimeError(s"malformed null: $other") }),
+    "null"      -> Subr("null",       { case List(Seq(Nil)) => Bool(true); case List(_) => Bool(false); case _ => throw SyntaxError("null requires an argument") }),
     "hd"        -> Subr("hd",         { case List(Seq((h::t))) => h; case List(Seq(Nil)) => throw RuntimeError(s"(hd nil)"); case other => RuntimeError("Non-list: (hd $other)") } ),
     "tl"        -> Subr("tl",         { case List(Seq((h::t))) => Seq(t); case List(Seq(Nil)) => throw RuntimeError(s"(tl nil)"); case other => RuntimeError("Non-list: (tl $other)")  } ),
-    "cons"      -> Subr("cons",       { case List(const, Seq(consts)) => Seq(const :: consts); case other => throw RuntimeError(s"malformed cons: ${SExps(other)}") } ),
+    "cons"      -> Subr("cons",       { case List(const, Seq(consts)) => Seq(const :: consts) } ),
+    "++"        -> Subr("++",         { case List(Seq(k0), Seq(k1)) => Seq(k0++k1); case other => throw RuntimeError(s"malformed ++: ${SExps(other)}") } ),
     "fun"       -> FSubr ("fun",      evFun),
     ":="        -> FSubr (":=",       evSet),
     "variable"  -> FSubr ("variable", evGlobal(true)),
@@ -190,9 +210,9 @@ class Evaluator {
     "println"   -> Subr  ("println",  { case Nil => println(); Nothing; case args => args.foreach{ case k => println(k.show) } ; Console.flush(); Nothing }),
     "?"         -> Subr  ("?",        { case args => args.foreach{ case k => print(k.show); print(" ") }; Console.flush(); args.last}),
     "list"      -> Subr  ("list",     { args => Seq(args)}),
-    "isAtom"    -> forall("isAtom")   { case Variable(_) => true; case _ => false },
-    "isSymb"    -> forall("isSymb")   { case v@Variable(_) => v.symbolic; case _ => false },
-    "isVar"     -> forall("isSymb")   { case v@Variable(_) => !v.symbolic; case _ => false },
+    "isAtom"    -> forall("isAtom")   { case Quote(Variable(_)) => true; case _ => false },
+    "isSymb"    -> forall("isSymb")   { case Quote(v@Variable(_)) => v.symbolic; case _ => false },
+    "isVar"     -> forall("isVar")    { case Quote(v@Variable(_)) => !v.symbolic; case _ => false },
     "isNum"     -> forall("isNum")    { case Num(_)=>true; case _ => false },
     "isList"    -> forall("isList")   { case Seq(_)=>true; case _ => false },
     "isString"  -> forall("isString") { case Str(_)=>true; case _ => false },
@@ -201,12 +221,14 @@ class Evaluator {
     "&&"        -> forall("&&")       { case Bool(b)=> b },
     "||"        -> exists("||")       { case Bool(b)=> b },
     "+"         -> red("+",   (_.+(_))),
-    "-"         -> red1("-",  (_.-(_))),
+    "-"         -> minus, // special treatment of unary negation
     "*"         -> red("*",   (_.*(_))),
     "/"         -> red("/",   (_./(_))),
     "="         -> rel("=",   (_.equals(_))),
     "<"         -> rel("<",   { case (Num(a), Num(b))=>a<b;  case (Str(a), Str(b))=>a<b;  case (Bool(a), Bool(b))=>a<b  }),
     "<="        -> rel("<=",  { case (Num(a), Num(b))=>a<=b; case (Str(a), Str(b))=>a<=b; case (Bool(a), Bool(b))=>a<=b }),
+    ">"         -> rel("<",   { case (Num(a), Num(b))=>a>b;  case (Str(a), Str(b))=>a<b;  case (Bool(a), Bool(b))=>a>b  }),
+    ">="        -> rel("<=",  { case (Num(a), Num(b))=>a>=b; case (Str(a), Str(b))=>a<=b; case (Bool(a), Bool(b))=>a>=b }),
     "true"      -> Bool(true),
     "false"     -> Bool(false),
   )
@@ -229,6 +251,7 @@ class Evaluator {
         if (show) print(s"${e.position}: $e => ")
         val r = try run(e).toString catch {
           case exn: RuntimeError => exn
+          case exn: SyntaxError => exn
         }
         println(s"$r")
       } catch {

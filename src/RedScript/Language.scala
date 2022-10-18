@@ -93,7 +93,7 @@ object Language {
         try value catch  {
           case exn: RuntimeError => throw RuntimeError(s"${exn.getMessage} in $this $position")
           case exn: SyntaxError  => throw SyntaxError(s"${exn.getMessage} in $this $position")
-          case exn: MatchError   => throw SyntaxError(s"Size or type wrong in $this $position")
+          case exn: MatchError   => throw SyntaxError(s"Number or type(s) of argument(s) wrong while evaluating $this $position")
         }
     }
 
