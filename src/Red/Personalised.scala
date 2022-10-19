@@ -107,7 +107,7 @@ object Personalised extends Logging.Loggable {
 
     /** Read the top-level bindings file if it has been updated since it was last read */
     def importBindings(): Unit = {
-      val path = sys.env.getOrElse("REDBINDINGS", "~/.red/red.bindings")
+      val path = sys.env.getOrElse("REDBINDINGS", "~/.red/bindings.redscript")
       val top = Paths.get("")
       try importBindings(profile, 0, top, toPath(top, path)) catch {
         case AbortBindings(why) => profileWarning(why)
@@ -121,6 +121,7 @@ object Personalised extends Logging.Loggable {
       clearBindings()
       importBindings()
     }
+
     /**
      *  Read a single preferences file:
      *  @param profile the profile being matched
@@ -135,13 +136,26 @@ object Personalised extends Logging.Loggable {
         if (logging) info(s"importing bindings from: $file")
         val source = new BufferedSource(new FileInputStream(file))
         val thisContext = context.resolve(path)
-        var lineNumber = 1
-        for { line <- source.getLines() } {
-          processLine(profile, depth, thisContext, lineNumber, stripComments(line))
-          lineNumber += 1
+
+        import RedScript._
+        val evaluator = new Evaluator {
+          import Language._
+          val bindingPrimitives: List[(String, Const)] = List(
+            "text" -> FSubr("text", { (env, args) => println(s"text $args"); Nothing }),
+            "feature" -> FSubr("text", { (env, args) => println(s"feature $args"); Nothing })
+          )
+          locally {
+            for { (name, value) <- bindingPrimitives } syntaxEnv.define(name, value)
+          }
         }
+
+        def error(message: String): Unit = Bindings.feedback.notify(message)
+
+        evaluator.readEvalPrint(new Parser(source, thisContext.toString), show = false, print=Console.print(_), notify=error(_))
+
         source.close()
       }
+
 
       if (file.exists()) {
          if (depth==0) {

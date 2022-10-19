@@ -243,7 +243,10 @@ class Evaluator {
 
   def rep(source: String, show: Boolean=true): Unit = readEvalPrint(new Parser(io.Source.fromString(source)), show)
 
-  def readEvalPrint(parser: Parser, show: Boolean=true): Unit = {
+  def readEvalPrint(parser: Parser,
+                    show:  Boolean =  true,
+                    print:  String => Unit = Console.print(_),
+                    notify: String => Unit = Console.println(_)): Unit = {
     parser.syntaxEnv=syntaxEnv // for JIT compilation of operators
     try {
       while (parser.nextSymb() != Lexical.EOF) try {
@@ -253,14 +256,14 @@ class Evaluator {
           case exn: RuntimeError => exn
           case exn: SyntaxError => exn
         }
-        println(s"$r")
+        print(s"$r\n")
       } catch {
-        case exn: SyntaxError => println(exn)
+        case exn: SyntaxError => notify(exn.toString)
       }
     }
     catch {
-      case exn: SyntaxError => println(exn)
-      case exn: Exception => println(exn)
+      case exn: SyntaxError => notify(exn.toString)
+      case exn: Exception => notify(exn.toString)
     }
   }
 
