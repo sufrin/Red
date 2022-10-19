@@ -1,15 +1,95 @@
+%xelatex
+% the above line signals redpdf to use xelatex not pdflatex
+
+% Print a warning if a character is missing.
+\tracinglostchars=2 
+
 \documentclass[11pt,a4paper]{article}
+\usepackage{unicode-math}
+\usepackage{verbatimstyle}
+\verbatimsize{\small}
+
+\defaultfontfeatures{Scale=MatchLowercase}
+\setmathfont{STIX Two Math}    % For symbols
+\setmainfont{STIX Two Text}    % For text
+\setmonofont{DejaVu Sans Mono} % for verbatim
+
+\begin{comment}
+% Introduce a new family: not really neeeded
+\newfontfamily\symbolfamily{STIX Two Math}[
+  BoldFont = *,
+  BoldFeatures = {FakeBold = 1.05},
+  SlantedFont = *,
+  SlantedFeatures = {FakeSlant = 0.25},
+  BoldSlantedFont = *,
+  BoldSlantedFeatures = {FakeBold = 1.05, FakeSlant = 0.25}
+]
+% Switch to the symbol family (in text).
+\def\§#1{\symbolfamily{#1}}
+\end{comment}
+
+\def\§#1{${#1}$}
+
 %%%%%%%%%%%%%%%%%%%%%
 \usepackage[]{}
 %%%%%%%%%%%%%%%%%%%%%
 \author{Bernard Sufrin}
-\title{Explanation of the Ungodly}
-\date{Today}
+\title{Eξπλanation of the Unγoδly\footnote{Being a min-fuss example of the use of
+XeLaTeX
+with mathematical Unicode symbols}}
+\date{\today}
+\parindent=0pt
+\parskip=\medskipamount
 %%%%%%%%%%%%%%%%%%%%%
 \begin{document}
 \maketitle
 
+The two-point list:
+
+\begin{itemize} \item
+“ Double inverted commas with a math symbol ($⇒$) placed between dollars,
+thus: \$$⇒$\$, and with a symbolic
+interlude \§{∀⇛→∃←} — the argument of \backslash§{...} command.
+
+\item
+and 
+$$
+        foo ↦ \mathrm{bar} ∧
+        foo ⇒ \mathbf{bar} ∧
+        {\frac{\mathbf{→}}{→\mathbf{←}}}
+$$
+\end{itemize}
+was set by
+\begin{verbatim}
+\begin{itemize} \item
+“ Double inverted commas with a math symbol ($⇒$) placed between dollars,
+thus: \$$⇒$\$, and with a symbolic
+interlude \§{∀⇛→∃←} — the argument of \backslash§{...} command.
+
+\item
+and 
+$$
+        foo ↦ \mathrm{bar} ∧
+        foo ⇒ \mathbf{bar} ∧
+        {\frac{\mathbf{→}}{→\mathbf{←}}}
+$$
+\end{itemize}
+\end{verbatim}
+What do other symbols, including «brackets» and  $ ⌈⇑ ↠ look ⇓  ↯ ⌉$ like?
+
+Pretty good $∵$ I'm encouraged!
+
+And, as expected, greeks are ok:  αβγδΑΒΓΔ?
+
+Some symbols, for example, $⦃⦄$ and \§{⟦ ⟦ are hard ⟧}
+to edit with, not being really fixed-width in the (current, default) editor
+font family. Others aren't part of the Maths we are using in this
+document: \verb/\setmathfont{STIX Two Math}/.
+
+
+Why didn't I start using XeLaTex a very long time ago?
+
 \end{document}
-\
+
 
 

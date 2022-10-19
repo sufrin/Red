@@ -1,7 +1,8 @@
 #redpdf  latexinputfile <texline#> editingfile
 # 
 # OS/X:
-#   pdflatex the latex input file
+#   pdflatex or xelatex the latex input file
+#      (if the file starts %xelatex then it's the latter)
 #   if successful, open the pdf with Skim at the line 
 #   corresponding to the numbered line <texline#>
 #
@@ -16,18 +17,29 @@ editing="${3-$inputfile}"
 cwd=$(dirname "$inputfile")
 export TEXINPUTS=.:$HOME/Tex//:
 export TEXFONTS=$TEXINPUTS
+
+if [ $(head -1 $inputfile) = "%xelatex" ]
+then
+   processor=xelatex
+else
+   processor=pdflatex
+fi
+
+
 echo "++++++++++++ REDPPDF ++++++++++"
 echo "EDITING:   " $editing
 echo "INPUT:     " $inputfile
 echo "PDF:       " $pdffile 
 echo "CWD:       " $cwd
 echo "TEXINPUTS: " $TEXINPUTS
+echo "PROCESSOR: " $processor
 echo "+++++++++++++++++++++++++++++++"
+
 
 if [ $(uname) = "Linux" ]
 then
  (cd $cwd ;\
-  /usr/bin/pdflatex -shell-escape -file-line-error -recorder -synctex=1 -interaction=errorstopmode "$inputfile") 
+  /usr/bin/$processor -shell-escape -file-line-error -recorder -synctex=1 -interaction=errorstopmode "$inputfile") 
   #echo linedisplay $line $pdffile $editing
   #linedisplay $line $pdffile $editing
   evince $pdffile
@@ -36,7 +48,7 @@ then
 else
 # Assuming Darwin aka OS/X
  (cd $cwd ;\
- /Library/TeX/texbin/pdflatex -shell-escape -file-line-error -recorder -synctex=1 -interaction=errorstopmode "$inputfile")    
+ /Library/TeX/texbin/$processor -shell-escape -file-line-error -recorder -synctex=1 -interaction=errorstopmode "$inputfile")    
     # Displayline invokes Skim 
     echo skimdisplayline $line $pdffile $editing
     skimdisplayline $line "$pdffile" "$editing"
