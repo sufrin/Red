@@ -1,4 +1,4 @@
-# Red
+# Red (Version 1.0)
 
 ## Introduction
 
@@ -34,10 +34,20 @@ straightforward manipulation of nested blocks delimited by
 Its support for **`xml`** includes the
 straightforward manipulation of nested blocks delimited by 
 `<id ` *parameters*`>` and `</id>`, as well as 
-`<id ` *parameters*`/>` constructs.
+`<id ` *parameters*`/>` constructs. 
 
+In both cases, when `Red/Select {...}` is enabled, clicking at the left of
+the opening of a block, or at the right of the closing of a block
+will cause that entire block (including nested sub-blocks) to be selected.
 
-
+In addition, clicking at the right of any closing bracket will cause
+all text between that bracket and the corresponding opening bracket to
+be selected. Dually, clicking at the left of any opening  bracket will cause
+all text between that bracket and the corresponding closing bracket to
+be selected. The built-in corresponding pairs are: "`{}`", "`()`",
+"`[]`", as well as most of the unicode bracketing pairs. Additional pairs
+can be added straightforwardly.
+ 
 ### `Tex`, `Pandoc`, and `Skim`
 
 The **`Tex`** button on the menu bar generates `pdf` from the
@@ -169,7 +179,15 @@ invoked (usually by keystroke).
 
 ## Editing Commands
 The editing actions described below are a small selection of the commands
-provided by the editor. 
+provided by the editor.
+
+All bindings of keys to actions are built-in and fixed. Some
+actionsbindings are available on more than one key. As the language
+of settings/bindings develops fully a method of changing the mapping
+of key-bindings to actions will appear. To preserve my
+sanity, I do not distinguish between the control-shift and
+(OS/X) command-shift keys: they appears as `C-` below.
+
 
 ### Undo and Redo
 
@@ -181,8 +199,17 @@ pushes it onto the *undone stack*.
 *Redo* (`C-Z`) re-does the topmost effect on the *undone stack*,
 -- pops it from that stack.
 
-When editing commands other than *Undo* or *Redo* happen, the entire
+*Redo* can also be invoked from the redo button at the right end of the
+menu bar: it is labelled *n*`>`, where *n* is the depth of the *undone stack*.
+*Undo* can also be invoked from the redo button to the left  of the
+redo button: it is labelled *n*`<`, where *n* is the depth of the
+*done stack*. Consecutive character insertions on the same line
+(between other commands) "bunched", so that their effect can be undone
+all at once. Consecutive cuts or other deletions are also bunched.
+
+When editing actions other than *Undo* or *Redo* happen, the entire
 *redo stack* is emptied.
+
 
 ### Cut and Paste
 
@@ -200,7 +227,7 @@ the cut-buffer (except that if the selection is null, then the
 cut-buffer doesn't change). The replaced text is added to the cut ring
 as if it had been deleted.
 
-*SwapCursorAndMark* (`F12`) does what its name suggests.
+*SwapCursorAndMark* (`F5`) does what its name suggests.
 
 ### Find and Replace in Principle  
 
@@ -230,28 +257,28 @@ Otherwise it is interpreted literally.
 
 If the current selection is an instance of **(F)** then:
 
-  * *ReplaceDown* `(C-r)', `Numpad-.` saves the current selection in the cut-buffer
+  * *ReplaceDown* `(C-r)`, `Numpad-.` saves the current selection in the cut-buffer
   and replaces it with the **(R)** selecting the replacement text
   and leaving the cursor to the right of the mark.
 
-  * *ReplaceUp* `(C-R), `Shift-Numpad-.`` saves the current selection
+  * *ReplaceUp* `(C-R)`, `Shift-Numpad-.` saves the current selection
   in the cut-buffer and replaces it with the **(R)** selecting the
   replacement text and leaving the cursor to the left of the mark.
 
-  * *FindSelDown* (C-A-f) makes the current selection the *Find*
+  * *FindSelDown* `(C-A-f)` makes the current selection the *Find*
   pattern, turns off regular expression interpretation, and then acts as
   *FindDown*. 
 
-  * *FindSelUp* (C-A-F) makes the current selection the *Find* pattern, 
+  * *FindSelUp* (`C-A-F`) makes the current selection the *Find* pattern, 
   then acts as *FindUp*.
   
-  * *ClearFind* (C-Numpad-0, `Button-(F)`) clears the find minitext, and 
+  * *ClearFind* (`C-Numpad-0`, `Button-(F)`) clears the find minitext, and 
   moves the editing cursor to that text. 
   
-  * *ClearRepl* (C-Numpad-., `Button(R)`) clears the replace minitext, and 
+  * *ClearRepl* (`C-Numpad-.`, `Button(R)`) clears the replace minitext, and 
   moves the editing cursor to that text. 
   
-  * *ClearArg* (`Button(A)`) clears the argument  minitext, and 
+  * *ClearArg* (`C-Numpad-Enter`, `Button(A)`) clears the argument  minitext, and 
   moves the editing cursor to that text. 
 
   * *Indent selection* (`Tab`) (when there is a nonempty selection)
@@ -262,15 +289,21 @@ If the current selection is an instance of **(F)** then:
   * *Undent selection* (`Shift-Tab`) (when there is a nonempty
   selection) reduces the indentation of the selected lines by 4
   spaces where possible. If invoked with the **alt**-shift pressed,
-  then the selected lines are "undented" by the (literal)       **(A)** text 
+  then the selected lines are "undented" by the (literal)
+  **(A)** text 
   where possible.
   
   
   
 ### Find and Replace in Practice
 
-One way of replacing the next instance of `"FOO"` with `"BAR"` is to
-type the keystrokes bound to
+Many editors provide a multiplicity of modes for finding and
+replacing, and some include the possibility of "approving" replacements.
+In what follows we explain our simpler approach.
+
+A way of replacing the next instance of `"FOO"` with `"BAR"` without
+using the mouse to move between texts is to type the keystrokes
+bound to
 
    *ClearFind* `FOO` *FindSelDown* *ClearRepl* `BAR` *ReplaceDown*
 
@@ -279,18 +312,22 @@ Replacing the following instance just requires
    *FindSelDown* *ReplaceDown*
 
 since the *Find* and *Repl* minitexts are already set to the right
-pattern and replacement.
+pattern and replacement. 
 
   * *ReplaceAll* (on the edit menu) replaces (without any interaction)
     all instances of the *Find* minitext in the current selection
     with the *Repl* minitext, and selects the resulting transformed
-    text.  The original selection is preserved in the cut buffer
+    text.
+
+    The original selection is preserved in the cut buffer
     (and therefore in the cut ring), so this action can be undone
-    immediately with *SwapSel*. 
+    immediately with *SwapSel* if you are immediately overcome with
+    remorse afterwards, and by browsing in the cut ring if
+    the remorse takes longer to arrive.
     
     If you want to "approve" each replacement interactively, then just use
     *FindSelDown* *ReplaceDown* in sequence repeatedly, undoing any
-    replacement you don't approve of with *SwapSel*.
+    replacement you don't approve of with *SwapSel* (or *Undo*).
 
 ### Treatment of the Selection
 
@@ -304,12 +341,50 @@ accustomed to it in my homegrown editors for more than thirty years.)
     
 2.  **Typing-removes-mark:** Typing new characters removes the mark, and
     thus deselects the *selection*, but does not delete the selected
-    material. In this mode Dred does not distinguish between tentative
+    material. In this mode Red does not distinguish between tentative
     and definite selections.
 
-The choice between treatments is made using the
-**File/Preferences/Typing Removes Selection** checkbox. As with all
-other preferences its value is preserved between Dred invocations.
+The choice between treatments is made using the **Red/Typeover**
+checkbox. As with most other preferences its value is preserved
+between Red invocations.
+
+### Abbreviations
+
+Red can be configured with *abbreviations* for texts that
+contain unicode symbols that may not appear directly on the keyboard.
+
+One form of abbreviation is built-in, namely `\u`*xxxx*, where each of the four
+`x` is a hex digit. It abbreviates the Unicode glyph with that
+code. 
+      
+
+The key:
+
+*Abbrev* (`ESC`) finds the longest abbreviation that appears just before the
+cursor, and replaces it with the text it abbreviates.
+
+*Unabbrev* (`Alt-Shift-ESC`) replaces the character immediately to the left of the
+cursor with its unicode encoding, in the form `\u`*xxxx*.
+
+#### Examples:
+
+Here, for example, are extracts from the (large) bindings file `symbols.bindings`
+delivered with Red. 
+
+    text    abbrev lnot     "\u00AC" 
+    text    abbrev land     "\u2227" 
+    text    abbrev "/\\"    "\u2227" 
+    text    abbrev lor      "\u2228" 
+    text    abbrev "\\/"    "\u2228"
+    text    abbrev cap      "\u2229" 
+    text    abbrev cup      "\u222a"  
+    text    abbrev euro     "€"  
+    text    abbrev pound    "\u20a4"
+    text    abbrev lb       pound
+    text    abbrev lbs      "pounds and pounds"
+
+Further details will (eventually) be found in the *Binding
+Abbreviations* section below. 
 
 
 ##### Key Assignment Policy:
@@ -323,15 +398,16 @@ shifted *ReplaceDown* key.
 
 ### History of `AppleRed`
 
-**Red** started life as a program to use as an exemplar for teaching first-year Oxford
-undergraduates a short course in object-orient programming using
-**`scala`**. It was to be the basis of a number of practical exercises.
+**Red** started life as a program to use as an exemplar for teaching
+first-year Oxford undergraduates a short course in object-orient
+programming using **`scala`**. It was to be the basis of a number
+of practical exercises.
 
-Its editing model was identical to that used in the **dred** editor I had built
-from scratch in **`java`** in the early 2000's and had been using ever since. 
-**Dred** had  developed from a sequence of editors, all using the same
-*modeless* editing model, derived from an abstract formal specification
-I had published in the late 1970's.
+Its editing model was identical to that used in the **dred** editor
+I had built from scratch in **`java`** in the early 2000's and had
+been using ever since.  **Dred** had  developed from a sequence of
+editors, all using the same *modeless* editing model derived from
+an abstract formal specification I had published in the late 1970's.
 
 It wasn't long before I decided that it would be a good idea to
 make **Red** more than a toy; and soon after I started its development

@@ -397,8 +397,12 @@ class EditSession(val document: DocumentInterface, private var _path: String)
     val others = List (
       "«"    -> "»",
       "⁅"    -> "⁆",
-      "/\\*" -> "\\*/",
+       "/\\*" -> "\\*/",
       // Matched pairs (they happen to be adjacently unicoded)
+      "\u2018"    -> "\u2019",
+      "\u201c"    -> "\u201d",
+      "\u2039"    -> "\u203a",
+      "\u201c"    -> "\u201d",
       "⟦" -> "⟧", // '\u27e7'
       "⟨" -> "⟩", // '\u27e9'
       "⟪" -> "⟫", // '\u27eb'
