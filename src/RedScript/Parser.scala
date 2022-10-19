@@ -162,7 +162,7 @@ class Parser(source: io.Source, val path: String="") {
          //
          if (in.ch=='\u0000') throw Language.SyntaxError(s"Unclosed string: \"${buf.toString}\" $position") else
          getNext()
-         Str(buf.toString())
+         Str(buf.toString().intern())
 
        case other if other.isDigit =>
          var n: Int = other-'0'
@@ -172,13 +172,13 @@ class Parser(source: io.Source, val path: String="") {
        case other if (other.isLetterOrDigit) =>
          val buf = new collection.mutable.StringBuilder()
          while (in.ch.isLetterOrDigit || in.ch=='\'') { buf.append(in.ch); getNext() }
-         Chunk(buf.toString, symbolic = false)
+         Chunk(buf.toString().intern(), symbolic = false)
 
        case other if inSymbol =>
          val buf = new collection.mutable.StringBuilder()
          buf.append(in.ch)
          while ({getNext(); inSymbol}) buf.append(in.ch)
-         Chunk(buf.toString(), symbolic = true)
+         Chunk(buf.toString().intern(), symbolic = true)
      }
      symb
    }

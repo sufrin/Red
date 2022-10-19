@@ -1,5 +1,8 @@
 package RedScript
 
+/**
+ *
+ */
 class SourcePosition(val pos: (String,Int,Int)) extends AnyVal {
   def line: Int = pos._2
   def col:  Int = pos._3
