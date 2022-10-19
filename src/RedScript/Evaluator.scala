@@ -245,25 +245,26 @@ class Evaluator {
 
   def readEvalPrint(parser: Parser,
                     show:  Boolean =  true,
-                    print:  String => Unit = Console.print(_),
-                    notify: String => Unit = Console.println(_)): Unit = {
+                    showNormal:  String => Unit = Console.print(_),
+                    showError:      String => Unit = Console.println(_)): Unit = {
     parser.syntaxEnv=syntaxEnv // for JIT compilation of operators
+    println(s"Reading ${parser.position}")
     try {
       while (parser.nextSymb() != Lexical.EOF) try {
         val e = parser.read
-        if (show) print(s"${e.position}: $e => ")
+        if (show) showNormal(s"${e.position}: $e => ")
         val r = try run(e).toString catch {
           case exn: RuntimeError => exn
           case exn: SyntaxError => exn
         }
-        print(s"$r\n")
+        showNormal(s"$r\n")
       } catch {
-        case exn: SyntaxError => notify(exn.toString)
+        case exn: SyntaxError => showError(exn.toString)
       }
     }
     catch {
-      case exn: SyntaxError => notify(exn.toString)
-      case exn: Exception => notify(exn.toString)
+      case exn: SyntaxError => showError(exn.toString)
+      case exn: Exception => showError(exn.toString)
     }
   }
 

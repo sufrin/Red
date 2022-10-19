@@ -122,13 +122,36 @@ object Personalised extends Logging.Loggable {
       importBindings()
     }
 
+    def importBindings(profile: String, depth: Int, context: Path, path: Path): Unit = {
+
+    import RedScript._
+    val evaluator = new Evaluator {
+      def doImport(path: String): Unit = {
+        val exPath = toPath(context, path)
+        if (exPath.toFile.exists() && exPath.toFile.canRead())
+          importBindings(profile, depth+1, context, exPath)
+        else
+          profileWarning(s"Attempting to include:\n$exPath\nNo such bindings file can be read.")
+      }
+      import Language._
+      val bindingPrimitives: List[(String, Const)] = List(
+        "text" -> FSubr("text", { (env, args) => println(s"text $args"); Nothing }),
+        "feature" -> FSubr("text", { (env, args) => println(s"feature $args"); Nothing }),
+        "import" -> Subr("import", { case List(Str(path)) => doImport(path); Nothing })
+      )
+      locally {
+        for { (name, value) <- bindingPrimitives } syntaxEnv.define(name, value)
+      }
+    }
+
+
+
     /**
      *  Read a single preferences file:
      *  @param profile the profile being matched
      *  @param depth the depth of include-nesting (with an ''ad-hoc'' limit to detect cyclic includes)
      *  @param context the path to the file being read
      */
-    def importBindings(profile: String, depth: Int, context: Path, path: Path): Unit = {
       val file = path.toFile
       val timeStamp = if (file.exists) file.lastModified() else 0
       def readFile(): Unit = {
@@ -136,22 +159,10 @@ object Personalised extends Logging.Loggable {
         if (logging) info(s"importing bindings from: $file")
         val source = new BufferedSource(new FileInputStream(file))
         val thisContext = context.resolve(path)
-
-        import RedScript._
-        val evaluator = new Evaluator {
-          import Language._
-          val bindingPrimitives: List[(String, Const)] = List(
-            "text" -> FSubr("text", { (env, args) => println(s"text $args"); Nothing }),
-            "feature" -> FSubr("text", { (env, args) => println(s"feature $args"); Nothing })
-          )
-          locally {
-            for { (name, value) <- bindingPrimitives } syntaxEnv.define(name, value)
-          }
+        def error(message: String): Unit = {
+          Bindings.feedback.notify(s"==> $message")
         }
-
-        def error(message: String): Unit = Bindings.feedback.notify(message)
-
-        evaluator.readEvalPrint(new Parser(source, thisContext.toString), show = false, print=Console.print(_), notify=error(_))
+        evaluator.readEvalPrint(new Parser(source, path.toString), show = true)
 
         source.close()
       }
