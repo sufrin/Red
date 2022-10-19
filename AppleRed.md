@@ -360,16 +360,17 @@ code.
 
 The key:
 
-*Abbrev* (`ESC`) finds the longest abbreviation that appears just before the
-cursor, and replaces it with the text it abbreviates.
+*Abbrev* (`ESC`) finds the longest abbreviation that appears just
+before the cursor, and replaces it with the text it abbreviates.
 
-*Unabbrev* (`Alt-Shift-ESC`) replaces the character immediately to the left of the
-cursor with its unicode encoding, in the form `\u`*xxxx*.
+*Unabbrev* (`Alt-Shift-ESC`) replaces the character immediately to
+the left of the cursor with its unicode encoding, in the form
+`\u`*xxxx*.
 
-#### Examples:
+#### Examples of abbreviations:
 
-Here, for example, are extracts from the (large) bindings file `symbols.bindings`
-delivered with Red. 
+Here, for example, are extracts from the (large) bindings file
+`symbols.bindings` delivered with Red.
 
     text    abbrev lnot     "\u00AC" 
     text    abbrev land     "\u2227" 
@@ -383,19 +384,22 @@ delivered with Red.
     text    abbrev lb       pound
     text    abbrev lbs      "pounds and pounds"
 
-Further details will (eventually) be found in the *Binding
-Abbreviations* section below. 
+Further details of binding configurations will (eventually) be found
+in an appendix.
 
 
 ##### Key Assignment Policy:
 
 It makes sense for *FindUp* to be bound to the shifted key that
 *FindDown* is bound to; and for *ReplaceUp* to be bound to the
-shifted *ReplaceDown* key.
+shifted *ReplaceDown* key, and that is what we have done.
+
 
 
 ## APPENDIX
 
+### Bindings and Abbreviations
+ 
 ### History of `AppleRed`
 
 **Red** started life as a program to use as an exemplar for teaching
