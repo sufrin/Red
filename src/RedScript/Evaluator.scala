@@ -1,5 +1,8 @@
 package RedScript
 
+import java.io.FileInputStream
+import java.nio.file.Path
+import scala.io.BufferedSource
 import scala.language.postfixOps
 
 /**
@@ -108,6 +111,7 @@ class Evaluator {
   }
 
   @inline def isAtom(pattern: SExp): Boolean = pattern match { case Variable(_) => true ; case _ => false }
+  @inline def isPattern(pattern: List[SExp]): Boolean = pattern.forall(isPattern(_))
   @inline def isPattern(pattern: SExp): Boolean = pattern match {
     case SExps(params) if params.forall(isAtom) => true
     case _             if isAtom(pattern)       => true
@@ -116,8 +120,25 @@ class Evaluator {
 
   def evDef(env: Env, form: SExp): Const = {
     form match {
-      case SExps(Variable(name) :: pattern :: body) if isPattern(pattern) => global.define(name, Expr(global, pattern, mkSequential(body))); Nothing
-      case _ => throw SyntaxError(s"Malformed definition")
+      //   def (f a b c) body
+      case SExps(SExps(Variable(name) :: pattern) :: body) if isPattern(pattern) =>
+           global.define(name, Expr(env, SExps(pattern) , mkSequential(body)))
+           Nothing
+      // def f all body
+      case SExps(Variable(name) :: (allArgs@Variable(_)) :: body) =>
+           global.define(name, Expr(global, allArgs, mkSequential(body)))
+           Nothing
+      case _ => throw SyntaxError(s"Malformed definition: should be (def (f (args) ...)) or (def f arg ...)")
+    }
+  }
+
+  def evFun(env: Env, form: SExp): Const = {
+    form match {
+      // expr (a b c) body
+      case SExps(pattern :: body) if isPattern(pattern) => Expr(env, pattern, mkSequential(body))
+      // expr all bosy
+      case SExps(pattern :: body) if !isPattern(pattern) => throw SyntaxError(s"Malformed parameter(s): ${pattern.position}")
+      case _ => throw SyntaxError(s"Malformed function expression: $form")
     }
   }
 
@@ -143,13 +164,7 @@ class Evaluator {
     case exprs => SExps(syntaxEnv("seq").get :: exprs)
   }
 
-  def evFun(env: Env, form: SExp): Const = {
-    form match {
-      case SExps(pattern :: body) if isPattern(pattern) => Expr(env, pattern, mkSequential(body))
-      case SExps(pattern :: body) if !isPattern(pattern) => throw SyntaxError(s"Malformed parameter(s): ${pattern.position}")
-      case _ => throw SyntaxError(s"Malformed function body: $form")
-    }
-  }
+
 
   /** Lazy conjunction of `test` applied to the value of each argument */
   def forall(name: String)(test: SExp => Boolean): Const =
@@ -182,6 +197,18 @@ class Evaluator {
   def rel(name: String, op: (Const, Const) => Boolean):Subr =
     fun(name, { case List(a: Const, b: Const) => Bool(op(a,b)) })
 
+  def evalENV(args: List[Const]): Const = args match {
+    case List(Str(variable), Str(default)) => Str(sys.env.getOrElse(variable, default))
+    case List(Str(variable))               => Str(sys.env.getOrElse(variable, ""))
+  }
+
+  def evalPROP(args: List[Const]): Const = args match {
+    case List(Str(variable), Str(default)) => Str(sys.props.getOrElse(variable, default))
+    case List(Str(variable))               => Str(sys.props.getOrElse(variable, ""))
+  }
+
+  var position: SourcePosition = SourcePosition("",0,0)
+
   /**
    *  The top-level environment binds, as constants, names subject to "just-in-time"
    *  translation in the parser. When any of the names defined here appear
@@ -206,9 +233,9 @@ class Evaluator {
     "if"        -> FSubr ("if",       evIf),
     "def"       -> FSubr ("def",      evDef),
     "seq"       -> Subr  ("seq",      { case Nil => Nothing; case args => args.last }),
-    "print"     -> Subr  ("print",    { case args => args.foreach{ case k => print(k.show) } ; Console.flush(); Nothing }),
-    "println"   -> Subr  ("println",  { case Nil => println(); Nothing; case args => args.foreach{ case k => println(k.show) } ; Console.flush(); Nothing }),
-    "?"         -> Subr  ("?",        { case args => args.foreach{ case k => print(k.show); print(" ") }; Console.flush(); args.last}),
+    "print"     -> Subr  ("print",    { case args => args.foreach{ case k => normalFeedback(k.show) } ;  Nothing }),
+    "println"   -> Subr  ("println",  { case Nil => println(); Nothing; case args => args.foreach{ case k => normalFeedbackLn(k.show) } ; Nothing }),
+    "?"         -> Subr  ("?",        { case args => args.foreach{ case k => normalFeedback(k.show); normalFeedback(" ") }; args.last }),
     "list"      -> Subr  ("list",     { args => Seq(args)}),
     "isAtom"    -> forall("isAtom")   { case Quote(Variable(_)) => true; case _ => false },
     "isSymb"    -> forall("isSymb")   { case Quote(v@Variable(_)) => v.symbolic; case _ => false },
@@ -231,40 +258,58 @@ class Evaluator {
     ">="        -> rel("<=",  { case (Num(a), Num(b))=>a>=b; case (Str(a), Str(b))=>a<=b; case (Bool(a), Bool(b))=>a>=b }),
     "true"      -> Bool(true),
     "false"     -> Bool(false),
+    "ENV"       -> Subr("ENV",   evalENV),
+    "PROP"      -> Subr("PROP",  evalPROP),
+    "SOURCE"    -> Subr("SOURCE",  { case Nil => Str(position.toString) })
   )
 
-  def run(sexp: SExp): Const =
+  def run(sexp: SExp): Const = {
+    position = sexp.position
     try sexp.eval(global) catch {
-      case exn: scala.Error => Str(s"RuntimeError: ${exn.getMessage}")
+      case exn: scala.Error => Str(s"Runtime Error: ${exn.getMessage}")
     }
+  }
 
   for { (name, value) <- primitives } syntaxEnv.define(name, value)
 
+  def normalFeedback(s: String): Unit   = { Console.print(s); Console.flush() }
+  def normalFeedbackLn(s: String): Unit = { Console.println(s); Console.flush() }
+  def errorFeedback(s: String): Unit    = { Console.println(s); Console.flush() }
 
-  def rep(source: String, show: Boolean=true): Unit = readEvalPrint(new Parser(io.Source.fromString(source)), show)
+  def readEvalPrint(path: Path, show:  Boolean =  true): Unit = {
+    val file   = path.toFile
+    val source = new BufferedSource(new FileInputStream(file))
+    val parser = new Parser(source, path.toString)
+    readEvalPrint(parser, show)
+    source.close()
+  }
 
-  def readEvalPrint(parser: Parser,
-                    show:  Boolean =  true,
-                    showNormal:  String => Unit = Console.print(_),
-                    showError:      String => Unit = Console.println(_)): Unit = {
+  def readEvalPrint(sourceString: String, show:  Boolean): Unit =
+      readEvalPrint(new Parser(io.Source.fromString(sourceString), "<String>"), show)
+
+  def readEvalPrint(parser: Parser, show:  Boolean): Unit = {
     parser.syntaxEnv=syntaxEnv // for JIT compilation of operators
-    println(s"Reading ${parser.position}")
     try {
       while (parser.nextSymb() != Lexical.EOF) try {
         val e = parser.read
-        if (show) showNormal(s"${e.position}: $e => ")
-        val r = try run(e).toString catch {
+        if (show) normalFeedback(s"${e.position}: $e => ")
+        val result = try run(e) catch {
           case exn: RuntimeError => exn
           case exn: SyntaxError => exn
         }
-        showNormal(s"$r\n")
+        result match {
+          case Nothing          =>
+          case _ if result==nil =>
+          case _                => if (show) normalFeedback(s"$result\n")
+        }
+
       } catch {
-        case exn: SyntaxError => showError(exn.toString)
+        case exn: SyntaxError => errorFeedback(exn.toString)
       }
     }
     catch {
-      case exn: SyntaxError => showError(exn.toString)
-      case exn: Exception => showError(exn.toString)
+      case exn: SyntaxError => errorFeedback(exn.toString)
+      case exn: Exception   => errorFeedback(exn.toString)
     }
   }
 

@@ -1,12 +1,17 @@
 import RedScript.Test._
 
+"""(ENV "USER")""".rep
+"""(PROP "os.name")""".rep
+"""<= "Mac" (PROP "os.name")""".rep
 "(seq 1 2 3)".rep
 "(+)".rep
 "(null)\n(null 42)\n(cons `a 3)".rep
-"(def Ω(a b c) 43 (+ a b c))".rep
-"(def ΩΩ(a b c) (seq 43 (+ a b c)))".rep
+"(def (Ω a b c) 43 (+ a b c))".rep
+"(def (ΩΩ a b c) (seq 43 (+ a b c)))".rep
+"""(def ΩΩΩ all (println "all: " all))""".rep
 "Ω\nΩΩ".rep
 "(Ω 1 2 3)\n".rep
+"(ΩΩΩ 1 2 3)\n".rep
 "-->\nisSymb -->\nisAtom -->\nisVar -->\nisVar `abc".rep
 "= + 3\n= (+ 1 2) 3\n".rep
 "= (list 1 2) (list (- 2 1) (+ 1 2))".rep
@@ -22,8 +27,8 @@ import RedScript.Test._
   """.rep
 
 """
-  def until (a b) (if (<= b a) () (cons a (until (+ 1 a) b))))
-  def to (a b) (if (< b a) () (cons a (to (+ 1 a) b))))
+  def (until a b) (if (<= b a) () (cons a (until (+ 1 a) b))))
+  def (to a b) (if (< b a) () (cons a (to (+ 1 a) b))))
   (until 0 10)
   (to 0 10)
   (eval (cons `* (to 1 5)))
@@ -31,16 +36,16 @@ import RedScript.Test._
 """.eval
 
 
-  """def >>(x) (seq)
+  """def (>> x) (println x)
     | >> "Three runtime errors"
     | zsugar
     |("foo" x)
     |(foo x)
     | >> "A definition"
-    |def f(a b c) b
+    |def (f a b c) b
     |f
     |>> "A sequence of print; yields the value of the last of them"
-    |? "the" "rain" "in" "spain"
+    |? "the" "rain" "in" "spain" (SOURCE)
     |seq (println) (println "the" "rain" "in" "spain")
     |seq (println) (print "the" "rain" "in" "spain")
     |>>"A quoted list"
@@ -56,7 +61,7 @@ import RedScript.Test._
     | (constant åçé 35)
     | åçé
     | >> "Symbols can be bound, too."
-    | def ∫(a b c)(list `∫ a b c)
+    | def (∫ a b c)(list `∫ a b c)
     | ∫ 1 2 3
     | constant π `π
     | π
@@ -75,14 +80,14 @@ import RedScript.Test._
     |(tl ay)
     |(null nil)
     |
-    |(def copy(xs) (if' [(null xs) nil]
+    |(def (copy xs) (if' [(null xs) nil]
     |                   [true
     |                    (cons (hd xs)
     |                          (copy (tl xs)))]
     |                   )))
     |(copy ay)
     |
-    |(def cat(xs ys)
+    |(def (cat xs ys)
     |     (if (null xs)
     |         ys
     |         (cons (hd xs)
@@ -96,29 +101,43 @@ import RedScript.Test._
     | >> "Miscellaneous, including some errors"
     |(def f(3)4)
     |
-    |(def prr(title xs) (print title) (print xs) xs)
+    |(def (prr (title xs)) (print title) (print xs) xs)
     |(prr "foo" ay)
     |
     |""".stripMargin.rep
 
-  """
+  """def (>>> x) (print "Expecting: " x)
+     >>> 1
      (+ 1)
+     >>> 6
      (* 1 2 3)
+     >>> true
      (&& (= 3 3) (= 4 4))
+     >>> true
      (|| (= 3 4) (= 4 4))
+     >>> "type error"
      (&& (= 4 4) 5 (= 3 4))
+     >>> "m1 to be declared as -1"
      variable m1 (- 0 1)
+     >>> "-1"
      m1
+     >>> "m1 to be doubled by assignment"
      := m1 (+ m1 m1)
+     >>> "-2"
      m1
-     def m1()  ()
+     >>> "report of a redefinition of m1"
+     def (m1)  ()
+     >>> "tripling m1 by assignment"
      := m1 (* 3 m1)
+     >>> "-6"
      m1
+     >>> "type error report"
      * m1 3 4 "foo"
+     >>> "2, then 7"
      / 12 2 3
      - 12 2 3
-     -3
+     >>> "a quoted symbol"
      --><--
-  """.rep
+  """.eval
 
 

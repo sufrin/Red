@@ -56,7 +56,7 @@ object Utils {
   //private val fileSeparator: String = System.getProperty("file.separator")
 
   def setFont(_kind: String, style: String, _size: String, roles: Seq[String]): Unit = {
-    val kind = if (_kind == "_") "Monospaced" else _kind
+    val kind = if (_kind == "-") "Monospaced" else _kind
     val st = style match {
       case "plain" => Font.PLAIN
       case "bold" => Font.BOLD
@@ -76,15 +76,14 @@ object Utils {
     for {role <- roles} role match {
       case "default" => documentViewFont = font
       case "button" => buttonFont = font
-      case "button-small" => smallButtonFont = font
-      case "small-button" => smallButtonFont = font
+      case "smallbutton" => smallButtonFont = font
       case "menu" => menuFont = font
-      case "button-menu" => menuButtonFont = font
-      case "menu-button" => menuButtonFont = font
+      case "menubutton" => menuButtonFont = font
       case "widget" => widgetFont = font
       case "feedback" => feedbackFont = font
       case _ => documentViewFont = font
     }
+    println(s"Font: $font for $roles")
   }
 
   /** Transform a file path to the path suitable for saving a

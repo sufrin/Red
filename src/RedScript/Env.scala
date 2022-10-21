@@ -101,4 +101,6 @@ class MutableEnv extends LocalEnv(Nil, None) {
 
   def set(name: String, value: Const): Unit = map.put(name, value)
 
+  def clear(): Unit = map.clear()
+
 }

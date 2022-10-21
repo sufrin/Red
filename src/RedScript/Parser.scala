@@ -106,7 +106,7 @@ class Parser(source: io.Source, val path: String="") {
        case ']' => braCount = 0 max (braCount-1); getNext(); SqKet
        case '[' => braCount+=1; getNext(); SqBra
        case '#' =>
-         while (getNext()!='\n') {}
+         while (getNext()!='\n' && in.ch!='\u0000') {}
          nextSymb()
        case '\n' =>
          while (getNext()=='\n') {}

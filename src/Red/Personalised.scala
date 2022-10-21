@@ -1,11 +1,10 @@
 package Red
 
-import Red.Features.Feature
+import RedScript.Language.{Const, Nothing, RuntimeError, SExp, SExps, Str, Variable}
+import RedScript.{Env, Evaluator, Language}
 import Useful.PrefixMap
 
-import java.io.FileInputStream
 import java.nio.file.{Path, Paths}
-import java.util.NoSuchElementException
 import scala.swing.Dialog
 
 /**
@@ -19,6 +18,9 @@ object Personalised extends Logging.Loggable {
 
   /** Block types to be placed on a `Latex` menu */
   val personalBlockTypes =  new collection.mutable.ListBuffer[String]
+  /** Program names to be placed on the `Pipe` menu */
+  val personalPipeNames = new collection.mutable.ListBuffer[String]
+
   def latexBlockTypes: Seq[String] =
   { val default = "foil itemize enumerate - note exercise answer - code -code code* scala alltt - center verbatim comment smaller - question part ans"
     Bindings.importBindings()
@@ -28,8 +30,6 @@ object Personalised extends Logging.Loggable {
     personalBlockTypes.toList
   }
 
-  /** Program names to be placed on the `Pipe` menu */
-  val personalPipeNames = new collection.mutable.ListBuffer[String]
   def pipeNames: Seq[String] =
   { val default = "wc; ls -lt; printenv"
     Bindings.importBindings()
@@ -43,7 +43,10 @@ object Personalised extends Logging.Loggable {
     personalPipeNames.clear()
     personalBlockTypes.clear()
     Bindings.clearMapping()
+    Bindings.RedScriptEvaluator.clear()
   }
+
+  def profileWarning(message: String): Unit = warning(s"", message)
 
   def warning(heading: String, message: String): Unit = {
     Dialog.showMessage(
@@ -55,22 +58,24 @@ object Personalised extends Logging.Loggable {
     )
   }
 
-  def profileWarning(message: String): Unit = warning(s"Profile: ${Features.profile}", message)
-
   object Settings {
     var typeOverSelection: Boolean = true
     var clickSelects: Boolean = true
     var autoIndenting: Boolean = true
   }
 
+
   object Bindings {
     val feedback: Notifier[String] = new Notifier[String]("Personalised Feedback")
 
     val profileChanged: Notifier[String] = Features.profileChanged
 
+    private val trie = PrefixMap[String]()
+    /** Modification time of the last root bindings file */
+    var lastImportTime: Long = 0
+
     def profile: String = Features.profile
 
-    private val trie = PrefixMap[String]()
     def clearMapping(): Unit = trie.clear()
 
     def longestSuffixMatch(chars: CharSequence, upTo: Int): Option[(String, Int)] = {
@@ -89,9 +94,6 @@ object Personalised extends Logging.Loggable {
       for { i<-0 until abbrevs.length -1 } trie.reverseUpdate(abbrevs(i), abbrevs(i+1))
     }
 
-    /** Modification time of the last root bindings file */
-    var lastImportTime: Long = 0
-
     def toPath(context: Path, path: String): Path =
       if (path.startsWith("~/"))
         java.nio.file.Paths.get(Red.Utils.expandHome(path))
@@ -103,13 +105,94 @@ object Personalised extends Logging.Loggable {
           context.resolveSibling(thePath)
       }
 
-    case class AbortBindings(cause: String) extends Error(cause)
+    object RedScriptEvaluator extends Evaluator {
+
+      def clear(): Unit = global.clear()
+
+      val paths = new collection.mutable.Stack[Path]
+
+      override def readEvalPrint(path: Path, show: Boolean): Unit = {
+          paths.push(path)
+          super.readEvalPrint(path, show)
+          paths.pop()
+      }
+
+      def doInclude(args: List[Const]): Const = {
+        val (newPath, show) = args match {
+          case Str(newPath)::Nil                       => (newPath, false)
+          case List(Str(newPath), Language.Bool(show)) => (newPath, show)
+        }
+        val exPath = toPath(paths.top, newPath)
+        if (exPath.toFile.exists() && exPath.toFile.canRead())
+          importBindings(1+paths.length, paths.top, exPath, show)
+        else
+          profileWarning(s"Error including:  $exPath)\nFrom           : ${position}\nNon-existent path or unreadable file.")
+        Nothing
+      }
+
+      def doAlt(shifted: Boolean)(args: List[Const]): Const = {
+        for { Str(map) <- args }  AltKeyboard.mapTo(map(0).toUpper, map(1), shifted)
+        Nothing
+      }
+
+      def doPopup(message: List[Const]): Const = {
+        val lines = message.map(_.toString).mkString("", "\n", "")
+
+        Dialog.showMessage(
+          null,
+          lines,
+          "Bindings",
+
+          Dialog.Message.Plain,
+          icon = Utils.redIcon
+        )
+
+        Nothing
+      }
+
+      def doDia(strings: List[Const], shifted: Boolean): Unit= {
+        for { Str(mark) <- strings }  AltKeyboard.macKeyboardDiacritical = mark
+      }
+
+      def doFont(env: Env, params: SExp) : Const = {
+        val SExps(args) = params
+        args match {
+          case family :: style :: size :: roles =>
+            // PRO-TEM: inherit the old machinery
+            // def setFont(_kind: String, style: String, _size: String, roles: Seq[String])
+            val roleNames = for {case Variable(role) <- roles} yield role
+            try
+              println("SETFONT", family.eval(env).toString, style.eval(env).toString, size.eval(env).toString, roleNames)
+            catch {
+              case exn => exn.printStackTrace()
+            }
+            Utils.setFont(family.eval(env).toString, style.eval(env).toString, size.eval(env).toString, roleNames)
+          case _ => throw RuntimeError(s"Malformed font specification: $args")
+        }
+        Nothing
+      }
+
+      import Language._
+      val bindingPrimitives: List[(String, Const)] = List(
+        "abbrev"      -> Subr("abbrev",      {  case List(Str(abbr), Str(text)) => mapTo(abbr, text); Nothing }),
+        "diacritical" -> Subr("diacritical", {  case List(Str(marks)) => AltKeyboard.macKeyboardDiacritical = marks; Nothing }),
+        "altclear"    -> Subr("altclear",    {  Nil => AltKeyboard.clear(); Nothing }),
+        "altplain"    -> Subr("altplain",   doAlt(false)(_)),
+        "altshift"    -> Subr("altshift",   doAlt(true)(_)),
+        "include"     -> Subr("include",    doInclude(_)),
+        "popup"       -> Subr("popup",      doPopup(_)),
+        "font"        -> FSubr("font",      { case (env, params) => doFont(env, params)}),
+      )
+      locally {
+        for { (name, value) <- bindingPrimitives } syntaxEnv.define(name, value)
+      }
+    }
 
     /** Read the top-level bindings file if it has been updated since it was last read */
     def importBindings(): Unit = {
       val path = sys.env.getOrElse("REDBINDINGS", "~/.red/bindings.redscript")
       val top = Paths.get("")
-      try importBindings(profile, 0, top, toPath(top, path)) catch {
+      try importBindings(0, top, toPath(top, path)) catch {
         case AbortBindings(why) => profileWarning(why)
       }
       Features.sync()
@@ -122,49 +205,19 @@ object Personalised extends Logging.Loggable {
       importBindings()
     }
 
-    def importBindings(profile: String, depth: Int, context: Path, path: Path): Unit = {
-
-    import RedScript._
-    val evaluator = new Evaluator {
-      def doImport(path: String): Unit = {
-        val exPath = toPath(context, path)
-        if (exPath.toFile.exists() && exPath.toFile.canRead())
-          importBindings(profile, depth+1, context, exPath)
-        else
-          profileWarning(s"Attempting to include:\n$exPath\nNo such bindings file can be read.")
-      }
-      import Language._
-      val bindingPrimitives: List[(String, Const)] = List(
-        "text" -> FSubr("text", { (env, args) => println(s"text $args"); Nothing }),
-        "feature" -> FSubr("text", { (env, args) => println(s"feature $args"); Nothing }),
-        "import" -> Subr("import", { case List(Str(path)) => doImport(path); Nothing })
-      )
-      locally {
-        for { (name, value) <- bindingPrimitives } syntaxEnv.define(name, value)
-      }
-    }
-
-
+    def importBindings(depth: Int, context: Path, path: Path, show: Boolean = false): Unit = {
 
     /**
      *  Read a single preferences file:
-     *  @param profile the profile being matched
      *  @param depth the depth of include-nesting (with an ''ad-hoc'' limit to detect cyclic includes)
      *  @param context the path to the file being read
      */
       val file = path.toFile
       val timeStamp = if (file.exists) file.lastModified() else 0
-      def readFile(): Unit = {
-        import scala.io.BufferedSource
-        if (logging) info(s"importing bindings from: $file")
-        val source = new BufferedSource(new FileInputStream(file))
-        val thisContext = context.resolve(path)
-        def error(message: String): Unit = {
-          Bindings.feedback.notify(s"==> $message")
-        }
-        evaluator.readEvalPrint(new Parser(source, path.toString), show = true)
 
-        source.close()
+      def readFile(): Unit = {
+        if (logging) info(s"importing bindings from: $file")
+        RedScriptEvaluator.readEvalPrint(path, show)
       }
 
 
@@ -191,215 +244,7 @@ object Personalised extends Logging.Loggable {
 
     }
 
-
-    object Lexical {
-      import sufrin.regex.Regex
-      import sufrin.regex.syntax.{Branched, Parser}
-      /** Build a lexer (a `Branched` pattern) for symbols matching the given regex patterns. */
-      def build(pats: String*): Regex =
-      { val trees = pats.map(pat => new Parser(pat).tree)
-        new Regex(Branched(trees), false, false)
-      }
-      /** Lexemes are:
-       *
-       *     0. sequences of space
-       *
-       *     1-2. non-quoted sequences of non-space (including unicode character descriptions
-       *     of the form \uXXXX)
-       *
-       *     3. quoted sequences of non-quote (including unicode character descriptions)
-       */
-      val lexer = build("""\s*""", """([^ "]\S+)""", """((\\[Uu]\w\w\w\w|[^ "])+)""", """\"((?:\\[Uu]\w\w\w\w|[^"])+)\"""")
-      /**
-       *   Scan the line, yielding a list of the non-space fragments of text, with
-       *   unicode-character descriptions transformed into characters.
-       */
-      def scan(line: String): List[String] = {
-        val it = for {sym <- lexer allPrefixes line if sym.theMatch.index!=0} yield {
-          if (logging) finest(s"raw: $sym")
-             sym.theMatch.index match {
-               case 1 | 2 | 3 => expandEscapes(sym.group(1)) // expand unicodes codes, etc
-             }
-        }
-        it.toList
-      }
-    }
-
-    /**
-     *  Process a single line of the preferences file:
-     *  @param profile the profile being matched
-     *  @param depth the depth of include-nesting (with an ''ad-hoc'' limit to detect cyclic includes)
-     *  @param context the path to the file being read
-     *  @param lineNumber  the number of the line in the file being read
-     *
-     */
-    def processLine(profile: String, depth: Int, context: Path, lineNumber: Int, line: String): Unit = if (line.nonEmpty) {
-
-
-      def ifSo(b: Boolean): Boolean  = b
-      def ifNot(b: Boolean): Boolean = !b
-
-      case object Undefined extends Feature {
-        val name: String = "Undefined"
-        def valueString: String = "Undefined"
-        def profileString: String = "Undefined"
-        def processConditional(tail: List[String], process: List[String] => Unit, ifSo: Boolean => Boolean): Unit = {
-          throw new AbortBindings(s"Erroneous conditional declaration (undeclared feature):\n$line\n($context@$lineNumber)")
-        }
-        def save(): Unit = {}
-        def restore(): Unit = {}
-      }
-
-      def evalDeclaration(declaration: List[String]): Unit = declaration match {
-
-        case "--" :: _ =>
-
-        case "??" :: rest =>
-          for { (_, feature) <- Features.features}  println(s"$feature = ${feature.valueString}")
-          for { fid <- rest } println(s"$fid = ${Features.eval(fid) }")
-
-        case ("if"     :: feature :: restOfDeclaration)       =>  Features.getOrElse(feature, Undefined).processConditional(restOfDeclaration, evalDeclaration, ifSo)
-        case ("&&"     :: feature :: restOfDeclaration)       =>  Features.getOrElse(feature, Undefined).processConditional(restOfDeclaration, evalDeclaration, ifSo)
-        case ("then"   :: feature :: restOfDeclaration)       =>  Features.getOrElse(feature, Undefined).processConditional(restOfDeclaration, evalDeclaration, ifSo)
-        case ("unless" :: feature :: restOfDeclaration)       =>  Features.getOrElse(feature, Undefined).processConditional(restOfDeclaration, evalDeclaration, ifNot)
-
-        case ("font" :: kind :: style :: size :: roles) =>
-          Utils.setFont(kind, Features.eval(style), Features.eval(size), roles)
-
-        case ("feature" :: name :: kind :: attrs) =>
-             Features.declare(name, kind, attrs) match {
-               case Some(error) => profileWarning(declaration.mkString("Erroneous declaration:\n", " ", s"\n($context@$lineNumber)\n$error"))
-               case None =>
-             }
-
-        case ("include" :: path :: Nil)  =>
-          val exPath = toPath(context, path)
-          if (exPath.toFile.exists() && exPath.toFile.canRead())
-             importBindings(profile, depth+1, context, exPath)
-          else
-            profileWarning(s"Attempting, from $context@$lineNumber, to include:\n$exPath\nNo such bindings file can be read.")
-
-        case ("include?" :: path :: Nil) =>
-          val exPath = toPath(context, path)
-          if (exPath.toFile.exists()  && exPath.toFile.canRead())
-            importBindings(profile, depth+1, context, exPath)
-
-        case ("text"::"abbrev"::abbr::text::_)  =>
-          mapTo(abbr, text)
-
-        case ("pipes"::abbrevs) =>
-          personalPipeNames.addAll(abbrevs)
-
-        case ("latex"::"blocks"::abbrevs) =>
-          personalBlockTypes.addAll(abbrevs)
-
-        case ("show" :: fields) =>
-          println(fields.map {
-                 case "$profile" => Features.profile
-                 case other      => Features.eval(other)
-              }.mkString("", " ", ""))
-
-        case ("text"::"diacritical" :: marks :: rest) =>
-          AltKeyboard.macKeyboardDiacritical = marks
-
-        case ("text" :: "alt" :: "reset" :: rest) =>
-          AltKeyboard.clear()
-
-        case ("text" :: "alt" :: "shift" :: pairs ) =>
-          for { map <- pairs if map.length>=2 }
-            AltKeyboard.mapTo(map(0).toUpper, map(1), shift=true)
-
-        case ("text" :: "alt" :: pairs ) =>
-          for { map <- pairs if map.length>=2 }
-            AltKeyboard.mapTo(map(0).toUpper, map(1), shift=false)
-
-        case (variable :: "is" :: _value :: Nil) =>
-             try {
-               val value = Features.eval(_value)
-               variable match {
-                 case "typeover"        => Settings.typeOverSelection = value.toBoolean
-                 case "autoselect"      => Settings.clickSelects = value.toBoolean
-                 case "autoindent"      => Settings.autoIndenting = value.toBoolean
-                 case "matchcostlimit"  => Utils.stepLimit = value.toInt
-                 case "showmatchcost"   => Utils.showSteps = value.toBoolean
-               }
-             } catch {
-               case exn: Throwable => warning(profile, declaration.mkString("Erroneous variable setting:\n", " ", s"\n($context@$lineNumber)"))
-             }
-
-        case other =>
-          profileWarning(other.mkString("Erroneous binding declaration:\n", " ", s"\n($context@$lineNumber)"))
-      }
-      try evalDeclaration(Lexical.scan(line)) catch {
-        case exn: NoSuchElementException => profileWarning(s"Conditional declaration with undefined feature: ${exn.getMessage}\n($context@$lineNumber)")
-      }
-    }
-
-    def stripComments(line: String): String = {
-      val b = new StringBuilder()
-      var l = 0
-      var r = line.length()
-      // find the extent of the space-trimmed line
-      while (0 < r && (line.charAt(r - 1) == ' ' || line.charAt(r - 1) == '\t')) r -= 1
-      while (l < r && (line.charAt(l) == ' ' || line.charAt(l) == '\t')) l += 1
-      // strip trailing comments, introduced by unquoted '#'
-      while (l < r && line.charAt(l)!='#') {
-        val c = line.charAt(l)
-        if (c == '\\' && l + 1 < r && line.charAt(l + 1) == '#') {
-          b.append("\\#")
-          l += 1
-        }
-        else
-          b.append(c)
-        l += 1
-      }
-      b.toString()
-    }
-
-    def expandEscapes(str: String): String = {
-      val b = new StringBuilder
-      var i = 0
-      val l = str.length
-      while (i<l) {
-        if (str.charAt(i) == '\\' && i + 1 < l)
-          str.charAt(i + 1) match  {
-            case '\\' =>  b append "\\"
-            i += 1
-
-            case '#' =>  b append "#"
-            i += 1
-
-            case 't' =>  b append  "\t"
-            i += 1
-
-            case 'n' =>  b append "\n"
-            i += 1;
-
-            case ' ' | 's' =>  b append " "
-            i += 1;
-
-            case 'u' | 'U' =>
-            if (i + 5 < l) {
-              import Useful.CharSequenceOperations._
-              str.subSequence(i, i + 6).toUnicode match {
-                case Some(ch) =>
-                  b append ch
-                  i += 5
-                case None =>
-                  b append '\\'
-              }
-            }
-
-            case ch =>  b append '\\'; b append ch
-              i += 1
-          }
-        else
-          b.append(str.charAt(i))
-        i += 1
-      }
-      b.toString
-    }
-
+    case class AbortBindings(cause: String) extends Error(cause)
 
   }
 }
