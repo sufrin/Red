@@ -175,4 +175,22 @@ object Buttons {
       if (toolTip.nonEmpty) tooltip = toolTip
     }
 
+  def FixedRow(components: Component*): Component = Row(components)
+
+  def Row(components: Seq[Component]): Component =
+  { val panel = new BoxPanel(Orientation.Horizontal)
+    for  { c<-components } panel.contents += c
+    panel
+  }
+
+  def FixedCol(components: Component*): Component = Col(components)
+
+  def Col(components: Seq[Component]): Component =
+  { val panel = new BoxPanel(Orientation.Vertical)
+    for  { c<-components } panel.contents += c
+    panel
+  }
+
+  def Centred(component: Component): Component = FixedRow(Glue.horizontal(), component, Glue.horizontal())
+
 }

@@ -22,4 +22,9 @@ class VGlue extends BoxPanel(Orientation.Vertical) {
 object Glue {
   def horizontal(): Component = new HGlue()
   def vertical():   Component = new VGlue()
+  def quad(pix: Int, plus: Int=0, minus: Int=0): Component = new BoxPanel(Orientation.Horizontal)  {
+    preferredSize = new Dimension(pix, 0)
+    minimumSize   = new Dimension(pix-minus, 0)
+    maximumSize   = new Dimension(pix+plus, 0)
+ }
 }

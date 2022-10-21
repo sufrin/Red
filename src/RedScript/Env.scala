@@ -7,7 +7,7 @@ import scala.annotation.tailrec
 trait Env {
   thisEnv =>
 
-  def apply(name: String): Option[Const]
+  def apply(name: String): Option[SExp]
 
   def print(level: Int=0): Unit
 
@@ -17,11 +17,11 @@ trait Env {
    * `values`.
    * TODO: proper pattern matching for use in a match expression
    */
-  def extend(pattern: SExp, values: List[Const]): Env = {
+  def extend(pattern: SExp, values: List[SExp]): Env = {
     val newEnv =
     pattern match {
       case Variable(name) =>
-        val newPairs: List[(String, Const)] = List((name, Language.Seq(values)))
+        val newPairs: List[(String, SExp)] = List((name, Language.SExps(values)))
         new LocalEnv(newPairs, Some(this))
 
       case SExps(patterns) if patterns.forall(_.isInstanceOf[Variable]) =>
@@ -43,9 +43,9 @@ trait Env {
   }
 }
 
-class LocalEnv(pairs: List[(String, Const)], derivedFrom: Option[Env] = None) extends Env {
+class LocalEnv(pairs: List[(String, SExp)], derivedFrom: Option[Env] = None) extends Env {
 
-  def apply(name: String): Option[Const] =
+  def apply(name: String): Option[SExp] =
   { LocalEnv.find(name, pairs) match {
       case None => if (derivedFrom.isEmpty) None else derivedFrom.get(name)
       case some => some
@@ -61,7 +61,7 @@ class LocalEnv(pairs: List[(String, Const)], derivedFrom: Option[Env] = None) ex
   }
 
   object LocalEnv {
-    @tailrec def find(name: String, pairs: List[(String, Const)]): Option[Const] =
+    @tailrec def find(name: String, pairs: List[(String, SExp)]): Option[SExp] =
       pairs match {
         case Nil => None
         case (n, v)::pairs if n==name => Some(v)
@@ -79,9 +79,9 @@ class LocalEnv(pairs: List[(String, Const)], derivedFrom: Option[Env] = None) ex
 class MutableEnv extends LocalEnv(Nil, None) {
   import scala.collection.mutable
 
-  val map = new mutable.LinkedHashMap[String, Const]
+  val map = new mutable.LinkedHashMap[String, SExp]
 
-  override def apply(name: String): Option[Const] = map.get(name)
+  override def apply(name: String): Option[SExp] = map.get(name)
 
   override def toString: String = map.mkString("(", "->", ")")
 
@@ -93,13 +93,13 @@ class MutableEnv extends LocalEnv(Nil, None) {
     Console.println("»»")
   }
 
-  def define(name: String, value: Const): Unit =
+  def define(name: String, value: SExp): Unit =
     map.get(name) match {
       case None    => map.put(name, value)
       case Some(v) => throw new RuntimeError(s"Redefinition of global $name")
     }
 
-  def set(name: String, value: Const): Unit = map.put(name, value)
+  def set(name: String, value: SExp): Unit = map.put(name, value)
 
   def clear(): Unit = map.clear()
 

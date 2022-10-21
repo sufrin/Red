@@ -21,12 +21,12 @@ object Language {
 
   trait SExp {
     /** Value of this expression in `env` */
-    def eval(env: Env): Const
+    def eval(env: Env): SExp
 
-    def opVal(env: Env): Const = eval(env)
+    def opVal(env: Env): SExp = eval(env)
 
     /** Most expressions have no lvalue  */
-    def lval(env: Env): Ref = throw RuntimeError(s"$this cannot be assigned to $position")
+    def lval(env: Env): LoadUpdate = throw RuntimeError(s"$this cannot be assigned to $position")
 
     /** Most expressions do not denote the empty list  */
     def isNull: Boolean = false
@@ -34,71 +34,84 @@ object Language {
     /**
      * Evaluate an expression constructed as a quotation:
      */
-    def evalQuote(env: Env): Const = eval(env)
+    def evalQuote(env: Env): SExp = eval(env)
 
     /**
      * The position in source code at which this expression started.
      */
     var position: SourcePosition = SourcePosition("",-1,-1)
 
-    def show: String              = toString
-    override def toString: String = show
-
+    def show: String              = this.toString
   }
 
+  abstract trait LoadUpdate extends SExp {
+    def value: SExp
+    def value_=(newValue: SExp): Unit = setValue(newValue)
+    def setValue(newValue: SExp): Unit
+  }
+
+  case class Ref(name: String, var _value: SExp) extends LoadUpdate {
+    override def eval(env: Env): SExp = value
+    override def lval(env: Env): Ref = this
+    def setValue(newValue: SExp): Unit = _value=newValue
+    def value: SExp = _value
+    override def toString: String = name
+  }
 
   case class Variable(name: String)  extends SExp {
     var symbolic: Boolean = false
 
-    def eval(env: Env): Const = env(name) match {
+    def eval(env: Env): SExp = env(name) match {
       case None =>
-        if (symbolic) Quote(this) else throw RuntimeError(s"Unbound variable $name ($position)")
+        //  symbols are self-quoting when not bound
+        if (symbolic)
+           Quote(this)
+        else
+           throw RuntimeError(s"Unbound variable $name\n($position)")
       case Some(v) => v match {
-        case Ref(_, value) => value
-        case _ => v
+        case lup: LoadUpdate => lup.value
+        case _:   Indirect   => v.eval(env)
+        case _               => v
       }
     }
 
-    override def lval(env: Env): Ref = env(name) match {
-      case None => throw RuntimeError(s"Unbound variable $name ($position)")
+    override def lval(env: Env): LoadUpdate = env(name) match {
+      case None => throw RuntimeError(s"Unbound variable $name\n($position)")
         case Some(v)   => v match {
-        case r: Ref    => r
-        case _         => throw RuntimeError(s"Not an lvalue $name ($position)")
+        case lup: LoadUpdate   => lup
+        case _                 => throw RuntimeError(s"Not an lvalue $name ($position)")
       }
     }
 
     override def toString = name
   }
 
-  case class Ref(name: String, var value: Const) extends Const {
-    override def eval(env: Env): Const = value
-    override def lval(env: Env): Ref = this
 
-    override def toString: String = name
-  }
 
-  case class Seq(elements: List[Const]) extends Const {
+  case class Seq(elements: List[SExp]) extends Const {
     override def toString = elements.mkString("(", " ", ")")
-    override def evalQuote(env: Env): Const = SExps(elements.map{ case Quote(e) => e; case e => e}).eval(env)
   }
+
 
   val nil = Seq(Nil)
 
   case class SExps(elements: List[SExp]) extends SExp {
     override def toString = elements.mkString("(", " ", ")")
-
+    override def show = elements.map(_.show).mkString("(", " ", ")")
+    // override def evalQuote(env: Env): Const = Seq(elements.map{ case e => e.evalQuote(env)})
     override def isNull = elements.isEmpty
 
-    def withErrorHandling(value: => Const): Const = {
+    def withErrorHandling(value: => SExp): SExp = {
         try value catch  {
-          case exn: RuntimeError => throw RuntimeError(s"${exn.getMessage} in $this $position")
-          case exn: SyntaxError  => throw SyntaxError(s"${exn.getMessage} in $this $position")
-          case exn: MatchError   => throw SyntaxError(s"Number or type(s) of argument(s) wrong while evaluating $this $position")
+          case exn: RuntimeError => throw RuntimeError(s"${exn.getMessage}\nin\n$this $position")
+          case exn: SyntaxError  => throw SyntaxError(s"${exn.getMessage}\nin\n$this $position")
+          case exn: MatchError   => throw SyntaxError(s"Number or type(s) of argument(s) wrong\nwhile evaluating\n$this $position")
+          case exn => exn.printStackTrace(); throw SyntaxError(s"${exn.getMessage}\nin\n$this $position")
         }
     }
 
 
-    def eval(env0: Env): Const =
+    def eval(env0: Env): SExp =
       if (elements.isEmpty) Seq(Nil) else {
           val operator = elements.head.opVal(env0)
           val result =
@@ -121,6 +134,12 @@ object Language {
                   body.eval(env1.extend(params, args))
                 }
 
+              case FExpr(env1, params, body) =>
+                withErrorHandling {
+                  val args = elements.tail.map(Quote(_))
+                  body.eval(env1.extend(params, args))
+                }
+
               case other =>
                 throw RuntimeError(s"$operator is not a functional value: $this ($position)")
             }
@@ -135,6 +154,9 @@ object Language {
    */
   trait Const extends SExp {
     def eval(env: Env): Const = this
+  }
+
+  trait Indirect extends Const {
   }
 
   case class Num(value: Int) extends Const {
@@ -155,21 +177,26 @@ object Language {
     override def toString = s"(expr $pattern $body)"
   }
 
-  case class Subr(name: String, scala: List[Const] => Const) extends Const {
+  case class FExpr(env: Env, pattern: SExp, body: SExp) extends Const {
+    override def toString = s"(fexpr $pattern $body)"
+  }
+
+  case class Subr(name: String, scala: List[SExp] => SExp) extends Const {
     override def toString = name // s"Strict: $name"
   }
 
-  case class FSubr(name: String, scala: (Env, SExp) => Const) extends Const {
+  case class FSubr(name: String, scala: (Env, SExp) => SExp) extends Const {
     override def toString = name // s"Lazy: $name"
   }
 
+
   case class Opaque(value: Any) extends Const {
-    override def toString = s"Opaque: $value"
+    override def toString = s"$value"
   }
 
-  case class Quote(value: SExp) extends Const {
+  case class Quote(value: SExp) extends SExp {
     override def toString = s"`$value"
-    override def evalQuote(env: Env): Const = value.evalQuote(env)
+    override def eval(env: Env): SExp = value
   }
 
   case object Nothing extends Const {

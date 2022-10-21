@@ -2,10 +2,10 @@ package Red
 
 import Red.Menus.EmbeddedDynamicMenu
 
-import java.awt.{Color, Font, FontFormatException, Graphics}
-import java.io.{File, IOException}
-import java.nio.file.{Path, Paths}
+import java.awt.{Color, Font, Graphics}
+import java.io.File
 import java.nio.file.attribute.FileTime
+import java.nio.file.{Path, Paths}
 import java.text.SimpleDateFormat
 import java.util.Date
 import javax.swing.{Icon, SwingUtilities}
@@ -31,6 +31,7 @@ object Utils {
    */
   val NEWFILESUFFIX: String = "«NEW»"
   private val dateFormat: SimpleDateFormat = new SimpleDateFormat("y-MM-dd-HHmmss")
+
   var documentViewFont: Font = new Font("Monospaced", Font.PLAIN, 18)
   var smallButtonFont: Font = new Font("Monospaced", Font.BOLD, 14)
   var buttonFont: Font = documentViewFont
@@ -40,39 +41,44 @@ object Utils {
   var feedbackFont: Font = new Font("Monospaced", Font.PLAIN, 16)
   var feedbackColor: Color = Color.BLUE
 
+  private val persistent = appleRed.node("Features")
+
+  private def syncPersistent(): Unit = {
+    persistent.sync(); appleRed.sync()
+  }
+
   /**
-   *   Number of matching-machine instructions permitted before we conclude a match
-   *   has failed (on account of a pathological pattern).
-   *   Settable as a feature.
+   * Number of matching-machine instructions permitted before we conclude a match
+   * has failed (on account of a pathological pattern).
+   * Settable as a feature.
    */
-  var stepLimit: Int     = 100
+  private var _stepLimit: Int = persistent.getInt("stepLimit", 1000)
+
+  def stepLimit: Int = _stepLimit
+
+  def stepLimit_=(limit: Int): Unit = {
+    _stepLimit = limit; persistent.putInt("stepLimit", stepLimit);
+    syncPersistent()
+  }
+
   /**
-   *   Show the number of matching-machine instructions executed while the
-   *   find pattern was successfully matched starting at the position of
-   *   the match.
+   * Show the number of matching-machine instructions executed while the
+   * find pattern was successfully matched starting at the position of
+   * the match.
    */
-  var showSteps: Boolean = false
+  private var _showSteps: Boolean = persistent.getBoolean("showSteps", false)
+
+  def showSteps: Boolean = _showSteps
+
+  def showSteps_=(show: Boolean): Unit = {
+    _showSteps = show; persistent.putBoolean("showSteps", showSteps); syncPersistent()
+  }
 
   //private val fileSeparator: String = System.getProperty("file.separator")
 
-  def setFont(_kind: String, style: String, _size: String, roles: Seq[String]): Unit = {
-    val kind = if (_kind == "-") "Monospaced" else _kind
-    val st = style match {
-      case "plain" => Font.PLAIN
-      case "bold" => Font.BOLD
-      case "italic" => Font.ITALIC
-      case "bold+italic" => Font.ITALIC + Font.BOLD
-      case _ => Font.PLAIN
-    }
-    val size = if (_size.matches("[0-9]+")) _size.toInt else 16
-    val font = if (kind.endsWith(".ttf")) try {
-      import java.awt.Font
-      Font.createFont(Font.TRUETYPE_FONT, new File(kind)).deriveFont(st, size.toFloat)
-    } catch {
-      case exn: IOException => Logging.Default.warn(s"Font $kind $style $size -- $exn"); new Font("Monospaced", st, size)
-      case exn: FontFormatException => Logging.Default.warn(s"Font $kind $style $size -- $exn"); new Font("Monospaced", st, size)
-    }
-    else new Font(kind, st, size)
+  /** Set the editor roles of the given `font` */
+  def setFontRoles(font: Font, roles: Seq[String]): Unit = {
+    // println(s"FontRoles: $font $roles")
     for {role <- roles} role match {
       case "default" => documentViewFont = font
       case "button" => buttonFont = font
@@ -83,7 +89,31 @@ object Utils {
       case "feedback" => feedbackFont = font
       case _ => documentViewFont = font
     }
-    println(s"Font: $font for $roles")
+  }
+
+
+  def mkFont(fontName: String): Font = {
+    import java.awt.Font
+    val (name, style, size) = fontName match {
+      case s"$name/$style/$size"  if size.matches("\\d+")=>
+        (name, style, size.toInt)
+      case s"$style/$size" if size.matches("\\d+") =>
+        (Font.MONOSPACED, style, size.toInt)
+      case size if size.matches("\\d+")=>
+        (Font.MONOSPACED, "plain", size.toInt)
+      case _ =>
+        (Font.MONOSPACED, "plain", 18)
+    }
+    // allow numeric coding of style by PersistentFont
+    val theStyle = style match {
+      case "bold"                              => Font.BOLD
+      case "italic"                            => Font.ITALIC
+      case "bolditalic"                        => Font.BOLD+Font.ITALIC
+      case s"=$style" if style.matches("\\d+") => style.toInt
+      case _                                   => Font.PLAIN
+    }
+    val font = new Font(name, theStyle, size)
+    font
   }
 
   /** Transform a file path to the path suitable for saving a

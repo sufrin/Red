@@ -29,6 +29,18 @@
 \def\§#1{\symbolfamily{#1}}
 \end{comment}
 
+
+% Introduce a new family: not really neeeded
+\newfontfamily\dejavu{DejaVu Sans}[
+  BoldFont = *,
+  BoldFeatures = {FakeBold = 1.05},
+  SlantedFont = *,
+  SlantedFeatures = {FakeSlant = 0.25},
+  BoldSlantedFont = *,
+  BoldSlantedFeatures = {FakeBold = 1.05, FakeSlant = 0.25}
+]
+
+
 \def\§#1{${#1}$}
 
 %%%%%%%%%%%%%%%%%%%%%
@@ -48,9 +60,9 @@ with mathematical Unicode symbols}}
 The two-point list:
 
 \begin{itemize} \item
-“ Double inverted commas with a math symbol ($⇒$) placed between dollars,
+“Double inverted commas” with a math symbol ($⇒$) placed between dollars,
 thus: \$$⇒$\$, and with a symbolic
-interlude \§{∀⇛→∃←} — the argument of \backslash§{...} command.
+interlude \§{∀⇛→∃←} — the ‘argument’ of \backslash§{...} command.
 
 \item
 and 
@@ -63,9 +75,9 @@ $$
 was set by
 \begin{verbatim}
 \begin{itemize} \item
-“ Double inverted commas with a math symbol ($⇒$) placed between dollars,
+“Double inverted commas” with a math symbol ($⇒$) placed between dollars,
 thus: \$$⇒$\$, and with a symbolic
-interlude \§{∀⇛→∃←} — the argument of \backslash§{...} command.
+interlude \§{∀⇛→∃←} — the ‘argument’ of \backslash§{...} command.
 
 \item
 and 
@@ -78,14 +90,29 @@ $$
 \end{verbatim}
 What do other symbols, including «brackets» and  $ ⌈⇑ ↠ look ⇓  ↯ ⌉$ like?
 
+
 Pretty good $∵$ I'm encouraged!
 
 And, as expected, greeks are ok:  αβγδΑΒΓΔ?
 
-Some symbols, for example, $⦃⦄$ and \§{⟦ ⟦ are hard ⟧}
-to edit with, not being really fixed-width in the (current, default) editor
-font family. Others aren't part of the Maths we are using in this
-document: \verb/\setmathfont{STIX Two Math}/.
+Some symbols, for example, $⟦$ and $⟧$ may be harder to
+to edit with in Red, not being really fixed-width in
+Red's (current, default) editor
+font family; although they measure correctly in
+DejaVu Sans Mono.
+
+Some other characters aren't part of the STIX Two Text
+or the STIX Two Math fonts used in this document.
+
+\bgroup\dejavu{If you see what I mean ⟦⟦⟦⟦⟦⊗⟦⟦⟦⟦xyzzy⟦⟦⟦} (in DejaVu Sans)\egroup
+
+\verb/If you see what I mean ⟦⟦⟦⟦⟦⊗⟦⟦⟦⟦xyzzy⟦⟦⟦} (in DejaVu Sans Mono)/
+
+If you see what I mean ⟦⟦⟦⟦⟦⊗⟦⟦⟦⟦xyzzy⟦⟦⟦ (in STIX Two Text)
+
+If you see what I mean $⟦⟦⟦⟦⟦⊗⟦⟦⟦⟦xyzzy⟦⟦⟦$ (in STIX Two Math)
+
+
 
 
 Why didn't I start using XeLaTex a very long time ago?

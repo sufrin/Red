@@ -1,10 +1,11 @@
 package Red
 
 import Commands._
+import Red.Buttons.CentredLabel
 import Red.UserInputDetail.Key
 import Red.UserInputDetail.Modifiers._
 import Red.UserInputHandlers._
-import Red.Utils.relativeToHome
+import Red.Utils.{menuFont, relativeToHome}
 
 import java.awt.Color
 import java.nio.file.{Files, Path, Paths}
@@ -14,9 +15,9 @@ import scala.swing._
 
 /** Graphical User Interface to an EditSession */
 class UI(val theSession: EditSession) extends SimpleSwingApplication {
+  import Menus.EmbeddedDynamicMenu
   import UI._
   import Utils.Menu
-  import Menus.EmbeddedDynamicMenu
   /**
    * `theSession` emits feedback and warnings about things like find/replace failures
    * that we wish to report via this user interface.
@@ -415,10 +416,6 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
         font     = Utils.menuButtonFont
       }
 
-      contents += new Buttons.PersistentCheckItem("Show find cost", "showsteps", { b => Utils.showSteps=b; Utils.showSteps = b }, Utils.showSteps) {
-        tooltip  = "When this is enabled, a successful find reports the the cost of the succeeding match as a proportion of the prevailing limit"
-        font     = Utils.menuButtonFont
-      }
 
       if (theSession.hasCutRing) {
         contents += Separator()
@@ -429,12 +426,40 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
 
       contents += Separator()
 
+      contents += new Menus.DynamicMenu("Costs") {
+        font = menuFont
+
+        val cost = new Buttons.PersistentCheckItem("Show find-cost in steps", "showsteps", { b => Utils.showSteps=b }, Utils.showSteps) {
+            tooltip  = "When this is enabled, a successful find reports the the cost of the succeeding match as a proportion of the prevailing limit"
+            font     = Utils.menuFont
+          }
+
+        def logLim: String = s"Find-cost limit: 10^${Math.log10(Utils.stepLimit).toInt}"
+        val lab: CentredLabel = new CentredLabel(logLim, theFont=menuFont)
+
+        val up: Component = Buttons.Button(s"*10", "Increase find-cost limit", menuFont)  {
+          Utils.stepLimit = Utils.stepLimit*10
+          lab.setText(logLim)
+        }
+
+        val down: Component = Buttons.Button(s"/10", "Decrease find-cost limit", menuFont) {
+          Utils.stepLimit = 1000 max Utils.stepLimit/10
+          lab.setText(logLim)
+        }
+
+        /**
+         * @return dynamically-generated content for the menu
+         */
+        override protected def dynamicContents: Seq[Component] = List(cost, lab, Separator(), Buttons.FixedRow(up, down))
+      }
+
       contents += Features.menu
 
       contents += Separator()
       contents += Separator()
 
       contents += menuButton("Quit", toolTip = "Quit now if there are no unsaved document sessions; else ask each unsaved document session what to do")  { top.closeOperation() }
+
 
     }
 

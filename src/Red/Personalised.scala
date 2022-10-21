@@ -1,11 +1,11 @@
 package Red
 
-import RedScript.Language.{Const, Nothing, RuntimeError, SExp, SExps, Str, Variable}
+import RedScript.Language.{Bool, Const, LoadUpdate, Nothing, Num, Opaque, RuntimeError, SExp, SExps, Str, Variable}
 import RedScript.{Env, Evaluator, Language}
 import Useful.PrefixMap
 
 import java.nio.file.{Path, Paths}
-import scala.swing.Dialog
+import scala.swing.{Dialog, Font}
 
 /**
  *  Personalisation module, with definitions of
@@ -107,6 +107,8 @@ object Personalised extends Logging.Loggable {
 
     object RedScriptEvaluator extends Evaluator {
 
+      override def errorFeedback(s: String): Unit = throw AbortBindings(s)
+
       def clear(): Unit = global.clear()
 
       val paths = new collection.mutable.Stack[Path]
@@ -117,7 +119,7 @@ object Personalised extends Logging.Loggable {
           paths.pop()
       }
 
-      def doInclude(args: List[Const]): Const = {
+      def doInclude(args: List[SExp]): SExp = {
         val (newPath, show) = args match {
           case Str(newPath)::Nil                       => (newPath, false)
           case List(Str(newPath), Language.Bool(show)) => (newPath, show)
@@ -130,58 +132,104 @@ object Personalised extends Logging.Loggable {
         Nothing
       }
 
-      def doAlt(shifted: Boolean)(args: List[Const]): Const = {
+      def doAlt(shifted: Boolean)(args: List[SExp]): SExp = {
         for { Str(map) <- args }  AltKeyboard.mapTo(map(0).toUpper, map(1), shifted)
         Nothing
       }
 
-      def doPopup(message: List[Const]): Const = {
-        val lines = message.map(_.toString).mkString("", "\n", "")
-
+      def doPopup(message: List[SExp]): SExp = {
+        val lines = message.map(_.show).mkString("", "\n", "")
         Dialog.showMessage(
           null,
           lines,
           "Bindings",
-
           Dialog.Message.Plain,
           icon = Utils.redIcon
         )
-
         Nothing
       }
 
-      def doDia(strings: List[Const], shifted: Boolean): Unit= {
+      /** Declare mac diacriticals  */
+      def doDia(strings: List[SExp]): SExp= {
         for { Str(mark) <- strings }  AltKeyboard.macKeyboardDiacritical = mark
+        Nothing
       }
 
-      def doFont(env: Env, params: SExp) : Const = {
-        val SExps(args) = params
-        args match {
-          case family :: style :: size :: roles =>
-            // PRO-TEM: inherit the old machinery
-            // def setFont(_kind: String, style: String, _size: String, roles: Seq[String])
-            val roleNames = for {case Variable(role) <- roles} yield role
-            try
-              println("SETFONT", family.eval(env).toString, style.eval(env).toString, size.eval(env).toString, roleNames)
-            catch {
-              case exn => exn.printStackTrace()
-            }
-            Utils.setFont(family.eval(env).toString, style.eval(env).toString, size.eval(env).toString, roleNames)
-          case _ => throw RuntimeError(s"Malformed font specification: $args")
+      /** Implements {{{(usefont font role1 role2 ...)}}} */
+      def doFont(env: Env, params: SExp) : SExp = {
+        val SExps(font :: roles) = params
+        val roleNames = for {case Variable(role) <- roles} yield role
+        font.eval(env) match {
+          case Opaque(font)  => Utils.setFontRoles(font.asInstanceOf[Font], roleNames)
+          case Str(fontName) => Utils.setFontRoles(Utils.mkFont(fontName), roleNames)
         }
         Nothing
       }
 
+      /** Implements {{{(persist name path menu-title initialValue choices)}}}*/
+      def declPersistent(env: Env, params: SExp) : Const = {
+        val SExps(Variable(name) :: args) = params
+        val Str(path) :: Str(title) :: _value :: SExps(_choices) :: update = args.map(_.eval(env))
+        val feature = new Persistent.StringFeature(name, path, _value.show, title) {
+          override def choices: Seq[String] = _choices.map(_.show)
+          override def toString(t: String): String = t
+        }
+
+        val persist = new LoadUpdate {
+          override def value: SExp = _value match {
+            case _: Bool => Bool(feature.value.toBoolean)
+            case _: Num => Num(feature.value.toInt)
+            case _: Str => Str(feature.value)
+          }
+
+          override def setValue(newValue: SExp): Unit = (_value, newValue) match {
+            case (_: Bool, Bool(v)) => feature.value=v.toString
+            case (_: Num, Num(v)) => feature.value=v.toString
+            case (_: Str, Str(v)) => feature.value=v
+            case _          => throw RuntimeError(s"Persistent($name), initially ${_value}, cannot be set to $newValue")
+          }
+
+          override def eval(env: Env): SExp = value
+        }
+        global.set(name, persist)
+        Features.add(feature)
+        Nothing
+      }
+
+      /** Implements: {{{(tick name path menu-title initialValue)}}} */
+      def declTick(env: Env, params: SExp) : Const = {
+        val SExps(Variable(name) :: args) = params
+        val Str(path) :: Str(title) :: Bool(value) :: update = args.map(_.eval(env))
+        val feature = new Persistent.BoolFeature(name, path, value, title)
+        val persist = new LoadUpdate {
+          override def value: SExp = Bool(feature.value)
+          override def setValue(newValue: SExp): Unit = newValue match {
+            case Bool(bool) => feature.value=bool
+            case _          => throw RuntimeError(s"Tick($name) cannot be set to non-Bool $newValue")
+          }
+          override def eval(env: Env): SExp = value
+        }
+
+        global.set(name, persist)
+        Features.add(feature)
+        Nothing
+      }
+
+
+
       import Language._
       val bindingPrimitives: List[(String, Const)] = List(
         "abbrev"      -> Subr("abbrev",      {  case List(Str(abbr), Str(text)) => mapTo(abbr, text); Nothing }),
-        "diacritical" -> Subr("diacritical", {  case List(Str(marks)) => AltKeyboard.macKeyboardDiacritical = marks; Nothing }),
+        "diacritical" -> Subr("diacritical", doDia(_)),
         "altclear"    -> Subr("altclear",    {  Nil => AltKeyboard.clear(); Nothing }),
         "altplain"    -> Subr("altplain",   doAlt(false)(_)),
         "altshift"    -> Subr("altshift",   doAlt(true)(_)),
         "include"     -> Subr("include",    doInclude(_)),
         "popup"       -> Subr("popup",      doPopup(_)),
-        "font"        -> FSubr("font",      { case (env, params) => doFont(env, params)}),
+        "font"        -> Subr("font",       { case List(Str(name)) => Opaque(Utils.mkFont(name))}),
+        "usefont"     -> FSubr("usefont",   { case (env, params) => doFont(env, params)}),
+        "persist"     -> FSubr("persist",   declPersistent),
+        "tickbox"     -> FSubr("tickbox",   declTick),
       )
       locally {
         for { (name, value) <- bindingPrimitives } syntaxEnv.define(name, value)

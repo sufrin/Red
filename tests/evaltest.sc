@@ -1,7 +1,14 @@
 import RedScript.Test._
 
+"""+ 3 4 """.rep
+"constant aaa 3\naaa".rep
+"""+ 3 "x" """.rep
+"""`(`ENV "USER")""".rep
+"""`(ENV "USER")""".rep
 """(ENV "USER")""".rep
 """(PROP "os.name")""".rep
+"`(a b c)".rep
+"""(string "foo" "bar" 23 "pig")""".rep
 """<= "Mac" (PROP "os.name")""".rep
 "(seq 1 2 3)".rep
 "(+)".rep
@@ -25,6 +32,15 @@ import RedScript.Test._
   (val a 3 b 4 3)
   (val a 3 (b 4) b)
   """.rep
+
+"""#fexprs are questionable....
+  |(def' fe args
+  |      (println (eval (hd args)))
+  |      (println (tl args)))
+  |constant a "This is a"
+  |fe a b (c d e)
+  |
+  |""".stripMargin.rep
 
 """
   def (until a b) (if (<= b a) () (cons a (until (+ 1 a) b))))
