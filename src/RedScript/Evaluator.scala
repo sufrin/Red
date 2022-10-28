@@ -236,7 +236,7 @@ class Evaluator {
     "null"      -> Subr("null",       { case List(SExps(Nil)) => Bool(true); case List(_) => Bool(false); case _ => throw SyntaxError("null requires an argument") }),
     "hd"        -> Subr("hd",         { case List(SExps((h::t))) => h; case List(SExps(Nil)) => throw RuntimeError(s"(hd nil)"); case other => RuntimeError("Non-list: (hd $other)") } ),
     "tl"        -> Subr("tl",         { case List(SExps((h::t))) => SExps(t); case List(SExps(Nil)) => throw RuntimeError(s"(tl nil)"); case other => RuntimeError("Non-list: (tl $other)")  } ),
-    "cons"      -> Subr("cons",       { case List(s, SExps(ss)) => SExps(s::ss) }),
+    "cons"      -> Subr("cons",       { case List(s, SExps(ss)) => SExps(s::ss) ; }),
     "++"        -> Subr("++",         { case List(SExps(k0), SExps(k1)) => SExps(k0++k1); case other => throw RuntimeError(s"malformed ++: ${SExps(other)}") } ),
     "fun"       -> FSubr ("fun",      evFun),
     ":="        -> FSubr (":=",       evSet),

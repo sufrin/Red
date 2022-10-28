@@ -1,6 +1,7 @@
 import RedScript.Test._
 
 """+ 3 4 """.rep
+" cons 1 (list 2 3 4) ".rep
 "constant aaa 3\naaa".rep
 """+ 3 "x" """.rep
 """`(`ENV "USER")""".rep
@@ -28,15 +29,15 @@ import RedScript.Test._
 """(val (a 1) (b 2) (+ a b))
   (var (a 1) (b 2) (seq (:= a 3)
                         (:= a (+ a b))
-                        (print "a: " a)))
+                        (println "a: " a)))
   (val a 3 b 4 3)
   (val a 3 (b 4) b)
   """.rep
 
 """#fexprs are questionable....
   |(def' fe args
-  |      (println (eval (hd args)))
-  |      (println (tl args)))
+  |      (seq (println (eval (hd args)))
+  |           (println (tl args))))
   |constant a "This is a"
   |fe a b (c d e)
   |
@@ -63,9 +64,11 @@ import RedScript.Test._
     |>> "A sequence of print; yields the value of the last of them"
     |? "the" "rain" "in" "spain" (SOURCE)
     |seq (println) (println "the" "rain" "in" "spain")
-    |seq (println) (print "the" "rain" "in" "spain")
+    |seq (println) (println (until 0 10))
     |>>"A quoted list"
-    |` (c d e)
+    |`(c d e)
+    |>>"Evalulation of a quoted list"
+    |eval `(println `d `e)
     |>>"An unbracketed composite sexpr on a single line"
     |constant a (fun (x) (cons x (list `c `d `e)))
     |a
@@ -122,7 +125,7 @@ import RedScript.Test._
     |
     |""".stripMargin.rep
 
-  """def (>>> x) (print "Expecting: " x)
+  """def (>>> x) (println "Expecting: " x)
      >>> 1
      (+ 1)
      >>> 6

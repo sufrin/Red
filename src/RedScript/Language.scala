@@ -86,19 +86,11 @@ object Language {
     override def toString = name
   }
 
-
-
-  case class Seq(elements: List[SExp]) extends Const {
-    override def toString = elements.mkString("(", " ", ")")
-  }
-
-
-  val nil = Seq(Nil)
+  val nil = SExps(Nil)
 
   case class SExps(elements: List[SExp]) extends SExp {
     override def toString = elements.mkString("(", " ", ")")
     override def show = elements.map(_.show).mkString("(", " ", ")")
-    // override def evalQuote(env: Env): Const = Seq(elements.map{ case e => e.evalQuote(env)})
     override def isNull = elements.isEmpty
 
     def withErrorHandling(value: => SExp): SExp = {
@@ -112,7 +104,7 @@ object Language {
 
 
     def eval(env0: Env): SExp =
-      if (elements.isEmpty) Seq(Nil) else {
+      if (elements.isEmpty) nil else {
           val operator = elements.head.opVal(env0)
           val result =
             operator match {

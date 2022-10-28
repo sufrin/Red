@@ -569,6 +569,12 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
 
       contents += Separator()
 
+      contents += menuButton(s"RedScript", s"Evaluate the selection as a RedScript (see also \"Append Selection\")") {
+        UI_DO(EditSessionCommands.pipeThroughScript("", replaceSelection = !augmentSelection))
+      }
+
+      contents += Separator()
+
       contents += new CheckMenuItem("Append selection") {
         tooltip  = "When enabled, the original selection is appended to the piped output from the above commands."
         font     = Utils.buttonFont
