@@ -39,7 +39,6 @@ object Persistent {
   abstract class Feature[T](val key: String, val path: String, var _value: T, title: String = "") { feature =>
     def fromString(s: String): T
     def toString(t: T): String = t.toString
-
     def profileString: String = (s"$path.$key=${toString(_value)}")
 
     /** If the feature may have only certain values, then these are the values. */
@@ -95,9 +94,12 @@ object Persistent {
 
     def menuItem: Component = RadioItem(this.choices)
 
+    def layout(choices: Seq[T]): (Boolean, Int) = (true, 0)
+
     def RadioItem(choices: Seq[T]): Component = {
       group = Some(new Group(choices))
-      if (false)
+      val (vertical, cols) = layout(choices)
+      if (vertical)
       Buttons.FixedCol(
         Buttons.Centred(new Label(if (title=="") key else title) { font=Utils.menuButtonFont }),
         Buttons.Row(List(Glue.quad(20))++group.get.items++List(Glue.quad(20)))
@@ -113,16 +115,17 @@ object Persistent {
     val key:           String
     def menuItem:      Component
     def profileString: String
+    val path:          String
   }
 
-  class BoolFeature(key: String, path: String, default: Boolean, title: String = "") extends Feature[Boolean](key, path, default, title) with AnyFeature  {
+  class BoolFeature(_key: String, _path: String, _default: Boolean, _title: String = "") extends Feature[Boolean](_key, _path, _default, _title) with AnyFeature  {
     def fromString(rep: String): Boolean = rep match {
       case "true" => true
       case "false" => false
     }
 
     override def menuItem: Component = {
-      val label = new swing.CheckBox(if (title == "") key else title) {
+      val label = new swing.CheckBox(if (_title == "") key else _title) {
         font = Utils.menuButtonFont
         selected = value
         reactions += { case event.ButtonClicked(_) =>
@@ -133,19 +136,19 @@ object Persistent {
     }
   }
 
-  class StringFeature(key: String, path: String, default: String, title: String="") extends Feature[String](key, path, default, title) with AnyFeature { feature =>
+  class StringFeature(_key: String, _path: String, _default: String, _title: String="") extends Feature[String](_key, _path, _default, _title) with AnyFeature { feature =>
     def fromString(rep: String): String = rep
   }
 
-  class IntFeature(key: String, path: String, default: Int, title: String="") extends Feature[Int](key, path, default, title) with AnyFeature {
+  class IntFeature(_key: String, _path: String, _default: Int, _title: String="") extends Feature[Int](_key, _path, _default, _title) with AnyFeature {
     def fromString(rep: String): Int = rep.toInt
   }
 
-  class LongFeature(key: String, path: String, default: Long, title: String="") extends Feature[Long](key, path, default, title) with AnyFeature  {
+  class LongFeature(_key: String, _path: String, _default: Long, _title: String="") extends Feature[Long](_key, _path, _default, _title) with AnyFeature  {
     def fromString(rep: String): Long = rep.toInt
   }
 
-  class FontFeature(key: String, path: String, default: Font, title: String="") extends Feature[Font](key, path, default, title) with AnyFeature {
+  class FontFeature(_key: String, _path: String, _default: Font, _title: String="") extends Feature[Font](_key, _path, _default, _title) with AnyFeature {
     def fromString(fontName: String): Font = Utils.mkFont(fontName)
     override def toString(f: Font): String = s"${f.getFontName()}/=${f.getStyle}/${f.getSize}"
   }

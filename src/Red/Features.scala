@@ -46,7 +46,6 @@ object Features {
       }
 
 
-
   def menu: DynamicMenu = new DynamicMenu("Profile") {
         font = Utils.menuButtonFont
 
@@ -62,7 +61,10 @@ object Features {
           components.addOne(Separator())
           components.addOne(Separator())
 
-          for { (_, feature) <- features } { components.addOne(feature.menuItem); components.addOne(Separator()) }
+          for { (_, feature) <- features } if (feature.path=="Features") {
+            components.addOne(feature.menuItem)
+            components.addOne(Separator())
+          }
 
           components.addOne(Separator())
           components.addOne(Separator())

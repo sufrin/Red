@@ -1,7 +1,7 @@
 import RedScript.Test._
 
 """+ 3 4 """.rep
-" cons 1 (list 2 3 4) ".rep
+" :: 1 (list 2 3 4) ".rep
 "constant aaa 3\naaa".rep
 """+ 3 "x" """.rep
 """`(`ENV "USER")""".rep
@@ -13,7 +13,7 @@ import RedScript.Test._
 """<= "Mac" (PROP "os.name")""".rep
 "(seq 1 2 3)".rep
 "(+)".rep
-"(null)\n(null 42)\n(cons `a 3)".rep
+"(null)\n(null 42)\n(:: `a 3)".rep
 "(def (Ω a b c) 43 (+ a b c))".rep
 "(def (ΩΩ a b c) (seq 43 (+ a b c)))".rep
 """(def ΩΩΩ all (println "all: " all))""".rep
@@ -44,12 +44,12 @@ import RedScript.Test._
   |""".stripMargin.rep
 
 """
-  def (until a b) (if (<= b a) () (cons a (until (+ 1 a) b))))
-  def (to a b) (if (< b a) () (cons a (to (+ 1 a) b))))
+  def (until a b) (if (<= b a) () (:: a (until (+ 1 a) b))))
+  def (to a b) (if (< b a) () (:: a (to (+ 1 a) b))))
   (until 0 10)
   (to 0 10)
-  (eval (cons `* (to 1 5)))
-  (eval (cons `+ (to 1 5)))
+  (eval (:: `* (to 1 5)))
+  (eval (:: `+ (to 1 5)))
 """.eval
 
 
@@ -70,7 +70,7 @@ import RedScript.Test._
     |>>"Evalulation of a quoted list"
     |eval `(println `d `e)
     |>>"An unbracketed composite sexpr on a single line"
-    |constant a (fun (x) (cons x (list `c `d `e)))
+    |constant a (fun (x) (:: x (list `c `d `e)))
     |a
     |>>"This is a quotation over three lines"
     |`(this is
@@ -93,7 +93,7 @@ import RedScript.Test._
     |variable ay (list `a ``Y)
     |ay
     |eval ay
-    |cons `k ay
+    |:: `k ay
     |(null ay)
     |(hd ay)
     |(tl ay)
@@ -101,7 +101,7 @@ import RedScript.Test._
     |
     |(def (copy xs) (if' [(null xs) nil]
     |                   [true
-    |                    (cons (hd xs)
+    |                    (:: (hd xs)
     |                          (copy (tl xs)))]
     |                   )))
     |(copy ay)
@@ -109,7 +109,7 @@ import RedScript.Test._
     |(def (cat xs ys)
     |     (if (null xs)
     |         ys
-    |         (cons (hd xs)
+    |         (:: (hd xs)
     |               (cat (tl xs) ys)
     |         )
     |      )

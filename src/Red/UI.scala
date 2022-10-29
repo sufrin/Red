@@ -569,8 +569,12 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
 
       contents += Separator()
 
-      contents += menuButton(s"RedScript", s"Evaluate the selection as a RedScript (see also \"Append Selection\")") {
-        UI_DO(EditSessionCommands.pipeThroughScript("", replaceSelection = !augmentSelection))
+      for { program <- Personalised.personalScripts } {
+        contents += menuButton(s"($program Ⓐ ...)", s"Evaluate the script ($program Ⓐ ...)  (see also \"Append Selection\")") {
+          withFilterWarnings(s"($program Ⓐ ...)") {
+            UI_DO(EditSessionCommands.pipeThroughScript(program, argLine.text, findLine.text, replLine.text, replaceSelection = !augmentSelection))
+          }
+        }
       }
 
       contents += Separator()

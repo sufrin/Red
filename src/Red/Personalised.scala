@@ -20,6 +20,8 @@ object Personalised extends Logging.Loggable {
   val personalBlockTypes =  new collection.mutable.ListBuffer[String]
   /** Program names to be placed on the `Pipe` menu */
   val personalPipeNames = new collection.mutable.ListBuffer[String]
+  /** Scripts to be placed on the `Pipe` menu */
+  val personalScripts = new collection.mutable.ListBuffer[String]
 
   def latexBlockTypes: Seq[String] =
   { val default = "foil itemize enumerate - note exercise answer - code -code code* scala alltt - center verbatim comment smaller - question part ans"
@@ -39,11 +41,17 @@ object Personalised extends Logging.Loggable {
       personalPipeNames.toList
   }
 
+  def scripts: Seq[String] =
+  { Bindings.importBindings()
+    personalScripts.toList
+  }
+
   def clearBindings(): Unit = {
     personalPipeNames.clear()
     personalBlockTypes.clear()
+    personalScripts.clear()
     Bindings.clearMapping()
-    Bindings.RedScriptEvaluator.clear()
+    Bindings.RedScriptEvaluator.reset()
   }
 
   def profileWarning(message: String): Unit = warning(s"", message)
@@ -60,8 +68,8 @@ object Personalised extends Logging.Loggable {
 
   object Settings {
     var typeOverSelection: Boolean = true
-    var clickSelects: Boolean = true
-    var autoIndenting: Boolean = true
+    var clickSelects:      Boolean = true
+    var autoIndenting:     Boolean = true
   }
 
 
@@ -109,7 +117,7 @@ object Personalised extends Logging.Loggable {
 
       override def errorFeedback(s: String): Unit = throw AbortBindings(s)
 
-      def clear(): Unit = global.clear()
+      def reset(): Unit = global.clear()
 
       val paths = new collection.mutable.Stack[Path]
 
@@ -163,6 +171,39 @@ object Personalised extends Logging.Loggable {
           case Opaque(font)  => Utils.setFontRoles(font.asInstanceOf[Font], roleNames)
           case Str(fontName) => Utils.setFontRoles(Utils.mkFont(fontName), roleNames)
         }
+        Nothing
+      }
+
+      def declPipes(params: List[SExp]): SExp = {
+        personalPipeNames.clear()
+        val texts =
+        params match {
+          case List(SExps(vals))  =>  vals.map(_.show)
+          case vals               =>  vals.map(_.show)
+        }
+        for { text <- texts } personalPipeNames.addOne(text)
+        Nothing
+      }
+
+      def declBlocks(params: List[SExp]): SExp = {
+        personalBlockTypes.clear()
+        val texts =
+          params match {
+            case List(SExps(vals))  =>  vals.map(_.show)
+            case vals               =>  vals.map(_.show)
+          }
+        for { text <- texts } personalBlockTypes.addOne(text)
+        Nothing
+      }
+
+      def declScripts(params: List[SExp]): SExp = {
+        personalScripts.clear()
+        val texts =
+          params match {
+            case List(SExps(vals))  =>  vals.map(_.show)
+            case vals               =>  vals.map(_.show)
+          }
+        for { text <- texts } personalScripts.addOne(text)
         Nothing
       }
 
@@ -222,14 +263,17 @@ object Personalised extends Logging.Loggable {
         "abbrev"      -> Subr("abbrev",      {  case List(Str(abbr), Str(text)) => mapTo(abbr, text); Nothing }),
         "diacritical" -> Subr("diacritical", doDia(_)),
         "altclear"    -> Subr("altclear",    {  Nil => AltKeyboard.clear(); Nothing }),
-        "altplain"    -> Subr("altplain",   doAlt(false)(_)),
-        "altshift"    -> Subr("altshift",   doAlt(true)(_)),
-        "include"     -> Subr("include",    doInclude(_)),
-        "popup"       -> Subr("popup",      doPopup(_)),
-        "font"        -> Subr("font",       { case List(Str(name)) => Opaque(Utils.mkFont(name))}),
-        "usefont"     -> FSubr("usefont",   { case (env, params) => doFont(env, params)}),
-        "persist"     -> FSubr("persist",   declPersistent),
-        "tickbox"     -> FSubr("tickbox",   declTick),
+        "altplain"    -> Subr("altplain",    doAlt(false)(_)),
+        "altshift"    -> Subr("altshift",    doAlt(true)(_)),
+        "include"     -> Subr("include",     doInclude(_)),
+        "popup"       -> Subr("popup",       doPopup(_)),
+        "font"        -> Subr("font",        { case List(Str(name)) => Opaque(Utils.mkFont(name))}),
+        "usefont"     -> FSubr("usefont",    { case (env, params) => doFont(env, params)}),
+        "persist"     -> FSubr("persist",    declPersistent),
+        "tickbox"     -> FSubr("tickbox",    declTick),
+        "pipes"       -> Subr("pipes",       declPipes),
+        "scripts"     -> Subr("scripts",     declScripts),
+        "latexblocks" -> Subr("latexblocks", declBlocks),
       )
       locally {
         for { (name, value) <- bindingPrimitives } syntaxEnv.define(name, value)

@@ -2,7 +2,7 @@ package Red
 
 import Commands.{Command, StateChange}
 import Red.FilterUtilities.inputStreamOf
-import RedScript.Evaluator
+import RedScript.Language.{SExps, Str, Variable}
 
 import java.nio.file.Path
 import scala.sys.process.{Process, ProcessLogger}
@@ -145,18 +145,13 @@ object EditSessionCommands extends Logging.Loggable {
 
 
 
-  def pipeThroughScript(arg: String, replaceSelection: Boolean = true): SessionCommand = new Filter {
-    val output = new StringBuilder()
-    val evaluator = new Evaluator {
-      override def normalFeedback(s: String): Unit   = output.append(s)
-      override def normalFeedbackLn(s: String): Unit = { output.append(s); output.append('\n') }
-      override def errorFeedback(s: String): Unit    = normalFeedbackLn(s)
-    }
+  def pipeThroughScript(functionName: String, argLine: String, findLine: String, replLine: String, replaceSelection: Boolean = true): SessionCommand = new Filter {
+    val evaluator = Personalised.Bindings.RedScriptEvaluator
+    val global    = evaluator.global
 
     protected override def transform(input: String, cwd: Path): Option[String] = {
          try {
-           evaluator.readEvalPrint(input, true)
-           Some(output.toString())
+           Some(evaluator.run(SExps(List(Variable(functionName), Str(argLine), Str(findLine), Str(replLine), Str(input)))).show)
          } catch {
            case exn => Some(exn.toString)
       }
