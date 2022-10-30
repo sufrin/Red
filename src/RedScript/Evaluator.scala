@@ -225,10 +225,10 @@ class Evaluator {
   var position: SourcePosition = SourcePosition("",0,0)
 
   /**
-   *  The top-level environment binds, as SExpants, names subject to "just-in-time"
+   *  The top-level environment binds, as `SExps`, names subject to "just-in-time"
    *  translation in the parser. When any of the names defined here appear
    *  in an expression they are JIT-translated into their value. This
-   *  means that the cost of evaluating a predefined language form is not
+   *  means that the cost of evaluating a predefined language form, or primitive, is not
    *  dependent on the length of the environment at the time of its evaluation.
    */
   val primitives: List[(String, SExp)] = List(
@@ -244,6 +244,10 @@ class Evaluator {
     ":="        -> FSubr (":=",       evSet),
     "variable"  -> FSubr ("variable", evGlobal(true)),
     "constant"  -> FSubr ("constant", evGlobal(false)),
+    "endsWith"  -> Subr  ("endsWith",   { case List(Str(a), Str(b)) => Bool(a.endsWith(b))}),
+    "startsWith"-> Subr  ("startsWith", { case List(Str(a), Str(b)) => Bool(a.startsWith(b))}),
+    "matches"   -> Subr  ("matches",    { case List(Str(a), Str(b)) => Bool(a.matches(b))}),
+    "contains"  -> Subr  ("contains",   { case List(Str(a), Str(b)) => Bool(a.contains(b))}),
     "var"       -> FSubr ("var",      evLet(true)),
     "val"       -> FSubr ("val",      evLet(false)),
     "if'"       -> FSubr ("if'",      evCond),

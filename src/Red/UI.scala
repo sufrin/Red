@@ -592,109 +592,115 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
 
     } // Pipe Menu
 
-    contents += new Label("        ")
-
-    contents += Button("Tex", toolTip = "Run redpdf now") {
-      saveOperation()
-      UI_DO(EditSessionCommands.latexToPDF)
-    }
-
-    contents += new EmbeddedDynamicMenu("\\begin{...}", { Red.Personalised.latexBlockTypes }) {
-      font = Utils.menuButtonFont
-      prefix += menuButton("%%%%%%%%") {
-        val header =
-          """%%%%%%%%%%%%%%%%%%%%%%%%
-            |%%%%%%%%%%%%%%%%%%%%%%%%
-            |%%%%%%%%%%%%%%%%%%%%%%%%
-            |""".stripMargin
-        UI_DO(EditSessionCommands.latexInsert(header))
-      }
-
-      prefix += Separator()
-
-      def component (block: String): Component = {
-        if (block == "-")
-          Separator()
-        else
-          menuButton(s"""\\begin{$block}""") { UI_DO(EditSessionCommands.latexBlock(block)) }
-      }
-
-      // contents ++= dynamic
-
-      suffix += Separator()
-      suffix += menuButton("\\begin{\u24b6}", "Embed selection in latex block named in \u24b6") {
-        UI_DO(EditSessionCommands.latexBlock(argLine.text.trim))
-      }
-
-      suffix += menuButton("""\begin{...}->...""", "Extract content of selected latex block") {
-        UI_DO(EditSessionCommands.latexUnblock)
-      }
-
-      suffix += Separator()
-
-      // Infrequent additions
-      suffix += new Menu("Class") {
+    // Latex matters
 
 
-        contents += menuButton("\\documentclass{article}") {
-          val up = "\\usepackage[]{}"
-          val header =
-            s"""\\documentclass[11pt,a4paper]{article}
-               |%%%%%%%%%%%%%%%%%%%%%
-               |$up
-               |%%%%%%%%%%%%%%%%%%%%%
-               |\\author{}
-               |\\title{}
-               |\\date{}
-               |%%%%%%%%%%%%%%%%%%%%%
-               |\\begin{document}
-               |\\maketitle
-               |
-               |\\end{document}
-               |""".stripMargin
-          UI_DO(EditSessionCommands.latexInsert(header))
+    if (Red.Personalised.needLatex(theSession.path)) {
+
+        contents += new Label("        ")
+
+        contents += Button("Tex", toolTip = "Run redpdf now") {
+          saveOperation()
+          UI_DO(EditSessionCommands.latexToPDF)
         }
 
-        contents += menuButton("\\documentclass{letter}") {
-          val header =
-            s"""\\documentclass[12pt,lab|wor|home|magd,bernard|sufrin]{letter} %
-               |\\To{lines\\\\of\\\\mailing address}
-               |\\Dear[Dear]{Victim}
-               |\\Re{subject matter}
-               |    This is the body
-               |\\Ps{ps paragraph}
-               |\\PostSig{post signature para}
-               |\\Cc{carrbon1, carbon2, ...}
-               |\\Sign[yours sincerely]{Bernard Sufrin}
-               |""".stripMargin
-          UI_DO(EditSessionCommands.latexInsert(header))
-        }
+        contents += new EmbeddedDynamicMenu("\\begin{...}", { Red.Personalised.latexBlockTypes }) {
+          font = Utils.menuButtonFont
+          prefix += menuButton("%%%%%%%%") {
+            val header =
+              """%%%%%%%%%%%%%%%%%%%%%%%%
+                |%%%%%%%%%%%%%%%%%%%%%%%%
+                |%%%%%%%%%%%%%%%%%%%%%%%%
+                |""".stripMargin
+            UI_DO(EditSessionCommands.latexInsert(header))
+          }
 
-        contents += Separator()
-        contents += Separator()
+          prefix += Separator()
 
-        contents += menuButton("Tex source := \u24b6", toolTip = "Change default tex source using dialogue or nonempty \u24b6 field") {
-          var text = argLine.text.trim
-          if (text.isEmpty) {
-            val chooser = fileChooser
-            chooser.showOpenDialog(top) match {
-              case Approve => text = chooser.selectedFile.toString
-              case Cancel  => text = ""
+          def component (block: String): Component = {
+            if (block == "-")
+              Separator()
+            else
+              menuButton(s"""\\begin{$block}""") { UI_DO(EditSessionCommands.latexBlock(block)) }
+          }
+
+          // contents ++= dynamic
+
+          suffix += Separator()
+          suffix += menuButton("\\begin{\u24b6}", "Embed selection in latex block named in \u24b6") {
+            UI_DO(EditSessionCommands.latexBlock(argLine.text.trim))
+          }
+
+          suffix += menuButton("""\begin{...}->...""", "Extract content of selected latex block") {
+            UI_DO(EditSessionCommands.latexUnblock)
+          }
+
+          suffix += Separator()
+
+          // Infrequent additions
+          suffix += new Menu("Class") {
+
+
+            contents += menuButton("\\documentclass{article}") {
+              val up = "\\usepackage[]{}"
+              val header =
+                s"""\\documentclass[11pt,a4paper]{article}
+                   |%%%%%%%%%%%%%%%%%%%%%
+                   |$up
+                   |%%%%%%%%%%%%%%%%%%%%%
+                   |\\author{}
+                   |\\title{}
+                   |\\date{}
+                   |%%%%%%%%%%%%%%%%%%%%%
+                   |\\begin{document}
+                   |\\maketitle
+                   |
+                   |\\end{document}
+                   |""".stripMargin
+              UI_DO(EditSessionCommands.latexInsert(header))
+            }
+
+            contents += menuButton("\\documentclass{letter}") {
+              val header =
+                s"""\\documentclass[12pt,lab|wor|home|magd,bernard|sufrin]{letter} %
+                   |\\To{lines\\\\of\\\\mailing address}
+                   |\\Dear[Dear]{Victim}
+                   |\\Re{subject matter}
+                   |    This is the body
+                   |\\Ps{ps paragraph}
+                   |\\PostSig{post signature para}
+                   |\\Cc{carrbon1, carbon2, ...}
+                   |\\Sign[yours sincerely]{Bernard Sufrin}
+                   |""".stripMargin
+              UI_DO(EditSessionCommands.latexInsert(header))
+            }
+
+            contents += Separator()
+            contents += Separator()
+
+            contents += menuButton("Tex source := \u24b6", toolTip = "Change default tex source using dialogue or nonempty \u24b6 field") {
+              var text = argLine.text.trim
+              if (text.isEmpty) {
+                val chooser = fileChooser
+                chooser.showOpenDialog(top) match {
+                  case Approve => text = chooser.selectedFile.toString
+                  case Cancel  => text = ""
+                }
+              }
+              if (text.nonEmpty) theSession.TEX=Utils.toPath(text)
+              feedbackPersistently(s"Tex source: ${theSession.TEX.toString}")
+            }
+
+            contents += menuButton(s"Default tex source := ${theSession.path}", toolTip = "Change default latex source to current file") {
+              theSession.TEX=Utils.toPath(theSession.path)
+              feedbackPersistently(s"Tex source: ${theSession.TEX.toString}")
             }
           }
-          if (text.nonEmpty) theSession.TEX=Utils.toPath(text)
-          feedbackPersistently(s"Tex source: ${theSession.TEX.toString}")
+
         }
 
-        contents += menuButton(s"Default tex source := ${theSession.path}", toolTip = "Change default latex source to current file") {
-          theSession.TEX=Utils.toPath(theSession.path)
-          feedbackPersistently(s"Tex source: ${theSession.TEX.toString}")
-        }
-      }
-
+        contents += Glue.horizontal()
     }
-
-    contents += Glue.horizontal()
 
     contents += Button("Pandoc", toolTip = "Run redpandoc now") {
       saveOperation()

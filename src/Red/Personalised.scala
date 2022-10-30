@@ -32,6 +32,14 @@ object Personalised extends Logging.Loggable {
     personalBlockTypes.toList
   }
 
+  def needLatex(path: String): Boolean = {
+    val sexp = SExps(List(Variable("latexFeatures"),  Str(path)))
+    Bindings.RedScriptEvaluator.run(sexp) match {
+      case Bool(false) => false
+      case _           => true
+    }
+  }
+
   def pipeNames: Seq[String] =
   { val default = "wc; ls -lt; printenv"
     Bindings.importBindings()
