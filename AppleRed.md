@@ -1,3 +1,14 @@
+---
+title: No Frills Red
+author: Bernard Sufrin
+fontfamily: DejaVu Sans
+mainfont: DejaVuSerif.ttf
+sansfont: DejaVuSans.ttf
+monofont: DejaVuSansMono.ttf 
+mathfont: DejaVuSans.ttf
+header-includes:
+  - '`\usepackage{unicode-math}`{=xelatex}'
+---
 # Red (Version 1.0)
 
 ## Introduction
@@ -23,7 +34,7 @@ that has an interface to the system clipboard.
 
 --------------
 
-I have used Red mainly for preparing **`latex`** and **`markdown`**
+I have used Red mainly for preparing **`(xe-)latex`** and **`markdown`**
 manuscripts, as well as for preparing programs that don't warrant
 the burden of getting to grips with an IDE.
 
@@ -54,16 +65,30 @@ The **`Tex`** button on the menu bar generates `pdf` from the
 (default tex) source manuscript -- usually, but not necessarily,
 the manuscript being edited -- using a script `redpdf` that is
 expected to be somewhere on the user's `PATH`.  The `OS/X` `redpdf`
-I use assumes that the manuscript is in latex format, and invokes
-`pdflatex` with appropriate parameters before invoking the `pdf`
-viewer `Skim`.
+I use assumes that the manuscript is in latex format (`xelatex` format
+if its first line is the comment `%xelatex`), and invokes
+`pdflatex` (or `xelatex`) with appropriate parameters before
+invoking the `pdf` viewer `Skim`.
 
 The **`Pandoc`** button on the menu bar
 typesets the manuscript being edited -- using the
 script `redpandoc`. The `OS/X` `redpandoc` I use
-assumes that the manuscript is in `markdown+tex_math_dollars` format. 
-$$e^{i\pi}+1=0$$
+assumes that the manuscript is in `markdown+tex_math_dollars` format;
+and uses `xelatex` as its final `--pdf-engine`; so you can use a
+wide variety of Unicode symbols directly in the manuscript. For example:
+
+        $$e^{iπ}+1=0$$
+
+yields:
+
+$$e^{iπ}+1=0$$
+
 See what I mean?
+
+It's possible, but pretty pointless, to revert to straight
+`pdflatex`: you just deny yourself the use of a fuller range of
+Unicode characters in your manuscript.
+
 
 ### `SyncTex` features
 

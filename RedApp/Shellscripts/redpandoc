@@ -18,7 +18,7 @@ echo "PDF:    " $pdffile
 echo "CWD:    " $cwd
 echo "+++++++++++++++++++++++++++++++"
 
-(cd $cwd ; pandoc -f markdown+tex_math_dollars --output=$pdffile $inputfile)
+(cd $cwd ; pandoc --pdf-engine=xelatex -f markdown+tex_math_dollars --output=$pdffile $inputfile)
 
 if [ $(uname) = Linux ]
 then
