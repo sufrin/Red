@@ -15,7 +15,7 @@ class Evaluator {
   /**
    * A multi-branched conditional expression takes the form:
    *
-   * `(if' (cond thenExpr)*)` -- zero or more (condition, expr) pairs
+   * `(if' (cond . thenExpr)*)` -- zero or more (condition, expr) pairs
    *
    * It yields `Nothing` if no condition yields true; else
    * it yields the value of the `thenExpr` paired with the first
@@ -25,18 +25,20 @@ class Evaluator {
     def evCases(cases: List[SExp]): SExp = cases match {
       case Nil => Nothing
 
-      case SExps(List(pred, thenPart)) :: cases =>
+      case Pair(pred, thenPart) :: cases =>
         pred.eval(env) match {
           case Bool(true) => thenPart.eval(env)
           case Bool(false) => evCases(cases)
           case other => throw RuntimeError(s"condition evaluates to a non-Bool: $other", Some(pred))
         }
 
-      case other => throw SyntaxError(s"Malformed if': ${cases.mkString(" ")}")
+      case List(default) => default.eval(env)
+
+      case other => throw SyntaxError(s"Malformed conditional: ${cases.mkString(" ")}")
     }
     body match {
       case SExps(cases) => evCases(cases)
-      case other => throw SyntaxError(s"Malformed conditional (if $body)")
+      case _            => throw SyntaxError(s"Malformed conditional body $body")
     }
   }
 
@@ -92,14 +94,19 @@ class Evaluator {
       case SExps(pairs) if pairs.length >= 2 =>
         try {
           val bindings = (for {i <- 0 until pairs.length - 1} yield pairs(i)).toList
-          val bvs = bindings.map { case SExps(List(bv, _)) => bv }
+          val bvs = bindings.map { case SExps(List(bv, _)) => bv; case Pair(bv, _) => bv }
           // val bvs = (for { SExps(List(bv, _)) <- bindings } yield bv).toList
           val args =
             if (isVar)
-              for {SExps(List(bv, expr)) <- bindings} yield Ref(bv.toString, expr.eval(env))
+              for { binding <- bindings} yield binding match {
+                case SExps(List(bv, expr)) => Ref(bv.toString, expr.eval(env))
+                case Pair(bv, expr)        => Ref(bv.toString, expr.eval(env))
+              }
             else
-              for {SExps(List(_, expr)) <- bindings} yield expr.eval(env)
-
+              for { binding <- bindings} yield binding match {
+                case SExps(List(bv, expr)) => expr.eval(env)
+                case Pair(bv, expr)        => expr.eval(env)
+              }
           val body = pairs.last
             body.eval(env.extend(SExps(bvs), args.toList))
         } catch {
@@ -118,25 +125,57 @@ class Evaluator {
     case _                                      => false
   }
 
-  def evDef(isFexpr: Boolean)(env: Env, form: SExp): SExp = {
+  def evDef(env: Env, form: SExp): SExp = {
     form match {
+      //   def (f . arg) body
+      case SExps(Pair(Variable(name),  (allArg: Variable))  :: body) =>
+        global.define(name, ExprAll(env, allArg, mkSequential(body)) )
+        Nothing
       //   def (f a b c) body
       case SExps(SExps(Variable(name) :: pattern) :: body) if isPattern(pattern) =>
-           global.define(name, (if (isFexpr) FExpr else Expr)(env, SExps(pattern) , mkSequential(body)))
+           global.define(name, Expr(env, SExps(pattern), mkSequential(body)))
            Nothing
-      // def f all body
-      case SExps(Variable(name) :: (allArgs@Variable(_)) :: body) =>
-           global.define(name, (if (isFexpr) FExpr else Expr)(global, allArgs, mkSequential(body)))
-           Nothing
-      case _ => throw SyntaxError(s"Malformed definition: should be (def (f (args) ...)) or (def f arg ...)")
+      case _ => throw SyntaxError(s"Malformed definition $form: should be (def (f . args)  ...) or (def (f arg  ...) ...)")
     }
+  }
+
+  def evDefForm(env: Env, form: SExp): SExp = {
+    form match {
+      //   def (f arg) body
+      case SExps(SExps(Variable(name) :: (pattern@Pair(_: Variable, _: Variable)) :: Nil) :: body) =>
+        global.define(name, FExprAll(env, pattern, mkSequential(body)) )
+        Nothing
+      //   def (f a b c) body
+      case SExps(SExps(Variable(name) :: pattern) :: body) if isPattern(pattern) =>
+        global.define(name, FExpr(env, SExps(pattern), mkSequential(body)))
+        Nothing
+      case _ => throw SyntaxError(s"Malformed definition: should be (def (f . args)  ...) or (def (f arg  ...) ...)")
+    }
+  }
+
+  def evMap(env: Env, form: SExp): SExp = form match {
+    case SExps(pairs) => EnvExpr(new LocalEnv(pairs.map { case (SExps(List(d, r))) => (d.eval(env).toPlainString, r.eval(env)) }))
   }
 
   def evFun(env: Env, form: SExp): SExp = {
     form match {
-      // expr (a b c) body
+      // fun var body -- binds all params to the variable
+      case SExps((all: Variable) :: body) => ExprAll(env, all, mkSequential(body))
+      // fun (a b c) body -- binds params to the right number of args
       case SExps(pattern :: body) if isPattern(pattern) => Expr(env, pattern, mkSequential(body))
-      // expr all bosy
+      // incorrect
+      case SExps(pattern :: body) if !isPattern(pattern) => throw SyntaxError(s"Malformed parameter(s): ${pattern.position}")
+      case _ => throw SyntaxError(s"Malformed function expression: $form")
+    }
+  }
+
+  def evForm(env: Env, form: SExp): SExp = {
+    form match {
+      // form (env . args) body
+      case SExps((pattern: Pair) :: body)  => FExprAll(env, pattern, mkSequential(body))
+      // form (a b c) body
+      case SExps(pattern :: body) if isPattern(pattern) => FExpr(env, pattern, mkSequential(body))
+      // form all body
       case SExps(pattern :: body) if !isPattern(pattern) => throw SyntaxError(s"Malformed parameter(s): ${pattern.position}")
       case _ => throw SyntaxError(s"Malformed function expression: $form")
     }
@@ -145,9 +184,9 @@ class Evaluator {
   def evShow(args: List[SExp]): SExp =  {
     args match {
       case Nil => Str("")
-      case List(c) => Str(c.show)
+      case List(c) => Str(c.toPlainString)
       case cs =>
-        Str(cs.map(_.show).mkString("[", " ", "]"))
+        Str(cs.map(_.toPlainString).mkString("[", " ", "]"))
     }
   }
 
@@ -194,7 +233,7 @@ class Evaluator {
 
   /** `op`-(left)reduction of the arguments as a whole */
   def redString(name: String, op: (String,String)=>String):Subr = {
-    val opn: (SExp,SExp)=>SExp  = { case (a,b) => Str(op(a.show, b.show)) }
+    val opn: (SExp,SExp)=>SExp  = { case (a,b) => Str(op(a.toPlainString, b.toPlainString)) }
     fun(name, { case args: List[SExp] if (args.nonEmpty) => args.reduceLeft(opn(_,_)) })
   }
 
@@ -239,8 +278,6 @@ class Evaluator {
     "::"        -> Subr("::",         { case List(s, SExps(ss)) => SExps(s::ss)  }),
     "member"    -> Subr("member",     { case List(s, SExps(ss)) => Bool(ss.contains(s))  }),
     "++"        -> Subr("++",         { case List(SExps(k0), SExps(k1)) => SExps(k0++k1); case other => throw RuntimeError(s"malformed ++: ${SExps(other)}") } ),
-    "fun"       -> FSubr ("fun",      evFun),
-    "\u03bb"    -> FSubr ("\u03bb",   evFun),  // lambda
     ":="        -> FSubr (":=",       evSet),
     "variable"  -> FSubr ("variable", evGlobal(true)),
     "constant"  -> FSubr ("constant", evGlobal(false)),
@@ -250,24 +287,36 @@ class Evaluator {
     "contains"  -> Subr  ("contains",   { case List(Str(a), Str(b)) => Bool(a.contains(b))}),
     "var"       -> FSubr ("var",      evLet(true)),
     "val"       -> FSubr ("val",      evLet(false)),
-    "if'"       -> FSubr ("if'",      evCond),
+    "if*"       -> FSubr ("if*",      evCond),
     "if"        -> FSubr ("if",       evIf),
-    "def"       -> FSubr ("def",      evDef(false)),
-    "def'"      -> FSubr ("def'",     evDef(true)),
+    "eval"      -> Subr("eval",       {
+      case List(expr) => expr.eval(global)
+      case List(EnvExpr(env), expr) => expr.eval(env)
+     }),
+    "def"       -> FSubr ("def",      evDef),
+    "defFun"    -> FSubr ("defFun",   evDef),
+    "defForm"   -> FSubr ("defForm",  evDefForm),
+    "form"      -> FSubr ("form",     evForm),
+    "fun"       -> FSubr ("fun",      evFun),
+    "\u03bb"    -> FSubr ("\u03bb",   evFun),  // lambda
+    "@"         -> Subr  ("@",        {
+      case List(EnvExpr(env), arg) => env.apply(arg.toPlainString) match { case None => Nothing; case Some(value) => value}
+    }),
+    "map"       -> FSubr  ("map",     evMap),
     "seq"       -> Subr  ("seq",      { case Nil => Nothing; case args => args.last }),
-    "readEval"  -> Subr  ("readEval", { case Str(text) :: Bool(show) :: rest => readEvalPrint(text, show); Nothing}),
-    "println"   -> Subr  ("println",  { case args => args.foreach{ case k => normalFeedback(k.show); normalFeedback(" ") } ; normalFeedbackLn(""); Nothing }),
-    "?"         -> Subr  ("?",        { case args => args.foreach{ case k => normalFeedback(k.show); normalFeedback(" ") }; args.last }),
-    "show"      -> Subr  ("show",     evShow(_)),
+    "readEvalPrint"  -> Subr  ("readEvalPrint", { case Str(text) :: Bool(show) :: rest => readEvalPrint(text, show); Nothing}),
+    "println"   -> Subr  ("println",  { case args => args.foreach{ case k => normalFeedback(k.toPlainString); normalFeedback(" ") } ; normalFeedbackLn(""); Nothing }),
+    "?"         -> Subr  ("?",        { case args => args.foreach{ case k => normalFeedback(k.toPlainString); normalFeedback(" ") }; args.last }),
+    "toPlainString" -> Subr  ("toPlainString",     evShow(_)),
     "list"      -> Subr  ("list",     { args => SExps(args)}),
     "isAtom"    -> forall("isAtom")   { case Quote(Variable(_)) => true; case _ => false },
     "isSymb"    -> forall("isSymb")   { case Quote(v@Variable(_)) => v.symbolic; case _ => false },
     "isVar"     -> forall("isVar")    { case Quote(v@Variable(_)) => !v.symbolic; case _ => false },
-    "isNum"     -> forall("isNum")    { case Num(_)=>true; case _ => false },
-    "isList"    -> forall("isList")   { case SExps(_)=>true; case _ => false },
-    "isString"  -> forall("isString") { case Str(_)=>true; case _ => false },
+    "isNum"     -> forall("isNum")    { case Num(_)=>true;    case _ => false },
+    "isList"    -> forall("isList")   { case SExps(_)=>true;  case _ => false },
+    "isString"  -> forall("isString") { case Str(_)=>true;    case _ => false },
+    "isNothing" -> forall("isNothing"){ case Nothing => true; case _ => false },
     "toString"  -> Subr("toString",   { case List(sexp) => Str(sexp.toString);  case other => throw RuntimeError(s"malformed toString: $other") }),
-    "eval"      -> FSubr("eval",      { case (env, SExps(List(expr))) => expr.eval(env).evalQuote(env)}),
     "&&"        -> forall("&&")       { case Bool(b)=> b },
     "||"        -> exists("||")       { case Bool(b)=> b },
     "string"    -> redString("string", (_.+(_))),
@@ -318,7 +367,7 @@ class Evaluator {
     try {
       while (parser.nextSymb() != Lexical.EOF) try {
         val e = parser.read
-        if (show) normalFeedback(s"${e.position}: $e => ")
+        if (show) normalFeedbackLn(s"${e.position}: $e => «")
         val result = try run(e) catch {
           case exn: RuntimeError => exn
           case exn: SyntaxError => exn
@@ -326,15 +375,15 @@ class Evaluator {
         result match {
           case Nothing          =>
           case _ if result==nil =>
-          case _                => if (show) normalFeedback(s"$result\n") else errorFeedback(s"${result.show}\n")
+          case _                => if (show) normalFeedbackLn(s"$result »") else normalFeedbackLn(result.toPlainString)
         }
 
       } catch {
-        case exn: SyntaxError => errorFeedback(exn.show)
+        case exn: SyntaxError => errorFeedback(exn.toPlainString)
       }
     }
     catch {
-      case exn: SyntaxError => errorFeedback(exn.show)
+      case exn: SyntaxError => errorFeedback(exn.toPlainString)
       case exn: Exception   => errorFeedback(exn.toString)
     }
   }

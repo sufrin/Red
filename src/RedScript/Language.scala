@@ -41,7 +41,7 @@ object Language {
      */
     var position: SourcePosition = SourcePosition("",-1,-1)
 
-    def show: String              = this.toString
+    def toPlainString: String = this.toString
   }
 
   abstract trait LoadUpdate extends SExp {
@@ -70,7 +70,6 @@ object Language {
            throw RuntimeError(s"Unbound variable $name\n($position)")
       case Some(v) => v match {
         case lup: LoadUpdate => lup.value
-        case _:   Indirect   => v.eval(env)
         case _               => v
       }
     }
@@ -90,7 +89,7 @@ object Language {
 
   case class SExps(elements: List[SExp]) extends SExp {
     override def toString = elements.mkString("(", " ", ")")
-    override def show = elements.map(_.show).mkString("(", " ", ")")
+    override def toPlainString = elements.map(_.toPlainString).mkString("(", " ", ")")
     override def isNull = elements.isEmpty
 
     def withErrorHandling(value: => SExp): SExp = {
@@ -126,11 +125,25 @@ object Language {
                   body.eval(env1.extend(params, args))
                 }
 
+              case ExprAll(env1, variable, body) =>
+                withErrorHandling {
+                  val args = elements.tail.map(_.eval(env0))
+                  body.eval(env1.extend(variable, args))
+                }
+
+
               case FExpr(env1, params, body) =>
                 withErrorHandling {
-                  val args = elements.tail.map(Quote(_))
-                  body.eval(env1.extend(params, args))
+                  val args = elements.tail
+                  body.eval(env1.extend(params, EnvExpr(env0)::args))
                 }
+
+              case FExprAll(env1, Pair(envArg: Variable, argsArg: Variable), body) =>
+                withErrorHandling {
+                  val args = elements.tail
+                  body.eval(env1.extend(SExps(List(envArg, argsArg)), List(EnvExpr(env0), SExps(args))))
+                }
+
 
               case other =>
                 throw RuntimeError(s"$operator is not a functional value: $this ($position)")
@@ -148,7 +161,13 @@ object Language {
     def eval(env: Env): Const = this
   }
 
-  trait Indirect extends Const {
+  case class Pair(l: SExp, r: SExp) extends SExp {
+   override def toString: String = s"($l . $r)"
+   def eval(env: Env): SExp = new ConstPair(l.eval(env), r.eval(env))
+  }
+
+  class ConstPair(l: SExp, r: SExp) extends Pair(l, r) with Const {
+    override def eval(env: Env): Const = this
   }
 
   case class Num(value: Int) extends Const {
@@ -162,15 +181,30 @@ object Language {
 
   case class Str(value: String) extends Const {
     override def toString = s"\"$value\""
-    override def show = value
+    override def toPlainString = value
   }
 
   case class Expr(env: Env, pattern: SExp, body: SExp) extends Const {
-    override def toString = s"(expr $pattern $body)"
+    override def toString = s"(fun $pattern $body)"
+  }
+
+  case class ExprAll(env: Env, pattern: Variable, body: SExp) extends Const {
+    override def toString = s"(fun $pattern $body)"
   }
 
   case class FExpr(env: Env, pattern: SExp, body: SExp) extends Const {
-    override def toString = s"(fexpr $pattern $body)"
+    override def toString = s"(form $pattern $body)"
+  }
+
+  case class FExprAll(env: Env, pattern: Pair, body: SExp) extends Const {
+    override def toString = s"(form $pattern $body)"
+  }
+
+  case class EnvExpr(env: Env) extends Const {
+    override def toString: String = {
+      val maplets = env.maplets.map { case (k, v) => s"\"$k\" -> $v" }
+      maplets.mkString("(map ", " ", ")")
+    }
   }
 
   case class Subr(name: String, scala: List[SExp] => SExp) extends Const {
@@ -188,7 +222,7 @@ object Language {
 
   case class Quote(value: SExp) extends SExp {
     override def toString = s"`$value"
-    override def show     = value.show
+    override def toPlainString     = value.toPlainString
     override def eval(env: Env): SExp = value
   }
 

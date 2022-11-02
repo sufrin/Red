@@ -136,7 +136,7 @@ class Document(textSize: Int=400, lineCount: Int=40)
    *       for recompressing expanded tabs.
    *       One idea is to expand tabs into sequences of tabs on input; then
    *       compress such sequences to single tabs on output. It appears that
-   *       most fonts show tabs as if they were single spaces....
+   *       most fonts toPlainString tabs as if they were single spaces....
    */
   def writeTo(out: java.io.BufferedWriter): Unit = {
     characters.writeTo(out, 1)

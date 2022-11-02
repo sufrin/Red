@@ -1,6 +1,6 @@
 package Red
 
-import RedScript.Language.{Bool, Const, LoadUpdate, Nothing, Num, Opaque, RuntimeError, SExp, SExps, Str, Variable}
+import RedScript.Language._
 import RedScript.{Env, Evaluator, Language}
 import Useful.PrefixMap
 
@@ -123,7 +123,16 @@ object Personalised extends Logging.Loggable {
 
     object RedScriptEvaluator extends Evaluator {
 
+      case class UserInput(input: Red.UserInput) extends Const
+      case class FontExpr(name: String, font: Font) extends Const {
+        override def toString: String = s"(font \"$name\")"
+      }
+
+      val output = new StringBuilder()
+
       override def errorFeedback(s: String): Unit = throw AbortBindings(s)
+      override def normalFeedback(s: String): Unit = output.append(s)
+      override def normalFeedbackLn(s: String): Unit = output.append(s)
 
       def reset(): Unit = global.clear()
 
@@ -154,7 +163,7 @@ object Personalised extends Logging.Loggable {
       }
 
       def doPopup(message: List[SExp]): SExp = {
-        val lines = message.map(_.show).mkString("", "\n", "")
+        val lines = message.map(_.toPlainString).mkString("", "\n", "")
         Dialog.showMessage(
           null,
           lines,
@@ -172,12 +181,12 @@ object Personalised extends Logging.Loggable {
       }
 
       /** Implements {{{(usefont font role1 role2 ...)}}} */
-      def doFont(env: Env, params: SExp) : SExp = {
+      def useFont(env: Env, params: SExp) : SExp = {
         val SExps(font :: roles) = params
         val roleNames = for {case Variable(role) <- roles} yield role
         font.eval(env) match {
-          case Opaque(font)  => Utils.setFontRoles(font.asInstanceOf[Font], roleNames)
-          case Str(fontName) => Utils.setFontRoles(Utils.mkFont(fontName), roleNames)
+          case FontExpr(fontName, font)  => Utils.setFontRoles(font, roleNames)
+          case Str(fontName)             => Utils.setFontRoles(Utils.mkFont(fontName), roleNames)
         }
         Nothing
       }
@@ -186,8 +195,8 @@ object Personalised extends Logging.Loggable {
         personalPipeNames.clear()
         val texts =
         params match {
-          case List(SExps(vals))  =>  vals.map(_.show)
-          case vals               =>  vals.map(_.show)
+          case List(SExps(vals))  =>  vals.map(_.toPlainString)
+          case vals               =>  vals.map(_.toPlainString)
         }
         for { text <- texts } personalPipeNames.addOne(text)
         Nothing
@@ -197,8 +206,8 @@ object Personalised extends Logging.Loggable {
         personalBlockTypes.clear()
         val texts =
           params match {
-            case List(SExps(vals))  =>  vals.map(_.show)
-            case vals               =>  vals.map(_.show)
+            case List(SExps(vals))  =>  vals.map(_.toPlainString)
+            case vals               =>  vals.map(_.toPlainString)
           }
         for { text <- texts } personalBlockTypes.addOne(text)
         Nothing
@@ -208,8 +217,8 @@ object Personalised extends Logging.Loggable {
         personalScripts.clear()
         val texts =
           params match {
-            case List(SExps(vals))  =>  vals.map(_.show)
-            case vals               =>  vals.map(_.show)
+            case List(SExps(vals))  =>  vals.map(_.toPlainString)
+            case vals               =>  vals.map(_.toPlainString)
           }
         for { text <- texts } personalScripts.addOne(text)
         Nothing
@@ -219,12 +228,13 @@ object Personalised extends Logging.Loggable {
       def declPersistent(env: Env, params: SExp) : Const = {
         val SExps(Variable(name) :: args) = params
         val Str(path) :: Str(title) :: _value :: SExps(_choices) :: update = args.map(_.eval(env))
-        val feature = new Persistent.StringFeature(name, path, _value.show, title) {
-          override def choices: Seq[String] = _choices.map(_.show)
+        val feature = new Persistent.StringFeature(name, path, _value.toPlainString, title) {
+          override def choices: Seq[String] = _choices.map(_.toPlainString)
           override def toString(t: String): String = t
         }
 
         val persist = new LoadUpdate {
+          override def toString: String = value.toString
           override def value: SExp = _value match {
             case _: Bool => Bool(feature.value.toBoolean)
             case _: Num => Num(feature.value.toInt)
@@ -251,6 +261,7 @@ object Personalised extends Logging.Loggable {
         val Str(path) :: Str(title) :: Bool(value) :: update = args.map(_.eval(env))
         val feature = new Persistent.BoolFeature(name, path, value, title)
         val persist = new LoadUpdate {
+          override def toString: String = value.toString
           override def value: SExp = Bool(feature.value)
           override def setValue(newValue: SExp): Unit = newValue match {
             case Bool(bool) => feature.value=bool
@@ -275,13 +286,23 @@ object Personalised extends Logging.Loggable {
         "altshift"    -> Subr("altshift",    doAlt(true)(_)),
         "include"     -> Subr("include",     doInclude(_)),
         "popup"       -> Subr("popup",       doPopup(_)),
-        "font"        -> Subr("font",        { case List(Str(name)) => Opaque(Utils.mkFont(name))}),
-        "usefont"     -> FSubr("usefont",    { case (env, params) => doFont(env, params)}),
+        "hashCode"    -> Subr("hashCode",    { case List(value) => Num(value.hashCode) }),
+        "UI2S"        -> Subr("UI2S",        { case List(UserInput(in)) => Str(in.toInput) }),
+        "font"        -> Subr("font",        { case List(Str(name)) => FontExpr(name, Utils.mkFont(name))}),
+        "useFont"     -> FSubr("useFont",    useFont),
         "persist"     -> FSubr("persist",    declPersistent),
         "tickbox"     -> FSubr("tickbox",    declTick),
         "pipes"       -> Subr("pipes",       declPipes),
         "scripts"     -> Subr("scripts",     declScripts),
         "latexblocks" -> Subr("latexblocks", declBlocks),
+        "readEval"    -> Subr  ("readEval", {
+              case Str(text) :: Bool(show) :: rest =>
+                   output.clear()
+                   readEvalPrint(text, show)
+                   val result = output.toString()
+                   output.clear()
+                   Str(result)
+        }),
       )
       locally {
         for { (name, value) <- bindingPrimitives } syntaxEnv.define(name, value)

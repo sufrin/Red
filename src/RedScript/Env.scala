@@ -11,6 +11,8 @@ trait Env {
 
   def print(level: Int=0): Unit
 
+  def maplets: List[(String, SExp)]
+
   /**
    * The environment that extends this by binding
    * successive variables in the pattern to successive
@@ -28,7 +30,7 @@ trait Env {
         if (patterns.length==values.length)
            new LocalEnv(patterns.map {  case Variable(v) => v }.zip(values), Some(thisEnv))
         else
-           throw RuntimeError(s"Not enough values: binding $patterns to $values")
+           throw RuntimeError(s"${patterns.length} variables ${values.length} values: binding $patterns to $values")
 
       case SExps(patterns) if !patterns.forall(_.isInstanceOf[Variable]) =>
         throw SyntaxError(s"Pattern must be a sequence of variables: binding $patterns to $values")
@@ -52,10 +54,15 @@ class LocalEnv(pairs: List[(String, SExp)], derivedFrom: Option[Env] = None) ext
     }
   }
 
+  def maplets: List[(String, SExp)] = pairs ++ (if (derivedFrom.isEmpty) Nil else derivedFrom.get.maplets)
+
   def print(level: Int): Unit = {
     Console.print(" "*level)
     Console.println("«")
-    for  { (name, value) <- pairs } { Console.print(" "*(1+level)); Console.println(s"$name -> $value") }
+    for  { (name, value) <- pairs } {
+      Console.print(" "*(1+level))
+      Console.println(s"$name -> $value")
+    }
     if (derivedFrom.nonEmpty) derivedFrom.get.print(level+1)
     Console.print(" "*(level)); Console.println("»")
   }
@@ -71,9 +78,9 @@ class LocalEnv(pairs: List[(String, SExp)], derivedFrom: Option[Env] = None) ext
 
   override def toString: String =
     if (derivedFrom.isEmpty)
-      pairs.mkString("(", "->", ")")
+      pairs.map{case (n, v) => s"($n->$v)"}.mkString("(", " ", ")")
     else
-      s"${pairs.mkString("(", "->", ")")}\n${derivedFrom.get}"
+      s"${ pairs.map{case (n, v) => s"($n->$v)"}}\n${derivedFrom.get}"
 }
 
 class MutableEnv extends LocalEnv(Nil, None) {
@@ -81,9 +88,11 @@ class MutableEnv extends LocalEnv(Nil, None) {
 
   val map = new mutable.LinkedHashMap[String, SExp]
 
+  override def maplets: List[(String, SExp)] = map.iterator.toList
+
   override def apply(name: String): Option[SExp] = map.get(name)
 
-  override def toString: String = map.mkString("(", "->", ")")
+  override def toString: String = map.mkString("(", " ", ")")
 
   override def print(level: Int): Unit = if (level==0) {
     Console.print(" "*level)

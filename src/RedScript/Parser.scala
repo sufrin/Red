@@ -1,6 +1,6 @@
 package RedScript
 
-import RedScript.Language.SyntaxError
+import RedScript.Language.{Pair, SExps, SyntaxError, Variable}
 
 
 object Lexical {
@@ -171,7 +171,7 @@ class Parser(source: io.Source, val path: String="") {
 
        case other if (other.isLetterOrDigit) =>
          val buf = new collection.mutable.StringBuilder()
-         while (in.ch.isLetterOrDigit || in.ch=='\'') { buf.append(in.ch); getNext() }
+         while (in.ch.isLetterOrDigit || in.ch=='\'' || in.ch=='*') { buf.append(in.ch); getNext() }
          Chunk(buf.toString().intern(), symbolic = false)
 
        case other if inSymbol =>
@@ -185,6 +185,7 @@ class Parser(source: io.Source, val path: String="") {
 
     import Language.SExp
 
+   /** Parse the (possibly-empty) body of an SExpr */
    def exprs: List[SExp] = symb match {
      case Ket         => Nil
      case SqKet       => Nil
@@ -192,11 +193,28 @@ class Parser(source: io.Source, val path: String="") {
      case _           => expr :: exprs
    }
 
+  /** Parse the (possibly-empty) body of an `SExprs`; or
+   * parse a dotted-pair followed by the (possibly-empty)
+   * body of an `SExprs`. A pair takes the form
+   * {{{ (e1.e2) }}} but we accept the form
+   * {{{ (e1 . e2 e3 ...) }}}
+   * and transform it into
+   * {{{ (e1 e2 e3 ...) }}}
+   * It would be just as easy to consider this a syntax error. See
+   * the second case of `sExps`, below.
+   */
+  def pairOrExprs: List[SExp] = symb match {
+    case Ket         => Nil
+    case SqKet       => Nil
+    case EOF | EOL   => Nil
+    case _           => maybePair(expr) :: exprs
+  }
+
   /** `nextSymbol()`; parse using `expr`; check it ends with `symb`, which is to be skipped if so.  */
-  def after(expr: => List[SExp])(symb: Symbol): List[SExp] = {
+  def after[T](parse: => T)(symb: Symbol): T = {
       val start = position
       nextSymb()
-      val e = expr
+      val e = parse
       if (this.symb!=symb)
          throw SyntaxError(s"Expecting $symb after expression starting at $start. Seeing ${this.symb} (${position})")
       else {
@@ -205,13 +223,32 @@ class Parser(source: io.Source, val path: String="") {
       }
   }
 
+  def maybePair(res: SExp): SExp =
+    symb match {
+      case Chunk(".", _) =>
+        nextSymb()
+        val res_ = Language.Pair(res, expr)
+        res_.position = res.position
+        res_
+      case _ => res
+    }
+
+  /**
+   *  (p.q r s t u) ==> (p . (seq q r s t u))
+   */
+  def sExps(exprs: List[SExp]): SExp = exprs match {
+    case List(p: Pair)  => p
+    case (Pair(l, r)) :: rest => Pair(l, SExps(Variable("seq")::r::rest))
+    case _ => SExps(exprs)
+  }
+
   def expr: SExp = {
     val pos = this.position
     val res =
     symb match {
       case Quote => nextSymb(); Language.Quote(expr)
-      case Bra   =>  Language.SExps(after { exprs } (Ket))
-      case SqBra =>  Language.SExps(after { exprs } (SqKet))
+      case Bra   =>  sExps(after { pairOrExprs } (Ket))
+      case SqBra =>  sExps(after { exprs } (SqKet))
       case Chunk(text, symbolic) => nextSymb()
         syntaxEnv(text) match {
           case None                =>
@@ -222,8 +259,6 @@ class Parser(source: io.Source, val path: String="") {
         }
       case Num(value) => nextSymb(); Language.Num(value)
       case Str(text) => nextSymb(); Language.Str(text)
-      //case True => nextSymb(); Language.Bool(true)
-      //case False => nextSymb(); Language.Bool(false)
       case other => nextSymb(); Language.Variable(other.toString)
     }
     res.position = pos

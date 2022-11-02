@@ -1,6 +1,6 @@
 package Red
 
-import UserInputDetail._
+import Red.UserInputDetail._
 
 import scala.swing.event.Key
 
@@ -8,7 +8,9 @@ import scala.swing.event.Key
   *  of user interaction with keyboard and mouse.
   */
 
-  sealed abstract class UserInput
+  sealed abstract class UserInput {
+      def toInput: String = toString
+  }
   /**
    * A mouse key was pressed `count` times  at `(row,col)` of the
    * model being viewed by the component.
@@ -57,6 +59,8 @@ import scala.swing.event.Key
         char.toString
     override def toString: String =
       s"Character: ${mods.asText}'$character'@ $location)"
+
+    override def toInput: String = s"${mods.asText}C${char.toInt}"
   }
 
   /** A keystroke deemed to be an action was typed.
@@ -70,6 +74,8 @@ import scala.swing.event.Key
     extends UserInput {
     override def toString: String =
       s"Instruction: ${mods.asText}Key.$key @ $location"
+
+    override def toInput: String = s"${mods.asText}K${key.hashCode()}"
   }
 
   case class Diacritical(mark: Char )  extends UserInput {

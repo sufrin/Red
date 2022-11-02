@@ -1,5 +1,10 @@
 import RedScript.Test._
 
+"""(1 . "foo") """.rep
+"""list (1 . "foo") (2 . "bar") `( 3 . "foobaz" )""".rep
+"""list (1 . "foo") (2 . "bar") `( 3 . ("foobaz" is best))""".rep
+"""list (1 . "foo") (2 . "bar") `( 3 . ("foobaz" is best)""".rep
+"""list (1 . "foo") (2 . "bar") `( 3 . "foobaz" is best)""".rep
 """+ 3 4 """.rep
 " :: 1 (list 2 3 4) ".rep
 "constant aaa 3\naaa".rep
@@ -16,32 +21,47 @@ import RedScript.Test._
 "(null)\n(null 42)\n(:: `a 3)".rep
 "(def (Ω a b c) 43 (+ a b c))".rep
 "(def (ΩΩ a b c) (seq 43 (+ a b c)))".rep
-"""(def ΩΩΩ all (println "all: " all))""".rep
+"""(def (ΩΩΩ . all) (println "all: " all))""".rep
 "Ω\nΩΩ".rep
 "(Ω 1 2 3)\n".rep
-"(ΩΩΩ 1 2 3)\n".rep
+"(ΩΩΩ 1 2 3)\nΩΩΩ".rep
 "-->\nisSymb -->\nisAtom -->\nisVar -->\nisVar `abc".rep
 "= + 3\n= (+ 1 2) 3\n".rep
 "= (list 1 2) (list (- 2 1) (+ 1 2))".rep
 "= (list 1 3) (list (- 2 1) (+ 1 2))".rep
 "nil".rep
 "< 2 2\n< 2 3\n<= true false\n<= false true".rep
-"""(val (a 1) (b 2) (+ a b))
-  (var (a 1) (b 2) (seq (:= a 3)
+"""(val (a . 1) (b . 2) (+ a b))
+  (var (a . 1) (b . 2) (seq (:= a 3)
                         (:= a (+ a b))
                         (println "a: " a)))
   (val a 3 b 4 3)
   (val a 3 (b 4) b)
   """.rep
 
-"""#fexprs are questionable....
-  |(def' fe args
-  |      (seq (println (eval (hd args)))
-  |           (println (tl args))))
-  |constant a "This is a"
-  |fe a b (c d e)
+""" "USING FEXPRS"
+  |(defForm (fe (env . args))
+  |         (seq (println args)
+  |              (println (eval env (hd args)))
+  |              (println (tl args))))
+  |fe
   |
-  |""".stripMargin.rep
+  |(val (a . "This is a")
+  |     (fe a b (c d e)))
+  |
+  |(defForm (IF env cond tp fp)
+  |         (if* ((eval env cond) . (eval env tp))
+  |              (true            . (eval env fp))))
+  |
+  |IF
+  |
+  |(defForm (IFF env cond tp fp)
+  |         (if* ((eval env cond) . (eval env tp))
+  |              (eval env fp)))
+  |              
+  |(IF (= 3 3) (println `three) (println `nonthree))
+  |(IFF (= 3 4) (println `three) (println `nonthree))
+  |  |""".stripMargin.rep
 
 """
   def (until a b) (if (<= b a) () (:: a (until (+ 1 a) b))))
@@ -99,10 +119,10 @@ import RedScript.Test._
     |(tl ay)
     |(null nil)
     |
-    |(def (copy xs) (if' [(null xs) nil]
-    |                   [true
-    |                    (:: (hd xs)
-    |                          (copy (tl xs)))]
+    |(def (copy xs) (if* ((null xs) . nil)
+    |                    ( true .
+    |                      (:: (hd xs)
+    |                          (copy (tl xs))))
     |                   )))
     |(copy ay)
     |

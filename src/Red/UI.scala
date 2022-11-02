@@ -572,7 +572,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
       for { program <- Personalised.personalScripts } {
         contents += menuButton(s"($program Ⓐ ...)", s"Evaluate the script ($program Ⓐ ...)  (see also \"Append Selection\")") {
           withFilterWarnings(s"($program Ⓐ ...)") {
-            UI_DO(EditSessionCommands.pipeThroughScript(program, argLine.text, findLine.text, replLine.text, replaceSelection = !augmentSelection))
+            UI_DO(EditSessionCommands.pipeThroughScript(program, theSession.path, argLine.text, findLine.text, replLine.text, replaceSelection = !augmentSelection))
           }
         }
       }
@@ -761,6 +761,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
 
         case other: UserInput =>
           Logging.Default.info(s"Unhandled user input [[$other]] ")
+            UI_DO(EditSessionCommands.unhandledInput(other))
       }
     }
 

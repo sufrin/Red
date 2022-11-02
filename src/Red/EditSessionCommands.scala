@@ -145,18 +145,34 @@ object EditSessionCommands extends Logging.Loggable {
 
 
 
-  def pipeThroughScript(functionName: String, argLine: String, findLine: String, replLine: String, replaceSelection: Boolean = true): SessionCommand = new Filter {
+  def pipeThroughScript(functionName: String, path: String, argLine: String, findLine: String, replLine: String, replaceSelection: Boolean = true): SessionCommand = new Filter {
     val evaluator = Personalised.Bindings.RedScriptEvaluator
     val global    = evaluator.global
 
     protected override def transform(input: String, cwd: Path): Option[String] = {
          try {
-           Some(evaluator.run(SExps(List(Variable(functionName), Str(argLine), Str(findLine), Str(replLine), Str(input)))).show)
+           Some((if (replaceSelection) "" else input)++evaluator.run(SExps(List(Variable(functionName), Str(path), Str(argLine), Str(findLine), Str(replLine), Str(input)))).toPlainString)
          } catch {
            case exn => Some(exn.toString)
       }
     }
   }
+
+  def unhandledInput(key: UserInput): SessionCommand = new Filter {
+    val evaluator = Personalised.Bindings.RedScriptEvaluator
+    val global    = evaluator.global
+
+    protected override def transform(input: String, cwd: Path): Option[String] = {
+      try {
+        val expr = Personalised.Bindings.RedScriptEvaluator.UserInput(key)
+        evaluator.run(evaluator.run(SExps(List(Variable("unhandledInput"), expr))))
+        None
+      } catch {
+        case exn => Some(exn.toString)
+      }
+    }
+  }
+
 
 
   /**

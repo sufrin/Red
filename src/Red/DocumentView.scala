@@ -8,7 +8,7 @@ import java.awt.{Color, Graphics2D, RenderingHints}
    * A component that continuously displays the state of the given editing session.
    * It inherits from `InputPanel` the standard features of a swing `Panel`, and
    * its keyboard-input and mouse-input reporting style
-   * It can (optionally) show a column of line-numbers at its left edge.
+   * It can (optionally) toPlainString a column of line-numbers at its left edge.
    *
    * @see InputPanel
    */
@@ -27,7 +27,7 @@ import java.awt.{Color, Graphics2D, RenderingHints}
     private val charAscent   = metrics.getAscent
     private val charDescent  = metrics.getDescent
 
-    /** THis component is not going to show very many lines */
+    /** THis component is not going to toPlainString very many lines */
     private def minimalComponent: Boolean = _rows<4
 
     @inline private def colsToPixels(cols: Int): Int = cols * charWidth
@@ -173,7 +173,7 @@ import java.awt.{Color, Graphics2D, RenderingHints}
     /**
      * Draw a cursor shape.
      *
-     * Make a visible fuss if the component is too narrow to show
+     * Make a visible fuss if the component is too narrow to toPlainString
      * it sensibly..
      */
     def drawCursorShape(g: Graphics2D, color: Color, row: Int, col: Int, width: Int): Unit = {
