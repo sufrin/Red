@@ -1,7 +1,7 @@
 package Red
 
 import RedScript.Language._
-import RedScript.{Env, Evaluator, Language}
+import RedScript.{Env, Evaluator, Language, SourcePosition}
 import Useful.PrefixMap
 
 import java.nio.file.{Path, Paths}
@@ -11,53 +11,61 @@ import scala.swing.{Dialog, Font}
  *  Personalisation module, with definitions of
  *  abbreviations, menu entries, etc.
  *
- *  TODO: One-per-editsession?
+ *  TODO: "safe"-mode should have a built-in minimal script.
  *
  */
 object Personalised extends Logging.Loggable {
 
-  /** Block types to be placed on a `Latex` menu */
-  val personalBlockTypes =  new collection.mutable.ListBuffer[String]
-  /** Program names to be placed on the `Pipe` menu */
-  val personalPipeNames = new collection.mutable.ListBuffer[String]
-  /** Scripts to be placed on the `Pipe` menu */
-  val personalScripts = new collection.mutable.ListBuffer[String]
-
-  def latexBlockTypes: Seq[String] =
-  { val default = "foil itemize enumerate - note exercise answer - code -code code* scala alltt - center verbatim comment smaller - question part ans"
-    Bindings.importBindings()
-    if (personalBlockTypes.isEmpty)
-       FilterUtilities.parseArguments(sys.env.getOrElse("REDLATEXBLOCKS", default))
-    else
-    personalBlockTypes.toList
+  def applyScript(name: String, path: String): SExp = {
+    val fname = Variable(name)
+    val sexp = SExps(List(fname,  Str(path)))
+    sexp.position  = SourcePosition(s"setting up UI for $path")
+    fname.position = sexp.position
+    Bindings.RedScriptEvaluator.run(sexp)
   }
 
-  def needLatex(path: String): Boolean = {
-    val sexp = SExps(List(Variable("latexFeatures"),  Str(path)))
-    Bindings.RedScriptEvaluator.run(sexp) match {
-      case Bool(false) => false
-      case _           => true
+  def latexBlockTypes(path: String): Seq[String] =
+  { applyScript("latexBlockTypes",  path) match {
+      case SExps(es)  => es.map(_.toPlainString)
+      case SExps(Nil) => Nil
+      case other      => profileWarning(s"latexBlockTypes: path -> Seq[String]: $other"); Nil
     }
   }
 
-  def pipeNames: Seq[String] =
-  { val default = "wc; ls -lt; printenv"
+  def needsLatex(path: String): Boolean = {
     Bindings.importBindings()
-    if (personalPipeNames.isEmpty)
-      sys.env.getOrElse("REDPROGRAMS", default).split(";[ ]+").toList
-    else
-      personalPipeNames.toList
+    applyScript("needsLatex", path) match {
+      case Bool(bool) => bool
+      case other      => profileWarning(s"needsLatex: path -> Bool: $other"); false
+    }
   }
 
-  def scripts: Seq[String] =
-  { Bindings.importBindings()
-    personalScripts.toList
+  def needsPandoc(path: String): Boolean = {
+    Bindings.importBindings()
+    applyScript("needsPandoc", path) match {
+      case Bool(bool) => bool
+      case other      => profileWarning(s"needsPandoc: path -> Bool: $other"); false
+    }
   }
+
+  def pipeShellCommands(path: String): Seq[String] =
+  { Bindings.importBindings()
+    applyScript("pipeShellCommands", path) match {
+      case SExps(es) => es.map(_.toPlainString)
+      case other     => profileWarning(s"pipeShellCommands: path -> Seq[String]: $other"); Nil
+    }
+  }
+
+  def pipeRedScripts(path: String): Seq[String] =
+  { Bindings.importBindings()
+    applyScript("pipeRedScripts", path) match {
+      case SExps(es) => es.map(_.toPlainString)
+      case other     => profileWarning(s"pipeRedScripts: path -> Seq[fun]: $other"); Nil
+    }
+  }
+
 
   def clearBindings(): Unit = {
-    personalPipeNames.clear()
-    personalBlockTypes.clear()
-    personalScripts.clear()
     Bindings.clearMapping()
     Bindings.RedScriptEvaluator.reset()
   }
@@ -191,39 +199,6 @@ object Personalised extends Logging.Loggable {
         Nothing
       }
 
-      def declPipes(params: List[SExp]): SExp = {
-        personalPipeNames.clear()
-        val texts =
-        params match {
-          case List(SExps(vals))  =>  vals.map(_.toPlainString)
-          case vals               =>  vals.map(_.toPlainString)
-        }
-        for { text <- texts } personalPipeNames.addOne(text)
-        Nothing
-      }
-
-      def declBlocks(params: List[SExp]): SExp = {
-        personalBlockTypes.clear()
-        val texts =
-          params match {
-            case List(SExps(vals))  =>  vals.map(_.toPlainString)
-            case vals               =>  vals.map(_.toPlainString)
-          }
-        for { text <- texts } personalBlockTypes.addOne(text)
-        Nothing
-      }
-
-      def declScripts(params: List[SExp]): SExp = {
-        personalScripts.clear()
-        val texts =
-          params match {
-            case List(SExps(vals))  =>  vals.map(_.toPlainString)
-            case vals               =>  vals.map(_.toPlainString)
-          }
-        for { text <- texts } personalScripts.addOne(text)
-        Nothing
-      }
-
       /** Implements {{{(persist name path menu-title initialValue choices)}}}*/
       def declPersistent(env: Env, params: SExp) : Const = {
         val SExps(Variable(name) :: args) = params
@@ -292,9 +267,6 @@ object Personalised extends Logging.Loggable {
         "useFont"     -> FSubr("useFont",    useFont),
         "persist"     -> FSubr("persist",    declPersistent),
         "tickbox"     -> FSubr("tickbox",    declTick),
-        "pipes"       -> Subr("pipes",       declPipes),
-        "scripts"     -> Subr("scripts",     declScripts),
-        "latexblocks" -> Subr("latexblocks", declBlocks),
         "readEval"    -> Subr  ("readEval", {
               case Str(text) :: Bool(show) :: rest =>
                    output.clear()

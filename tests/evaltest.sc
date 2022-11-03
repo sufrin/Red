@@ -8,6 +8,7 @@ import RedScript.Test._
 """+ 3 4 """.rep
 " :: 1 (list 2 3 4) ".rep
 "constant aaa 3\naaa".rep
+"(val (aaaa . 42)( bbb . 43))\n(+ aaaa bbb)\n := aaaa 14".rep
 """+ 3 "x" """.rep
 """`(`ENV "USER")""".rep
 """`(ENV "USER")""".rep
@@ -58,7 +59,7 @@ import RedScript.Test._
   |(defForm (IFF env cond tp fp)
   |         (if* ((eval env cond) . (eval env tp))
   |              (eval env fp)))
-  |              
+  |
   |(IF (= 3 3) (println `three) (println `nonthree))
   |(IFF (= 3 4) (println `three) (println `nonthree))
   |  |""".stripMargin.rep

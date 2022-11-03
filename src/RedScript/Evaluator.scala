@@ -1,5 +1,6 @@
 package RedScript
 
+
 import java.io.FileInputStream
 import java.nio.file.Path
 import scala.io.BufferedSource
@@ -7,7 +8,15 @@ import scala.language.postfixOps
 
 /**
  *  A global evaluator that defines syntactic forms as well as the semantics of
- *  primitive functions.
+ *  primitive functions. In this implementation, "abstract syntax" and "semantics" are
+ *  intermingled: in the sense that it is S-Expressions that are evaluated. There is no
+ *  semantic feature of the language that makes this ''necessary'', but the language
+ *  was evolving during its implementation, and this made it straightforward to
+ *  introduce new constructs.
+ *
+ *  TODO: separately define an executable abstract syntax that can be constructed
+ *        while parsing: (The `sExps` function of the parser is the right place to
+ *        do most of this work; which can proceed (mostly) bottom-up)
  */
 class Evaluator {
   import RedScript.Language._
@@ -92,25 +101,31 @@ class Evaluator {
   def evLet(isVar: Boolean)(env: Env, form: SExp): SExp = {
     form match {
       case SExps(pairs) if pairs.length >= 2 =>
-        try {
-          val bindings = (for {i <- 0 until pairs.length - 1} yield pairs(i)).toList
-          val bvs = bindings.map { case SExps(List(bv, _)) => bv; case Pair(bv, _) => bv }
-          // val bvs = (for { SExps(List(bv, _)) <- bindings } yield bv).toList
-          val args =
+        pairs.last match {
+          case p: Pair =>
+            // A globally-scoped declaration
+            // (let (vi . ei )*)
             if (isVar)
-              for { binding <- bindings} yield binding match {
-                case SExps(List(bv, expr)) => Ref(bv.toString, expr.eval(env))
-                case Pair(bv, expr)        => Ref(bv.toString, expr.eval(env))
-              }
+              for { Pair(Variable(bv), expr) <- pairs } global.define(bv, Ref(bv, expr.eval(env)))
             else
-              for { binding <- bindings} yield binding match {
-                case SExps(List(bv, expr)) => expr.eval(env)
-                case Pair(bv, expr)        => expr.eval(env)
-              }
-          val body = pairs.last
-            body.eval(env.extend(SExps(bvs), args.toList))
-        } catch {
-          case exn: MatchError => throw SyntaxError(s"Malformed declaration")
+              for { Pair(Variable(bv), expr) <- pairs } global.define(bv, expr.eval(env))
+            Nothing
+          // A locally-scoped declaration
+          // (let (vi . ei )* body)
+          case body =>
+            try {
+              //val bindings = (for {i <- 0 until pairs.length - 1} yield pairs(i)).toList
+              val bvs = pairs.map { case Pair(bv, _) => bv }
+              // val bvs = (for { SExps(List(bv, _)) <- bindings } yield bv).toList
+              val args =
+                if (isVar)
+                  for { Pair(bv, expr)  <- pairs } yield Ref(bv.toString, expr.eval(env))
+                else
+                  for { Pair(bv, expr)  <- pairs } yield expr.eval(env)
+              body.eval(env.extend(SExps(bvs), args.toList))
+            } catch {
+              case exn: MatchError => throw SyntaxError(s"Malformed declaration")
+            }
         }
 
       case other => throw SyntaxError(s"Malformed declaration")
@@ -339,9 +354,10 @@ class Evaluator {
   )
 
   def run(sexp: SExp): SExp = {
-    position = sexp.position
     try sexp.eval(global) catch {
-      case exn: scala.Error => Str(s"Runtime Error: ${exn.getMessage}")
+      case exn: RuntimeError => exn.position = sexp.position; exn
+      case exn: SyntaxError  => exn.position = sexp.position; exn
+      case exn: scala.Error  => Str(s"Scala Error: ${exn.getMessage} $position")
     }
   }
 

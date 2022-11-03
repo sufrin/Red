@@ -222,7 +222,7 @@ object Language {
 
   case class Quote(value: SExp) extends SExp {
     override def toString = s"`$value"
-    override def toPlainString     = value.toPlainString
+    override def toPlainString = value.toPlainString
     override def eval(env: Env): SExp = value
   }
 

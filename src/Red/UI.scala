@@ -557,21 +557,21 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
       var augmentSelection: Boolean = false
 
       // Pipe the selection through ...
-      contents += menuButton("\u24b6  < ...", "Pipe the selection through the shell command \u24b6 (see also \"Append Selection\")") {
-        withFilterWarnings("\u24b6  < ...") { UI_DO(EditSessionCommands.pipeThrough(argLine.text, replaceSelection = !augmentSelection)) }
+      contents += menuButton("\u24b6", "Pipe the selection through the shell command \u24b6 (see also \"Append Selection\")") {
+        withFilterWarnings("\u24b6") { UI_DO(EditSessionCommands.pipeThrough(argLine.text, replaceSelection = !augmentSelection)) }
       }
 
-      for { program <- Personalised.pipeNames } {
-        contents += menuButton(s"$program < ...", s"Pipe the selection through the shell command \"$program\" (see also \"Append Selection\")") {
-          withFilterWarnings(s"$program < ...") { UI_DO(EditSessionCommands.pipeThrough(program, replaceSelection = !augmentSelection)) }
+      for { program <- Personalised.pipeShellCommands(theSession.path) } {
+        contents += menuButton(s"$program", s"Pipe the selection through the shell command \"$program\" (see also \"Append Selection\")") {
+          withFilterWarnings(s"$program") { UI_DO(EditSessionCommands.pipeThrough(program, replaceSelection = !augmentSelection)) }
         }
       }
 
       contents += Separator()
 
-      for { program <- Personalised.personalScripts } {
-        contents += menuButton(s"($program Ⓐ ...)", s"Evaluate the script ($program Ⓐ ...)  (see also \"Append Selection\")") {
-          withFilterWarnings(s"($program Ⓐ ...)") {
+      for { program <- Personalised.pipeRedScripts(theSession.path) } {
+        contents += menuButton(s"$program", s"Evaluate the Redscript script ($program <thepath> Ⓐ \u24bb \u24c7 ...)  (see also \"Append Selection\")") {
+          withFilterWarnings(s"$program") {
             UI_DO(EditSessionCommands.pipeThroughScript(program, theSession.path, argLine.text, findLine.text, replLine.text, replaceSelection = !augmentSelection))
           }
         }
@@ -579,7 +579,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
 
       contents += Separator()
 
-      contents += new CheckMenuItem("Append selection") {
+      contents += new CheckMenuItem(" (keep) ") {
         tooltip  = "When enabled, the original selection is appended to the piped output from the above commands."
         font     = Utils.buttonFont
         selected = augmentSelection
@@ -595,7 +595,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
     // Latex matters
 
 
-    if (Red.Personalised.needLatex(theSession.path)) {
+    if (Red.Personalised.needsLatex(theSession.path)) {
 
         contents += new Label("        ")
 
@@ -604,7 +604,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
           UI_DO(EditSessionCommands.latexToPDF)
         }
 
-        contents += new EmbeddedDynamicMenu("\\begin{...}", { Red.Personalised.latexBlockTypes }) {
+        contents += new EmbeddedDynamicMenu("\\begin{...}", { Red.Personalised.latexBlockTypes(theSession.path) }) {
           font = Utils.menuButtonFont
           prefix += menuButton("%%%%%%%%") {
             val header =
@@ -702,9 +702,11 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
         contents += Glue.horizontal()
     }
 
-    contents += Button("Pandoc", toolTip = "Run redpandoc now") {
-      saveOperation()
-      UI_DO(EditSessionCommands.pandocToPDF)
+    if (Personalised.needsPandoc(theSession.path)) {
+        contents += Button("Pandoc", toolTip = "Run redpandoc now") {
+          saveOperation()
+          UI_DO(EditSessionCommands.pandocToPDF)
+        }
     }
 
     contents += Glue.horizontal()
