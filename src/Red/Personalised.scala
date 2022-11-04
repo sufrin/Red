@@ -132,6 +132,8 @@ object Personalised extends Logging.Loggable {
     object RedScriptEvaluator extends Evaluator {
 
       case class UserInput(input: Red.UserInput) extends Const
+      case class SessionCommand(command: EditSessionCommands.SessionCommand) extends Const
+
       case class FontExpr(name: String, font: Font) extends Const {
         override def toString: String = s"(font \"$name\")"
       }

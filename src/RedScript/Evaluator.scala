@@ -196,7 +196,7 @@ class Evaluator {
     }
   }
 
-  def evShow(args: List[SExp]): SExp =  {
+  def evPlainString(args: List[SExp]): SExp =  {
     args match {
       case Nil => Str("")
       case List(c) => Str(c.toPlainString)
@@ -321,8 +321,10 @@ class Evaluator {
     "seq"       -> Subr  ("seq",      { case Nil => Nothing; case args => args.last }),
     "readEvalPrint"  -> Subr  ("readEvalPrint", { case Str(text) :: Bool(show) :: rest => readEvalPrint(text, show); Nothing}),
     "println"   -> Subr  ("println",  { case args => args.foreach{ case k => normalFeedback(k.toPlainString); normalFeedback(" ") } ; normalFeedbackLn(""); Nothing }),
+    "log"       -> Subr  ("log",      { case args => Logging.Default.log(Logging.INFO, args.map(_.toPlainString).mkString("", " ", "")); Nothing }),
     "?"         -> Subr  ("?",        { case args => args.foreach{ case k => normalFeedback(k.toPlainString); normalFeedback(" ") }; args.last }),
-    "toPlainString" -> Subr  ("toPlainString",     evShow(_)),
+    "toString*" -> Subr  ("toString*", evPlainString),
+    "quote"     -> FSubr ("quote",    { case (env, form) => Quote(form) }),
     "list"      -> Subr  ("list",     { args => SExps(args)}),
     "isAtom"    -> forall("isAtom")   { case Quote(Variable(_)) => true; case _ => false },
     "isSymb"    -> forall("isSymb")   { case Quote(v@Variable(_)) => v.symbolic; case _ => false },

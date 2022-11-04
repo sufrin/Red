@@ -2,6 +2,7 @@ package Red
 
 import Red.UserInputDetail.Key
 import Red.UserInputDetail.Modifiers._
+import RedScript.SourcePosition
 
 /**
  *  This class defines handlers for keyboard and mouse events.
@@ -29,7 +30,52 @@ class EditSessionHandlers(val UI_DO: Commands.Command[EditSession]=>Unit) {
   private val commands = EditSessionCommands
   
   type UserInputHandler = Notifier.Handler[UserInput]
-      val indentOrTab = commands.autoIndentSelection ||| commands.autoTab
+
+  val indentOrTab = commands.autoIndentSelection ||| commands.autoTab
+
+  case object UNDEFINED extends Throwable
+
+  val redScriptInputHandler: UserInputHandler = new UserInputHandler {
+        val canHandleInput = RedScript.Language.Variable("canHandleInput")
+        val handleInput = RedScript.Language.Variable("handleInput")
+        handleInput.position = SourcePosition("redScriptInputHandler")
+        canHandleInput.position = handleInput.position
+
+        override def isDefinedAt(input: UserInput): Boolean = {
+          /*
+          val script = RedScript.Language.SExps(List(canHandleInput, Personalised.Bindings.RedScriptEvaluator.UserInput(input)))
+          script.position = canHandleInput.position
+          try {
+            Personalised.Bindings.RedScriptEvaluator.run(script) match {
+              case RedScript.Language.Str(commandName) => true
+              case Personalised.Bindings.RedScriptEvaluator.SessionCommand(command) => true
+              case _ => false
+            }
+          } */
+          try   { handleInput(input); true }
+          catch {
+            case UNDEFINED => false
+          }
+        }
+
+        def apply(input: UserInput): Unit = {}
+
+        def handleInput(input: UserInput): Unit = {
+          val script = RedScript.Language.SExps(List(handleInput, Personalised.Bindings.RedScriptEvaluator.UserInput(input)))
+          script.position = handleInput.position
+            Personalised.Bindings.RedScriptEvaluator.run(script) match {
+              case RedScript.Language.Str(commandName) =>
+                CommandsDict(commandName) match {
+                  case Some(command) => UI_DO(command)
+                  case None          => throw UNDEFINED
+                }
+              case Personalised.Bindings.RedScriptEvaluator.SessionCommand(command) =>
+                   UI_DO(command)
+              case RedScript.Language.SExps(Nil) =>
+                   throw UNDEFINED
+            }
+        }
+      }
 
       val keyboard: UserInputHandler =  {
         case Character(char, _, NoModifier)            => UI_DO(commands.insertCommand(char))

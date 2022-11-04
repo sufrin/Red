@@ -746,8 +746,9 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
     }
 
     theView.keystrokeInput.handleWith {
-        indentKeys        orElse
         handlers.mouse    orElse
+        indentKeys        orElse
+        handlers.redScriptInputHandler orElse
         findreplHandler   orElse
         handlers.keyboard orElse {
         case Instruction(Key.P, _, Control) =>
