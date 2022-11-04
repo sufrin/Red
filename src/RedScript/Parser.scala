@@ -238,7 +238,7 @@ class Parser(source: io.Source, val path: String="") {
    */
   def sExps(exprs: List[SExp]): SExp = exprs match {
     case List(p: Pair)  => p
-    case (Pair(l, r)) :: rest => Pair(l, SExps(Variable("seq")::r::rest))
+    case (Pair(l, r)) :: rest => Pair(l, SExps(r::rest))
     case _ => SExps(exprs)
   }
 
