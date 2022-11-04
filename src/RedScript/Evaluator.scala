@@ -97,7 +97,7 @@ class Evaluator {
     }
   }
 
-  // TODO: generalise to multiple declarations
+  // TODO: (decls, body) = pairs.splitAtFirstNonPair
   def evLet(isVar: Boolean)(env: Env, form: SExp): SExp = {
     form match {
       case SExps(pairs) if pairs.length >= 2 =>
@@ -114,14 +114,15 @@ class Evaluator {
           // (let (vi . ei )* body)
           case body =>
             try {
+              val decls = pairs.take(pairs.length-1)
               //val bindings = (for {i <- 0 until pairs.length - 1} yield pairs(i)).toList
-              val bvs = pairs.map { case Pair(bv, _) => bv }
+              val bvs = decls.map { case Pair(bv, _) => bv }
               // val bvs = (for { SExps(List(bv, _)) <- bindings } yield bv).toList
               val args =
                 if (isVar)
-                  for { Pair(bv, expr)  <- pairs } yield Ref(bv.toString, expr.eval(env))
+                  for { Pair(bv, expr)  <- decls } yield Ref(bv.toString, expr.eval(env))
                 else
-                  for { Pair(bv, expr)  <- pairs } yield expr.eval(env)
+                  for { Pair(bv, expr)  <- decls } yield expr.eval(env)
               body.eval(env.extend(SExps(bvs), args.toList))
             } catch {
               case exn: MatchError => throw SyntaxError(s"Malformed declaration")

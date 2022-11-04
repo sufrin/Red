@@ -7,6 +7,7 @@ object Test extends Evaluator { evaluator =>
   implicit class SourceCode(val s: String) extends AnyVal {
     def rep: Unit = evaluator.readEvalPrint(s, true)
     def eval: Unit = evaluator.readEvalPrint(s, false)
+    def rd: Unit = evaluator.rp(s)
   }
 
   def rp(source: String): Unit = {

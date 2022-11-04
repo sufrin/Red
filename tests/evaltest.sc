@@ -1,10 +1,44 @@
 import RedScript.Test._
 
-"""(1 . "foo") """.rep
+"""` ( (1 . "foo") (2 . "bar") `( 3 . ("foobaz" is best)))""".rep
+
+"""` [ (1 . "foo") (2 . "bar") `( 3 . ("foobaz" is best))]""".rep
+
+"""` [ (1 . "foo") (2 . "bar") `( 3 . ["foobaz" is best])]""".rep
+
+"""` [ (1 . "foo") (2 . "bar") (3 . "baz") ]""".rep
+
+"""` [ (1 . "foo") (2 . "bar") `(3 . "baz") ]""".rep
+
+"""` [ (1 . "foo") (2 . "bar") `(3 . [foo "baz"]) ]""".rep
+
+
+""" [ + 2 3 4 5 ]""".rep
+
+""" ` [ + 2 3 4 5 ]""".rep
+
+
+
+"""()
+   (1 . "foo") """.rep
 """list (1 . "foo") (2 . "bar") `( 3 . "foobaz" )""".rep
 """list (1 . "foo") (2 . "bar") `( 3 . ("foobaz" is best))""".rep
-"""list (1 . "foo") (2 . "bar") `( 3 . ("foobaz" is best)""".rep
+
+"MISTAKE: continued pair"
 """list (1 . "foo") (2 . "bar") `( 3 . "foobaz" is best)""".rep
+
+"WELL-FORMED QUOTE"
+"""quote (1 . "foo") (2 . "bar") `( 3 . ("foobaz" is best))""".rep
+
+
+
+"PARENTHESISED PAIR IS STILL A PAIR"
+"""` (((1 . "foo"))) """.rep
+""" (quote ((1 . "foo"))) """.rep
+
+""" (list `(1 . "foo") (2 . "bar") `( 3 . ("foobaz" is best)) )""".rep
+"""` (1 . "foo") """.rep
+
 """+ 3 4 """.rep
 " :: 1 (list 2 3 4) ".rep
 "constant aaa 3\naaa".rep
