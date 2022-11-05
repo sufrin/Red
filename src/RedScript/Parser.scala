@@ -1,6 +1,6 @@
 package RedScript
 
-import RedScript.Language.{Pair, SExps, SyntaxError, Variable}
+import RedScript.Language.{Pair, SExps, SyntaxError, nil}
 
 
 object Lexical {
@@ -185,70 +185,90 @@ class Parser(source: io.Source, val path: String="") {
 
     import Language.SExp
 
-   /** Parse the (possibly-empty) body of an SExpr */
+   /**
+    * Read a sequence of zero or more expressions
+    * that follow a `(`:
+    *
+    * Leaves the input positioned at the ')' that follows
+    * the sequence.
+    */
    def exprs: List[SExp] = symb match {
-     case Ket         => Nil
-     case SqKet       => Nil
-     case EOF | EOL   => Nil
-     case _           => expr :: exprs
+     case Ket | EOF | EOL  => Nil
+     case _                        => expr :: exprs
    }
 
-  /** Parse the (possibly-empty) body of an `SExprs`; or
-   * parse a dotted-pair followed by the (possibly-empty)
-   * body of an `SExprs`. A pair takes the form
-   * {{{ (e1.e2) }}} but we accept the form
-   * {{{ (e1 . e2 e3 ...) }}}
-   * and transform it into
-   * {{{ (e1 e2 e3 ...) }}}
-   * It would be just as easy to consider this a syntax error. See
-   * the second case of `sExps`, below.
+  /**
+   * Read a sequence of zero or more expressions
+   * that follow a `[`:
+   *
+   * Leaves the input positioned at the ']' that follows
+   * the sequence.
    */
-  def pairOrExprs: List[SExp] = symb match {
-    case Ket         => Nil
-    case SqKet       => Nil
-    case EOF | EOL   => Nil
-    case _           => maybePair(expr) :: exprs
+  def sqexprs: List[SExp] = symb match {
+    case SqKet | EOF | EOL  => Nil
+    case _                  => expr :: sqexprs
   }
 
-  /** `nextSymbol()`; parse using `expr`; check it ends with `symb`, which is to be skipped if so.  */
-  def after[T](parse: => T)(symb: Symbol): T = {
-      val start = position
-      nextSymb()
-      val e = parse
-      if (this.symb!=symb)
-         throw SyntaxError(s"Expecting $symb after expression starting at $start. Seeing ${this.symb} (${position})")
-      else {
-        nextSymb()
-        e
-      }
+  /**
+   *  Read the body of a parenthesised expression, which can be one of:
+   *  {{{
+   *    ()
+   *    (hd.tl)
+   *    (hd)
+   *    (hd tl1 tl2 ...)
+   *  }}}
+   *
+   * Leaves the input positioned at the first symbol that follows
+   * the body.
+   */
+  def pairOrExprs: SExp = symb match {
+    case Ket | EOF | EOL  => nil
+    case other => pairOrTail(expr)
   }
 
-  def maybePair(res: SExp): SExp =
+  /**
+   * After reading  {{{ ( hd }}} reads ==> reduces
+   * {{{ . tl ) ==> (hd.tl)}}}
+   *
+   * or
+   * {{{ ) ==> (hd) }}}
+   *
+   * or
+   * {{{ tl1 tl2 ... ) ==> (hd tl1 tl2 ...) }}}
+   *
+   *  Leaves the input positioned at the first symbol that follows
+   * the expression.
+   */
+  def pairOrTail(hd: SExp): SExp =
     symb match {
+      // ( hd .         tl)
       case Chunk(".", _) =>
+        val tl  = readWithClosing (Ket) { expr }
+        val res = Pair(hd, tl)
+        res.position = hd.position
+        res
+      // (hd            )
+      case Ket =>
         nextSymb()
-        val res_ = Language.Pair(res, expr)
-        res_.position = res.position
-        res_
-      case _ => res
+        SExps(List(hd))
+      // (hd            e1 ... )
+      case other =>
+        SExps(hd :: exprs)
     }
 
   /**
-   *  (p.q r s t u) ==> (p . (seq q r s t u))
+   * Read a complete expression.
+   *
+   * Leaves the input positioned at the first symbol that follows
+   * the expression.
    */
-  def sExps(exprs: List[SExp]): SExp = exprs match {
-    case List(p: Pair)  => p
-    case (Pair(l, r)) :: rest => Pair(l, SExps(r::rest))
-    case _ => SExps(exprs)
-  }
-
   def expr: SExp = {
     val pos = this.position
     val res =
     symb match {
       case Quote => nextSymb(); Language.Quote(expr)
-      case Bra   =>  sExps(after { pairOrExprs } (Ket))
-      case SqBra =>  sExps(after { exprs } (SqKet))
+      case Bra   => nextSymb(); pairOrExprs
+      case SqBra => SExps(readWithClosing (SqKet) { sqexprs } )
       case Chunk(text, symbolic) => nextSymb()
         syntaxEnv(text) match {
           case None                =>
@@ -263,6 +283,24 @@ class Parser(source: io.Source, val path: String="") {
     }
     res.position = pos
     res
+  }
+
+  /**
+   *  Assumes the input is position (just) to the left of a construct that
+   *  can be parsed by `read`, and is expected to terminate with `symb`.
+   *  The construct is parsed, and the `symb` skipped if it is
+   *  present; otherwise a syntax error is noted.
+   */
+  def readWithClosing[T](symb: Symbol)(read: => T): T = {
+    val start = position
+    nextSymb()
+    val e = read
+    if (this.symb!=symb)
+      throw SyntaxError(s"Expecting $symb after expression starting at $start. Seeing ${this.symb} (${position})")
+    else {
+      nextSymb()
+      e
+    }
   }
 
   /** Read a top-level expression, viz:
