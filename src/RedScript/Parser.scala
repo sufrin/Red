@@ -193,8 +193,9 @@ class Parser(source: io.Source, val path: String="") {
     * the sequence.
     */
    def exprs: List[SExp] = symb match {
-     case Ket | EOF | EOL  => Nil
-     case _                        => expr :: exprs
+     case EOF | EOL  => Nil
+     case Ket        => Nil
+     case _          => expr :: exprs
    }
 
   /**
@@ -205,8 +206,27 @@ class Parser(source: io.Source, val path: String="") {
    * the sequence.
    */
   def sqexprs: List[SExp] = symb match {
-    case SqKet | EOF | EOL  => Nil
+    case EOF | EOL          => Nil
+    case SqKet              => Nil
     case _                  => expr :: sqexprs
+  }
+
+  /**
+   * Read a sequence of zero or more expressions
+   * on a single line.
+   *
+   * Leaves the input positioned at the `EOL` that follows
+   * the sequence.
+   */
+  def lineOfExprs: List[SExp] = {
+    val res =
+    symb match {
+      case Ket | SqKet => nextSymb(); Nil // TODO: fix inelegance
+      case EOF | EOL   => Nil
+      case _           => expr :: lineOfExprs
+    }
+    if (symb!=EOF && symb!=EOL) throw SyntaxError(s"Bad symbol $symb terminates single line of expressions: $res, with positions:  ${res.map(_.position).mkString("«", " ", "»")}")
+    res
   }
 
   /**
@@ -222,8 +242,9 @@ class Parser(source: io.Source, val path: String="") {
    * the body.
    */
   def pairOrExprs: SExp = symb match {
-    case Ket | EOF | EOL  => nil
-    case other => pairOrTail(expr)
+    case Ket        => nextSymb(); nil
+    case EOF | EOL  => nil
+    case other      => pairOrTail(expr)
   }
 
   /**
@@ -253,7 +274,9 @@ class Parser(source: io.Source, val path: String="") {
         SExps(List(hd))
       // (hd            e1 ... )
       case other =>
-        SExps(hd :: exprs)
+        val tl = exprs
+        if (symb==Ket) nextSymb() else throw SyntaxError(s"Expecting ')' after ($hd ... but looking at $symb")
+        SExps(hd :: tl)
     }
 
   /**
@@ -340,9 +363,10 @@ class Parser(source: io.Source, val path: String="") {
     symb match {
       case Bra   => expr
       case SqBra => expr
-      case other => exprs match {
-        case List(e)     => e
-        case application => Language.SExps(application)
+      case Quote => expr
+      case other => lineOfExprs match {
+        case List(e)  => e
+        case es       => SExps(es)
       }
     }
     res.position=pos
