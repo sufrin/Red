@@ -165,8 +165,10 @@ object EditSessionCommands extends Logging.Loggable {
     protected override def transform(input: String, cwd: Path): Option[String] = {
       try {
         val expr = Personalised.Bindings.RedScriptEvaluator.UserInput(key)
-        evaluator.run(evaluator.run(SExps(List(Variable("unhandledInput"), expr))))
-        None
+        evaluator.run(evaluator.run(SExps(List(Variable("unhandledInput"), expr)))) match {
+          case Str(s) => Some(s+"\n")
+          case _      => None
+        }
       } catch {
         case exn => Some(exn.toString)
       }
@@ -1004,4 +1006,6 @@ object EditSessionCommands extends Logging.Loggable {
     }
   }
 
+  /** Use of tab button with or without selection */
+  val indentOrTab = autoIndentSelection ||| autoTab
 }

@@ -31,7 +31,7 @@ class EditSessionHandlers(val UI_DO: Commands.Command[EditSession]=>Unit) {
   
   type UserInputHandler = Notifier.Handler[UserInput]
 
-  val indentOrTab = commands.autoIndentSelection ||| commands.autoTab
+
 
   case object UNDEFINED extends Throwable
 
@@ -82,7 +82,7 @@ class EditSessionHandlers(val UI_DO: Commands.Command[EditSession]=>Unit) {
         case Character(char, _, Shift)                 => UI_DO(commands.insertCommand(char))
         case Character(char, _, mods) if mods.hasAlt   => UI_DO(commands.insertCommand(char))
 
-        case Instruction(Key.Tab, _, NoModifier)       => UI_DO(indentOrTab)
+        case Instruction(Key.Tab, _, NoModifier)       => UI_DO(commands.indentOrTab)
         case Instruction(Key.Tab, _, Shift)            => UI_DO(commands.undentSelection)
 
         case Instruction(Key.BackSpace, _, NoModifier) => UI_DO(commands.delete)

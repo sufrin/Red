@@ -108,8 +108,8 @@ import scala.swing.{Component, Container}
  */
 
 
-abstract class InputPanel(val numPadAsCommand: Boolean = true,
-                          val mapMeta:         Boolean = true,
+abstract class InputPanel(val numPadAsCommand: Boolean = UserInput.numpadAsCommand,
+                          val mapMeta:         Boolean = UserInput.mapMeta,
                           val mergeMouseInput: Boolean = true,
                           )
   extends Component
@@ -224,6 +224,7 @@ abstract class InputPanel(val numPadAsCommand: Boolean = true,
     val listener: KeyAdapter = new KeyAdapter() {
       override def keyPressed(e: java.awt.event.KeyEvent): Unit = {
         val keyChar   = e.getKeyChar
+        lazy val keyString = if (' '<= keyChar && keyChar <= 255) s"$keyChar" else f"\\u$keyChar%04x"
         val modifiers = e.getModifiersEx
         val detail    = Detail(modifiers)
         val location  = Key.Location(e.getKeyLocation)
@@ -254,10 +255,11 @@ abstract class InputPanel(val numPadAsCommand: Boolean = true,
                 Instruction(Key.Delete, location,      metaToControl(detail))
               case _ if detail.hasControl || detail.hasMeta || (location == Key.Location.Numpad && numpadAsCommand) =>
                 // Linux and OS/X are consistent about e.KeyCode from a numpad, but not about e.getExtendKeyCode
+                if (logging) finest(f"Defined keyChar: $keyString $location (\\x$keyCode%04x$detail%s)")
                 Instruction(Key(keyCode), location,    metaToControl(detail))
               case _ =>
                 if (detail.hasAlt) {
-                  if (logging) finer(s"Alt-shifted '$keyChar' ${detail.asText} $location $keyCode ${e.getExtendedKeyCode}")
+                  if (logging) finer(s"Alt-shifted $keyString $location $keyCode ${e.getExtendedKeyCode}")
                   if (macKeyboardDiacritical.contains(keyChar))
                     Diacritical(keyChar)
                   else
@@ -401,7 +403,7 @@ abstract class InputPanel(val numPadAsCommand: Boolean = true,
           case 3 => Modifiers.Button3
           case _ => Modifiers.NoModifier // TODO: Log this
         }
-        if (logging) finest(s"REL($button) ${metaToControl(Detail(e.getModifiersEx))}")
+        if (logging) finest(s"Released(($row,$col), ${e.getButton}) ${metaToControl(Detail(e.getModifiersEx))}")
         // TODO: need to be able to work with >3-button mice
         mouseInput.notify(MouseReleased(row, col, button))
       }

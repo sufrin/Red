@@ -345,7 +345,7 @@ class EditSession(val document: DocumentInterface, private var _path: String)
     val oldCursor = cursor
     val theText = selectionText()
     insert(theClip)
-    selection = Span(cursor, oldCursor)
+    selection = Span(cursor, oldCursor, true)
     theText
   }
 
@@ -364,7 +364,7 @@ class EditSession(val document: DocumentInterface, private var _path: String)
       if (selection.extent<0) cursor += selection.extent
       val oldCursor = cursor
       insert(theClip)
-      selection = Span(cursor, oldCursor)
+      selection = Span(cursor, oldCursor, true)
       text
     }
   }
@@ -374,7 +374,7 @@ class EditSession(val document: DocumentInterface, private var _path: String)
   def toHome(): Unit = { cursor = 0 }
 
   def selectAll(): Unit = {
-    selection = Span(0, document.textLength)
+    selection = Span(0, document.textLength, true)
     cursor    = 0
   }
 

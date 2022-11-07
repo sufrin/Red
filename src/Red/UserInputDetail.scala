@@ -46,23 +46,36 @@ object UserInputDetail {
       import Button._
       import Modifier._
       val b = new StringBuilder
-      if (hasAny(Control)) b.append("ctrl+")
-      if (hasAny(Shift)) b.append("shift+")
-      if (hasAny(Alt)) b.append("alt+")
-      if (hasAny(Meta)) b.append("meta+")
-      if (hasAny(Button1)) b.append("Button1+")
-      if (hasAny(Button2)) b.append("Button2+")
-      if (hasAny(Button3)) b.append("Button3+")
+      if (hasAny(Control)) b.append("C")
+      if (hasAny(Shift)) b.append("S")
+      if (hasAny(Alt)) b.append("A")
+      if (hasAny(Meta)) b.append("M")
+      if (hasAny(Button1)) b.append("B1")
+      if (hasAny(Button2)) b.append("B2")
+      if (hasAny(Button3)) b.append("B3")
+      if (b.nonEmpty) b.insert(0, "|")
       b.toString
     }
-
     override def toString: String = s"Detail($asText)"
   }
 
   object Detail {
     def apply(modifiers: Int) = new Detail(modifiers)
-  }
 
+    def withDetail(string: String): Option[Detail] = {
+      import Modifiers._
+      var mod: Int = 0
+      def orWith(bit: Detail): Unit = { mod = mod | bit.mods }
+      if (string.contains("C")) orWith(Control)
+      if (string.contains("S")) orWith(Shift)
+      if (string.contains("A")) orWith(Alt)
+      if (string.contains("M")) orWith(Meta)
+      if (string.contains("B1")) orWith(Button1)
+      if (string.contains("B2")) orWith(Button2)
+      if (string.contains("B3")) orWith(Button3)
+      if (string.forall{ c => "CSAMB123".contains(c) }) Some(new Detail(mod)) else None
+    }
+  }
   /**
    *    Named button masks for use in the construction
    *    of Detail constants.
