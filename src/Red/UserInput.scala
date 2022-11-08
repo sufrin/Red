@@ -87,6 +87,36 @@ import scala.swing.event.Key
 
   case class Undefined(fromText: String) extends UserInput
 
+/**
+ * `UserInput(description)` yields an `Instruction` or a `Character` suitable
+ * for use in a mapping from input events to actions.
+ *
+ * Description Notation:
+ *
+ *   (either or both of ''loc'' or `|`''detail'' may be elided)
+ *
+ *     loc.key|detail  =>
+ *     Instruction(theKey, theLoc, theDet)
+ *
+ *   (either or both of ''loc''`.` or `|`''detail'' may be elided)
+ *
+ *     loc.'ch'|detail  =>
+ *     Character(theChar, theLoc, theDet)
+ *
+ *   A `Character` with `C` or `M` in its detail is translated to the corresponding `Instruction` in the same way as
+ *   `InputPanel` does the translation.
+ *
+ *   A ''ch'' can be specified as a literal or as its unicode `\uhhhh` code.
+ *
+ *   A ''key'' can be specified by its name or as its hexadecimal `\xhhhh` identity code.
+ *
+ *   The ''key'' names (and corresponding identity codes) are given at the foot of this file.
+ *   For example `F11`, `Left Parenthesis`.
+ *
+ *   The ''location'' names are `Standard`, `Numpad`, `Unknown`, `Left`, `Right` (etc). A missing
+ *   ''location'' is taken to be `Standard`.
+ *
+ */
 object UserInput {
   var theKey: Key.Value                      = _
   var theLoc: UserInputDetail.Location.Value = _
@@ -171,3 +201,44 @@ object UserInput {
   }
 
 }
+
+/** Key names and their codes
+
+0=\x30 1=\x31 2=\x32 3=\x33 4=\x34 5=\x35 6=\x36 7=\x37 8=\x38
+9=\x39 A=\x41 Accept=\x1e Again=\xffc9 All Candidates=\x100
+Alphanumeric=\xf0 Alt Graph=\xff7e Alt=\x12 Ampersand=\x96 Asterisk=\x97
+At=\x200 B=\x42 Back Quote=\xc0 Back Slash=\x5c Backspace=\x8
+Begin=\xff58 C=\x43 Cancel=\x3 Caps Lock=\x14 Circumflex=\x202
+Clear=\xc Close Bracket=\x5d Code Input=\x102 Colon=\x201 Comma=\x2c
+Compose=\xff20 Context Menu=\x20d Convert=\x1c Copy=\xffcd Ctrl=\x11
+Cut=\xffd1 D=\x44 Dead Above Dot=\x86 Dead Above Ring=\x88 Dead
+Acute=\x81 Dead Breve=\x85 Dead Caron=\x8a Dead Cedilla=\x8b Dead
+Circumflex=\x82 Dead Diaeresis=\x87 Dead Double Acute=\x89 Dead
+Grave=\x80 Dead Iota=\x8d Dead Macron=\x84 Dead Ogonek=\x8c Dead
+Semivoiced Sound=\x8f Dead Tilde=\x83 Dead Voiced Sound=\x8e
+Delete=\x7f Dollar=\x203 Double Quote=\x98 Down=\x28 Down=\xe1
+E=\x45 End=\x23 Enter=\xa Equals=\x3d Escape=\x1b Euro=\x204
+Exclamation Mark=\x205 F=\x46 F1=\x70 F10=\x79 F11=\x7a F12=\x7b
+F13=\xf000 F14=\xf001 F15=\xf002 F16=\xf003 F17=\xf004 F18=\xf005
+F19=\xf006 F2=\x71 F20=\xf007 F21=\xf008 F22=\xf009 F23=\xf00a
+F24=\xf00b F3=\x72 F4=\x73 F5=\x74 F6=\x75 F7=\x76 F8=\x77 F9=\x78
+Final=\x18 Find=\xffd0 Full-Width=\xf3 G=\x47 Greater=\xa0 H=\x48
+Half-Width=\xf4 Help=\x9c Hiragana=\xf2 Home=\x24 I=\x49 Input
+Method On/Off=\x107 Insert=\x9b Inverted Exclamation Mark=\x206
+J=\x4a Japanese Hiragana=\x104 Japanese Katakana=\x103 Japanese
+Roman=\x105 K=\x4b Kana Lock=\x106 Kana=\x15 Kanji=\x19 Katakana=\xf1
+L=\x4c Left Brace=\xa1 Left Parenthesis=\x207 Left=\x25 Left=\xe2
+Less=\x99 M=\x4d Meta=\x9d Minus=\x2d Mode Change=\x1f N=\x4e No
+Convert=\x1d Num Lock=\x90 NumPad *=\x6a NumPad +=\x6b NumPad ,=\x6c
+NumPad -=\x6d NumPad .=\x6e NumPad /=\x6f NumPad-0=\x60 NumPad-1=\x61
+NumPad-2=\x62 NumPad-3=\x63 NumPad-4=\x64 NumPad-5=\x65 NumPad-6=\x66
+NumPad-7=\x67 NumPad-8=\x68 NumPad-9=\x69 Number Sign=\x208 O=\x4f
+Open Bracket=\x5b P=\x50 Page Down=\x22 Page Up=\x21 Paste=\xffcf
+Pause=\x13 Period=\x2e Plus=\x209 Previous Candidate=\x101 Print
+Screen=\x9a Props=\xffca Q=\x51 Quote=\xde R=\x52 Right Brace=\xa2
+Right Parenthesis=\x20a Right=\x27 Right=\xe3 Roman Characters=\xf5
+S=\x53 Scroll Lock=\x91 Semicolon=\x3b Shift=\x10 Slash=\x2f
+Space=\x20 Stop=\xffc8 T=\x54 Tab=\x9 U=\x55 Underscore=\x20b
+Undo=\xffcb Up=\x26 Up=\xe0 V=\x56 W=\x57 Windows=\x20c X=\x58
+Y=\x59 Z=\x5a
+*/

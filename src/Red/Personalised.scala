@@ -68,6 +68,7 @@ object Personalised extends Logging.Loggable {
   def clearBindings(): Unit = {
     Bindings.clearMapping()
     Bindings.RedScriptEvaluator.reset()
+
   }
 
   def profileWarning(message: String): Unit = warning(s"", message)
@@ -144,7 +145,7 @@ object Personalised extends Logging.Loggable {
       override def normalFeedback(s: String): Unit = output.append(s)
       override def normalFeedbackLn(s: String): Unit = output.append(s)
 
-      def reset(): Unit = global.clear()
+      def reset(): Unit = { global.clear(); character.clear(); instruction.clear() }
 
       val paths = new collection.mutable.Stack[Path]
 
@@ -252,7 +253,27 @@ object Personalised extends Logging.Loggable {
         Nothing
       }
 
+      val instruction: collection.mutable.HashMap[Instruction, SExp] = new collection.mutable.HashMap[Instruction, SExp]
+      val character: collection.mutable.HashMap[Character, SExp] = new collection.mutable.HashMap[Character, SExp]
+      case class EditSessionCommand(name: String, command: EditSessionCommands.SessionCommand) extends Const {
+         override def toString: String = name
+      }
 
+      def declKey(specs: List[SExp]) : Const = {
+        for { Pair(Str(spec), effect) <- specs } Red.UserInput(spec) match  {
+          case ch: Character     => character.addOne((ch, effect))
+          case inst: Instruction => instruction.addOne((inst, effect))
+        }
+        Nothing
+      }
+
+      def evalCommand(specs: List[SExp]) : Const =
+        { val List(Str(name)) = specs
+          CommandsDict(name) match {
+            case None          => warn(s"(command $name) is not known"); Nothing
+            case Some(command) => EditSessionCommand(name, command)
+          }
+        }
 
       import Language._
       val bindingPrimitives: List[(String, Const)] = List(
@@ -262,7 +283,10 @@ object Personalised extends Logging.Loggable {
         "altplain"    -> Subr("altplain",    doAlt(false)(_)),
         "altshift"    -> Subr("altshift",    doAlt(true)(_)),
         "include"     -> Subr("include",     doInclude(_)),
+        // "module"     -> Subr("module",     doModule(_)), // TODO: (module name "path") defines a module environment from the file. module.name is a composite variable name
         "popup"       -> Subr("popup",       doPopup(_)),
+        "keys"        -> Subr("key",         declKey(_)),
+        "command"     -> Subr("command",     evalCommand(_)),
         "hashCode"    -> Subr("hashCode",    { case List(value) => Num(value.hashCode) }),
         "UI2S"        -> Subr("UI2S",        { case List(UserInput(in)) => Str(in.toInput) }),
         "font"        -> Subr("font",        { case List(Str(name)) => FontExpr(name, Utils.mkFont(name))}),

@@ -1,10 +1,13 @@
 import Red.UserInput._
 
+// Strings that denote UserInput values
 
 apply(".NumPad-5|ACSM")
 apply(".NumPad-0|ACSM")
 apply("Numpad.Key-5|ACSM")
-apply(".Key-5|ACSM")
+apply(".Find|ACSM")
+apply(".Dead Tilde|ACSM")
+apply(".Back Quote|ACSM")
 apply(".\\x0065|ACSM")
 
 
@@ -59,3 +62,5 @@ apply("Numpad.F22|ACSM")
 apply("Numpad.|ACSM")
 apply("Standard.'`'|ACSM")
 
+
+for { k <- scala.swing.event.Key.values } println(f"$k%s \\x${k.id}%x")

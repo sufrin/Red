@@ -31,8 +31,6 @@ class EditSessionHandlers(val UI_DO: Commands.Command[EditSession]=>Unit) {
   
   type UserInputHandler = Notifier.Handler[UserInput]
 
-
-
   case object UNDEFINED extends Throwable
 
   val redScriptInputHandler: UserInputHandler = new UserInputHandler {
@@ -42,16 +40,6 @@ class EditSessionHandlers(val UI_DO: Commands.Command[EditSession]=>Unit) {
         canHandleInput.position = handleInput.position
 
         override def isDefinedAt(input: UserInput): Boolean = {
-          /*
-          val script = RedScript.Language.SExps(List(canHandleInput, Personalised.Bindings.RedScriptEvaluator.UserInput(input)))
-          script.position = canHandleInput.position
-          try {
-            Personalised.Bindings.RedScriptEvaluator.run(script) match {
-              case RedScript.Language.Str(commandName) => true
-              case Personalised.Bindings.RedScriptEvaluator.SessionCommand(command) => true
-              case _ => false
-            }
-          } */
           try   { handleInput(input); true }
           catch {
             case UNDEFINED => false
@@ -61,6 +49,7 @@ class EditSessionHandlers(val UI_DO: Commands.Command[EditSession]=>Unit) {
         def apply(input: UserInput): Unit = {}
 
         def handleInput(input: UserInput): Unit = {
+          /*
           val script = RedScript.Language.SExps(List(handleInput, Personalised.Bindings.RedScriptEvaluator.UserInput(input)))
           script.position = handleInput.position
             Personalised.Bindings.RedScriptEvaluator.run(script) match {
@@ -74,6 +63,21 @@ class EditSessionHandlers(val UI_DO: Commands.Command[EditSession]=>Unit) {
               case RedScript.Language.SExps(Nil) =>
                    throw UNDEFINED
             }
+            */
+
+          input match {
+            case i: Instruction =>
+              Personalised.Bindings.RedScriptEvaluator.instruction.get(i) match {
+                case Some(Personalised.Bindings.RedScriptEvaluator.EditSessionCommand(name, command)) =>
+                  UI_DO(command)
+                case other =>
+                  println(s"Not handling $i")
+                  println(Personalised.Bindings.RedScriptEvaluator.instruction)
+                  throw UNDEFINED
+              }
+            case c: Character   => throw UNDEFINED
+            case other          => throw UNDEFINED
+          }
         }
       }
 
