@@ -2,8 +2,13 @@ import RedScript.Test.SourceCode
 
 /*
     A grab bag of little tests used during development.
-    TODO: needs reorganising to separate parsing and semantic tests
+    TODO: needs reorganising as separate parsing and semantic tests
 */
+
+""" (+ \x123ab  1)
+ (toNum (+ \x123ab  1))
+ toHex (toNum (+ \x123ab  1))
+""".rep
 
 """` ( (1 . "foo") (2 . "bar") `( 3 . ("foobaz" is best)))""".rep
 

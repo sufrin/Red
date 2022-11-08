@@ -11,11 +11,14 @@ apply(".\\x0065|ACSM")
 apply("'A'|CS")
 apply(".A|CS")
 apply("'.'|CS")
+
 apply("Left.'.'|CS")
 apply("'.'|M")
 apply("'.'|C")
+
 apply("';'|CS")
 apply("';'|S")
+
 apply("':'|S")
 apply(".Colon|CS")
 apply("'9'|CS")

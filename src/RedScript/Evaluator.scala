@@ -242,8 +242,12 @@ class Evaluator {
   def fun(name: String, op: List[SExp]=>SExp): Subr  =  Subr(name, op)
 
   /** `op`-(left)reduction of the arguments as a whole */
-  def red(name: String, op: (Int,Int)=>Int):Subr = {
-    val opn: (SExp,SExp)=>SExp  = { case (Num(a),Num(b)) => Num(op(a,b)) }
+  def red(name: String, op: (Long,Long)=>Long):Subr = {
+    val opn: (SExp,SExp)=>SExp  = {
+      case (a: Hex, b: Num) => new Hex(op(a.value, b.value))
+      case (a: Num, b: Hex) => new Hex(op(a.value, b.value))
+      case (Num(a),Num(b)) => Num(op(a,b))
+    }
     fun(name, { case args: List[SExp] if (args.nonEmpty) => args.reduceLeft(opn(_,_)) })
   }
 
@@ -335,6 +339,8 @@ class Evaluator {
     "isString"  -> forall("isString") { case Str(_)=>true;    case _ => false },
     "isNothing" -> forall("isNothing"){ case Nothing => true; case _ => false },
     "toString"  -> Subr("toString",   { case List(sexp) => Str(sexp.toString);  case other => throw RuntimeError(s"malformed toString: $other") }),
+    "toNum"     -> Subr("toNum",      { case List(a: Hex) => Num(a.value); case List(n) => n}),
+    "toHex"     -> Subr("toHex",      { case List(a: Hex) => a; case List(n: Num) => new Hex(n.value)}),
     "&&"        -> forall("&&")       { case Bool(b)=> b },
     "||"        -> exists("||")       { case Bool(b)=> b },
     "string"    -> redString("string", (_.+(_))),

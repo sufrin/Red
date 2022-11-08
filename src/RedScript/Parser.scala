@@ -37,7 +37,8 @@ object Lexical {
 
   case class Str(text: String) extends Symbol
 
-  case class Num(value: Int) extends Symbol
+  case class Num(value: Long) extends Symbol
+  case class Hex(value: Long) extends Symbol
 
 }
 
@@ -68,7 +69,14 @@ class Parser(source: io.Source, val path: String="") {
 
    import Lexical._
 
-   def inSymbol: Boolean = in.ch match {
+  def inHex: Boolean = in.ch match {
+    case '0'|'1'|'2'|'3'|'4'|'5'|'6'|'7'|'8'|'9' => true
+    case 'a'|'b'|'c'|'d'|'e'|'f' => true
+    case 'A'|'B'|'C'|'D'|'E'|'F' => true
+    case _ => false
+  }
+
+  def inSymbol: Boolean = in.ch match {
      case ')'   => false
      case '('   => false
      case '#'   => false
@@ -164,8 +172,22 @@ class Parser(source: io.Source, val path: String="") {
          getNext()
          Str(buf.toString().intern())
 
+       case '\\' =>
+         getNext() match {
+           case 'x' | 'X' =>
+             val buf = new collection.mutable.StringBuilder()
+             while ({getNext(); inHex }) buf.append(in.ch)
+             import Useful.CharSequenceOperations._
+             Hex(buf.toString().hexToLong.get)
+
+           case other =>
+             val buf = new collection.mutable.StringBuilder()
+             buf.append("\\")
+             while ({getNext(); inSymbol}) buf.append(in.ch)
+             Chunk(buf.toString().intern(), symbolic = true)
+         }
        case other if other.isDigit =>
-         var n: Int = other-'0'
+         var n: Long = other-'0'
          while (getNext().isDigit) n = n*10 + (in.ch-'0')
          Num(n)
 
@@ -301,6 +323,7 @@ class Parser(source: io.Source, val path: String="") {
           case Some(syntacticForm) => syntacticForm
         }
       case Num(value) => nextSymb(); Language.Num(value)
+      case Hex(value) => nextSymb(); new Language.Hex(value)
       case Str(text) => nextSymb(); Language.Str(text)
       case other => nextSymb(); Language.Variable(other.toString)
     }

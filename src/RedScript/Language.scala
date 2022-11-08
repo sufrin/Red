@@ -170,8 +170,16 @@ object Language {
     override def eval(env: Env): Const = this
   }
 
-  case class Num(value: Int) extends Const {
+  case class Num(value: Long) extends Const {
     override def toString = value.toString
+  }
+
+  /**
+   * A `Hex` is just a number that is printed in hexadecimal.
+   * `Hex` numbers combine arithmetically with numbers to form `Hex` numbers.
+   */
+  class Hex(_value: Long) extends Num(_value) {
+    override def toString = f"\\x$value%08x"
   }
 
 
