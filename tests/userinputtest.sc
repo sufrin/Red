@@ -1,66 +1,24 @@
-import Red.UserInput._
-
+import Red.UserInput
 // Strings that denote UserInput values
 
-apply(".NumPad-5|ACSM")
-apply(".NumPad-0|ACSM")
-apply("Numpad.Key-5|ACSM")
-apply(".Find|ACSM")
-apply(".Dead Tilde|ACSM")
-apply(".Back Quote|ACSM")
-apply(".\\x0065|ACSM")
+UserInput("NumPad-5(C)@Numpad")
+UserInput("NumPad-5(ACSM)")
+UserInput("NumPad-0(ACSM)@")
+UserInput("NumPad +(ACSM)Left")
+UserInput("Paste(ACSM)@Numpad")
+UserInput("Find(ACSM)")
+UserInput("\\x0065(ACSM)@")
+
+// Characters
+UserInput("'\\u00a7'")
+UserInput("'±'")
+UserInput("'3'")
+UserInput("3(CS)@Standard")
+UserInput("'3'@Standard")
+UserInput("'§'")
 
 
-apply("'A'|CS")
-apply(".A|CS")
-apply("'.'|CS")
-
-apply("Left.'.'|CS")
-apply("'.'|M")
-apply("'.'|C")
-
-apply("';'|CS")
-apply("';'|S")
-
-apply("':'|S")
-apply(".Colon|CS")
-apply("'9'|CS")
-apply("'\\"+"u0100'")
-apply("'\\"+"u0100'|C")
-apply(".All Candidates|C")
-apply("'F'")
+// Errors
+UserInput("\\x006x(ACSM)@")
 
 
-apply(".Quote|C")
-apply(".'\"'|C")
-apply(".Page Down|C")
-apply(".\\xde|C")
-apply(".Quote|C")
-apply(".'Q'|C")
-
-apply(".Right|C")
-apply(".RightParenthesis|C")
-apply("Standard.\\x0030|C")
-apply(".Enter|CS")
-
-apply(".D|ACS")
-apply(".F1|ACSM")
-apply(".F2|ACSM")
-apply(".F21|ACSM")
-apply(".F22|ACSM")
-
-apply("Left.Meta")
-apply("Right.Meta")
-apply(".Meta")
-
-apply("Numpad.'.'")
-apply("'.'")
-apply("'\u0015'")
-
-apply("Unknown.F22|ACSM")
-apply("Numpad.F22|ACSM")
-apply("Numpad.|ACSM")
-apply("Standard.'`'|ACSM")
-
-
-for { k <- scala.swing.event.Key.values } println(f"$k%s \\x${k.id}%x")

@@ -231,7 +231,7 @@ abstract class InputPanel(val numPadAsCommand: Boolean = UserInput.numpadAsComma
         val keyCode   = e.getKeyCode
         val exKeyCode = e.getExtendedKeyCode
         if (logging)
-          finest(s"'$keyChar' $modifiers $location $keyCode  $exKeyCode")
+          finest(f"'$keyChar%c' $modifiers%04x $location%s $keyCode%04x  $exKeyCode%04x")
         if (e.isActionKey) {
           // one of the "standard" function keys
           val decoded =
@@ -255,11 +255,11 @@ abstract class InputPanel(val numPadAsCommand: Boolean = UserInput.numpadAsComma
                 Instruction(Key.Delete, location,      metaToControl(detail))
               case _ if detail.hasControl || detail.hasMeta || (location == Key.Location.Numpad && numpadAsCommand) =>
                 // Linux and OS/X are consistent about e.KeyCode from a numpad, but not about e.getExtendKeyCode
-                if (logging) finest(f"Defined keyChar: $keyString $location (\\x$keyCode%04x$detail%s)")
+                if (logging) finest(f"Defined keyChar: $keyString%s(${detail.asText}%s)@$location%s (\\x$keyCode%04x(${detail.asText}%s)@$location")
                 Instruction(Key(keyCode), location,    metaToControl(detail))
               case _ =>
                 if (detail.hasAlt) {
-                  if (logging) finer(s"Alt-shifted $keyString $location $keyCode ${e.getExtendedKeyCode}")
+                  if (logging) finer(f"Alt-shifted $keyString%s($detail%s)@$location%s  (\\x$keyCode%04x \\x${e.getExtendedKeyCode}%x")
                   if (macKeyboardDiacritical.contains(keyChar))
                     Diacritical(keyChar)
                   else

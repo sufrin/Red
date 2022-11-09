@@ -46,6 +46,7 @@ object UserInputDetail {
       import Button._
       import Modifier._
       val b = new StringBuilder
+      if (mods!=0) b.append("(")
       if (hasAny(Control)) b.append("C")
       if (hasAny(Shift)) b.append("S")
       if (hasAny(Alt)) b.append("A")
@@ -53,7 +54,7 @@ object UserInputDetail {
       if (hasAny(Button1)) b.append("B1")
       if (hasAny(Button2)) b.append("B2")
       if (hasAny(Button3)) b.append("B3")
-      if (b.nonEmpty) b.insert(0, "|")
+      if (mods!=0) b.append(")")
       b.toString
     }
     override def toString: String = s"Detail($asText)"

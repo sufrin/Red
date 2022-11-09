@@ -1,8 +1,8 @@
 package Red
 
+import Red.EditSessionCommands.insertCommand
 import Red.UserInputDetail.Key
 import Red.UserInputDetail.Modifiers._
-import RedScript.SourcePosition
 
 /**
  *  This class defines handlers for keyboard and mouse events.
@@ -33,11 +33,17 @@ class EditSessionHandlers(val UI_DO: Commands.Command[EditSession]=>Unit) {
 
   case object UNDEFINED extends Throwable
 
+  /**
+   *
+   * Handles user input with commands ''specified'' in the `character` and `instruction` tables
+   * of `Personalised.Bindings.RedScriptEvaluator` while bindings are being read.
+   *
+   * Characters not associated with a command are treated as `insertCommand`s. Use
+   * `singleLineRedScriptInputHandler` for the single-line components used for the
+   * (A), (F), and (R) fields.
+   *
+   */
   val redScriptInputHandler: UserInputHandler = new UserInputHandler {
-        val canHandleInput = RedScript.Language.Variable("canHandleInput")
-        val handleInput = RedScript.Language.Variable("handleInput")
-        handleInput.position = SourcePosition("redScriptInputHandler")
-        canHandleInput.position = handleInput.position
 
         override def isDefinedAt(input: UserInput): Boolean = {
           try   { handleInput(input); true }
@@ -49,33 +55,25 @@ class EditSessionHandlers(val UI_DO: Commands.Command[EditSession]=>Unit) {
         def apply(input: UserInput): Unit = {}
 
         def handleInput(input: UserInput): Unit = {
-          /*
-          val script = RedScript.Language.SExps(List(handleInput, Personalised.Bindings.RedScriptEvaluator.UserInput(input)))
-          script.position = handleInput.position
-            Personalised.Bindings.RedScriptEvaluator.run(script) match {
-              case RedScript.Language.Str(commandName) =>
-                CommandsDict(commandName) match {
-                  case Some(command) => UI_DO(command)
-                  case None          => throw UNDEFINED
-                }
-              case Personalised.Bindings.RedScriptEvaluator.SessionCommand(command) =>
-                   UI_DO(command)
-              case RedScript.Language.SExps(Nil) =>
-                   throw UNDEFINED
-            }
-            */
-
           input match {
             case i: Instruction =>
               Personalised.Bindings.RedScriptEvaluator.instruction.get(i) match {
                 case Some(Personalised.Bindings.RedScriptEvaluator.EditSessionCommand(name, command)) =>
                   UI_DO(command)
                 case other =>
-                  println(s"Not handling $i")
-                  println(Personalised.Bindings.RedScriptEvaluator.instruction)
+                  //println(s"Not handling $i")
+                  //println(Personalised.Bindings.RedScriptEvaluator.instruction)
                   throw UNDEFINED
               }
-            case c: Character   => throw UNDEFINED
+
+            case c: Character   =>
+               Personalised.Bindings.RedScriptEvaluator.character.get(c) match {
+                 case Some(Personalised.Bindings.RedScriptEvaluator.EditSessionCommand(name, command)) =>
+                   UI_DO(command)
+                 case None =>
+                   UI_DO(insertCommand(c.char))
+               }
+
             case other          => throw UNDEFINED
           }
         }
@@ -169,6 +167,13 @@ class EditSessionHandlers(val UI_DO: Commands.Command[EditSession]=>Unit) {
        *  A handler that does nothing in response to `Key.Up`, `Key.Down`, and `'\n'` but otherwise responds to
        *  keys in the same way as  `keyboard`
        */
-      val singleLineKeyboard: UserInputHandler = ignoreMultiLineKeys orElse keyboard
+      val singleLineKeyboard: UserInputHandler  = ignoreMultiLineKeys orElse keyboard
+
+      /**
+       *  A handler that does nothing in response to `Key.Up`, `Key.Down`, and `'\n'` but otherwise responds to
+       *  keys in the same way as  `redScriptInputHandler`
+       */
+      val singleLineRedScriptInputHandler: UserInputHandler = ignoreMultiLineKeys orElse redScriptInputHandler
+
 
 }

@@ -255,15 +255,20 @@ object Personalised extends Logging.Loggable {
 
       val instruction: collection.mutable.HashMap[Instruction, SExp] = new collection.mutable.HashMap[Instruction, SExp]
       val character: collection.mutable.HashMap[Character, SExp] = new collection.mutable.HashMap[Character, SExp]
+
+      /** The RedScript representation of an `EditSessionCommand` */
       case class EditSessionCommand(name: String, command: EditSessionCommands.SessionCommand) extends Const {
          override def toString: String = name
       }
 
       def declKey(specs: List[SExp]) : Const = {
+        if (logging) info(s"Keys Declared: $specs")
         for { Pair(Str(spec), effect) <- specs } Red.UserInput(spec) match  {
-          case ch: Character     => character.addOne((ch, effect))
-          case inst: Instruction => instruction.addOne((inst, effect))
+          case ch:   Character    => character.addOne((ch, effect))
+          case inst: Instruction  => instruction.addOne((inst, effect))
+          case other => profileWarning(s"Declaring key $other")
         }
+        if (logging) fine(s"CH: $character\nINST: $instruction")
         Nothing
       }
 
@@ -285,10 +290,15 @@ object Personalised extends Logging.Loggable {
         "include"     -> Subr("include",     doInclude(_)),
         // "module"     -> Subr("module",     doModule(_)), // TODO: (module name "path") defines a module environment from the file. module.name is a composite variable name
         "popup"       -> Subr("popup",       doPopup(_)),
-        "keys"        -> Subr("key",         declKey(_)),
+        "keys"        -> Subr("keys",        declKey(_)),
+        "keySpec"     -> Subr("keySpec",     { case List(Str(spec)) => Str(s"$spec ==> ${Red.UserInput(spec).toString}")}),
+        "modSpec"     -> Subr("modSpec",     { case  List(Str(spec)) => UserInputDetail.Detail.withDetail(spec) match {
+                                                                          case None => nil
+                                                                          case Some(detail) => Num(detail.mods)
+                                                                        }}),
         "command"     -> Subr("command",     evalCommand(_)),
         "hashCode"    -> Subr("hashCode",    { case List(value) => Num(value.hashCode) }),
-        "UI2S"        -> Subr("UI2S",        { case List(UserInput(in)) => Str(in.toInput) }),
+        "inputToString" -> Subr("inputToString",        { case List(UserInput(in)) => Str(in.toInput) }),
         "font"        -> Subr("font",        { case List(Str(name)) => FontExpr(name, Utils.mkFont(name))}),
         "useFont"     -> FSubr("useFont",    useFont),
         "persist"     -> FSubr("persist",    declPersistent),

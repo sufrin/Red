@@ -58,10 +58,10 @@ import scala.swing.event.Key
       else
         char.toString
     override def toString: String =
-      f"Character($location%s.'$character%s'${mods.asText}%s) ($toInput)"
+      f"Character('$character%s', $location%s, ${mods.asText}%s) ($toInput)"
 
     override def toInput: String =
-      f"\"$location%s.\\u${char.toInt}%04x${mods.asText}%s\""
+      f"'$character%s'${mods.asText}%s@$location%s"
 
   }
 
@@ -75,9 +75,10 @@ import scala.swing.event.Key
         mods:     Detail)
     extends UserInput {
     override def toInput: String =
-      f"\"$location%s.\\x${key.id}%04x${mods.asText}%s\""
+      f"${KeySymbol.nameForKey(key)}%s${mods.asText}%s@$location%s"
+
     override def toString: String =
-      f"Instruction($location%s.$key${mods.asText}%s) ($toInput)"
+      f"Instruction($key, $location%s, ${mods.asText}%s) ($toInput)"
   }
 
   case class Diacritical(mark: Char )  extends UserInput {
@@ -93,27 +94,20 @@ import scala.swing.event.Key
  *
  * Description Notation:
  *
- *   (either or both of ''loc'' or `|`''detail'' may be elided)
+ *   ''key''`(`''mods''`)@``''location'' -- for `Character`` keystrokes
  *
- *     loc.key|detail  =>
- *     Instruction(theKey, theLoc, theDet)
- *
- *   (either or both of ''loc''`.` or `|`''detail'' may be elided)
- *
- *     loc.'ch'|detail  =>
- *     Character(theChar, theLoc, theDet)
- *
- *   A `Character` with `C` or `M` in its detail is translated to the corresponding `Instruction` in the same way as
- *   `InputPanel` does the translation.
+ *   `'`''ch''`'(`''mods''`)@``''location'' -- for `Instruction` keystrokes
  *
  *   A ''ch'' can be specified as a literal or as its unicode `\uhhhh` code.
  *
  *   A ''key'' can be specified by its name or as its hexadecimal `\xhhhh` identity code.
  *
  *   The ''key'' names (and corresponding identity codes) are given at the foot of this file.
- *   For example `F11`, `Left Parenthesis`.
+ *   For example `F11`, `Left Parenthesis`, `A`.
  *
- *   The ''location'' names are `Standard`, `Numpad`, `Unknown`, `Left`, `Right` (etc). A missing
+ *   The ''location'' must be named: names are `Standard`, `Numpad`, `Unknown`, `Left`, `Right` (etc).
+ *
+ *   Either or both the  `(`''mods''`)` and `@`''location'' fields may be elided. A missing
  *   ''location'' is taken to be `Standard`.
  *
  */
@@ -122,28 +116,37 @@ object UserInput {
   var theLoc: UserInputDetail.Location.Value = _
   var theDet: UserInputDetail.Detail         = _
   var theChar: Char                          = _
+  val error = new collection.mutable.StringBuilder
   val NoModifier                             = UserInputDetail.Modifiers.NoModifier
 
-  def isKey(keyName: String): Boolean = try {
-      theKey = Key.withName(keyName)
-      true
-  } catch {
-    case _ =>
-      keyName.startsWith("\\x") && isHexKey(keyName.drop(2))
+  def isKey(keyName: String): Boolean = {
+      //theKey = Key.withName(keyName)
+      KeySymbol.keyWithName(keyName) match {
+        case Some(key) =>
+          theKey = key
+          true
+        case None =>
+          if (keyName.startsWith("\\x") && isHexKey(keyName.drop(2))) true
+          else {
+            error.append(s"$keyName is neither a key name or a valid hexadecimal key specification")
+            false
+          }
+      }
   }
 
   def isDet(detail: String): Boolean =
     Detail.withDetail(detail) match {
-      case None => false
+      case None => error.append(s"($detail) isn't modifier detail");  false
       case Some(detail) => theDet = detail; true
     }
 
   def isLoc(locName: String): Boolean = try {
-      theLoc= Location.withName(locName)
+      theLoc = Location.withName(locName)
       true
   } catch {
     case _ =>
       theLoc = Location.Standard
+      if (locName!="") error.append(s"$locName isn't a keyboard location")
       locName==""
   }
 
@@ -163,38 +166,64 @@ object UserInput {
   def isUnicode(string: String): Boolean = {
     import Useful.CharSequenceOperations._
     string.toUnicode match {
-      case None => false
+      case None => error.append(s"~isUnicode($string)"); false
       case Some(char) => theChar = char; true
     }
   }
 
-  def isChar(string: String): Boolean =
-    if (string.length==1) { theChar = string(0); true }
+  def isChar(string: String): Boolean = {
+    val res =
+    if (string.length==1)                    { theChar = string(0); true }
     else
     if (string.length==2 && string(0)=='\\') { theChar=string(1); true }
     else
       isUnicode(string)
 
+    res
+  }
+
   /**
-   * An `InputPanel` to be used with these key descriptors
-   * must have this/these values
+   *  An `InputPanel` to be used with these key descriptors
+   *  must have this/these values
    */
   var numpadAsCommand, mapMeta: Boolean = true
 
+  case class Fields(isInstruction: Boolean, var loc: Option[String], var decode: Option[String], var mods: Option[String])
 
-  def parse(text: String): UserInput =
+  def fields(text: String):Fields = {
     text match {
-      case s"$loc.$key" if isLoc(loc) && isKey(key) => Instruction(theKey, theLoc, NoModifier)
-      case s"$loc.$key|$detail" if isLoc(loc) && isKey(key) && isDet(detail)=> Instruction(theKey, theLoc, theDet)
 
-      case s"'$ch'" if isChar(ch) => Character(theChar, Location.Standard, NoModifier)
-      case s"$loc.'$ch'|$detail" if isChar(ch) && isLoc(loc) && isDet(detail) => Character(theChar, theLoc, theDet)
-      case s"'$ch'|$detail" if isChar(ch) && isDet(detail) => Character(theChar, Location.Standard, theDet)
-      case _ => Undefined(text)
+      case s"'$key'($mods)@$loc" => Fields(false, Some(loc),     Some(key), Some(mods))
+      case s"'$key'($mods)"      => Fields(false, None,          Some(key), Some(mods))
+      case s"'$key'@$loc"        => Fields(false, Some(loc),     Some(key), None)
+      case s"'$key'"             => Fields(false, None,          Some(key), None)
+      case s"$key($mods)@$loc"   => Fields(true, Some(loc),      Some(key.intern), Some(mods))
+      case s"$key($mods)"        => Fields(true, None,           Some(key.intern), Some(mods))
+      case s"$key@$loc"          => Fields(true, Some(loc),      Some(key.intern), None)
+      case _ => Fields(false, None, None, None)
     }
+  }
+
+  def parse(text: String): UserInput = {
+    error.clear()
+    var f = fields(text)
+    if (f.loc.isEmpty) f.loc = Some("Standard")
+    if (f.mods.isEmpty) f.mods = Some("") // No Modifier
+    if (f.decode.isEmpty) Undefined(s"\"$text\" [No key specified]") else {
+      val (Fields(isInstruction, Some(loc), Some(decode), Some(mods))) = f
+      if (isInstruction && isLoc(loc) && isKey(decode) && isDet(mods))
+        Instruction(theKey, theLoc, theDet)
+      else {
+      if (!isInstruction && isLoc(loc) && isChar(decode) && isDet(mods))
+        Character(theChar, theLoc, theDet)
+      else
+        Undefined(s"\"$text\" ${error.toString()}")
+      }
+    }
+  }
 
   def apply(text: String): UserInput = parse(text) match {
-    case Character(char, location, detail) if detail.hasControl || detail.hasMeta || (location == Key.Location.Numpad && numpadAsCommand) =>
+    case Character(char, location, detail) if false && detail.hasControl || detail.hasMeta || (location == Key.Location.Numpad && numpadAsCommand) =>
          // Linux and OS/X are consistent about e.KeyCode from a numpad, but not about e.getExtendKeyCode
          Instruction(Key(char.toInt), location, if (mapMeta) detail.mapMeta else detail)
     case other => other
