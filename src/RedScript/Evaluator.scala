@@ -24,10 +24,10 @@ class Evaluator {
   /**
    * A multi-branched conditional expression takes the form:
    *
-   * `(if' (cond . thenExpr)*)` -- zero or more (condition, expr) pairs
+   * `(if* (condition . expr)*)`
    *
    * It yields `Nothing` if no condition yields true; else
-   * it yields the value of the `thenExpr` paired with the first
+   * it yields the value of the `expr` paired with the first
    * of the conditions that yields `true`.
    */
   def evCond(env: Env, body: SExp): SExp = {
@@ -53,11 +53,11 @@ class Evaluator {
 
   /** A single-branched conditional expression takes the form:
    *
-   *  `(if condition thenExpr elseExpr)` -- a condition followed by two expressions
+   *  `(if condition thenExpr elseExpr)`
    *
    *  It yields the same as
    *
-   *  `(if' (condition thenExpr) (true elseExpr))`
+   *  `(if* (condition . thenExpr) (true . elseExpr))`
    */
   def evIf(env: Env, body: SExp): SExp = body match {
     case SExps(List(pred, thenPart, elsePart)) => pred.eval(env) match {
@@ -69,13 +69,21 @@ class Evaluator {
   }
 
   /**
-   * User-declared SExpants and variables
+   * User-declared constants and variables
    */
   val global    = new MutableEnv
   /**
-   * Built-in named unchangeable forms
+   * Built-in unchangeable forms
    */
   val syntaxEnv = new MutableEnv
+
+  /** Check the declareability of a name */
+  def whenRedefinable[T](sexp: SExp)(expr: => T): T = {
+    sexp match {
+      case Variable(name) => expr
+      case other => throw SyntaxError(s"Built-ins cannot be rebound or redefined: $other")
+    }
+  }
 
   def evSet(env: Env, body: SExp): SExp = {
     body match {
@@ -90,46 +98,45 @@ class Evaluator {
   def evGlobal(isVar: Boolean)(env: Env, body: SExp): SExp = {
     body match {
       case SExps(List(Variable(name), value)) =>
-           val v = value.eval(env)
-           global.define(name, if (isVar) Ref(name, v) else v)
-           Nothing
-      case other => throw SyntaxError(s"Malformed global declaration: $other")
+          val v = value.eval(env)
+          global.define(name, if (isVar) Ref(name, v) else v)
+          Nothing
+      case SExps(List(sexp, _)) => whenRedefinable(sexp) { Nothing } // for consistency of the error message
+      case _                    => throw SyntaxError(s"Malformed ${if (isVar) "global" else "constant"} declaration: $body")
     }
   }
 
   // TODO: (decls, body) = pairs.splitAtFirstNonPair
   def evLet(isVar: Boolean)(env: Env, form: SExp): SExp = {
     form match {
-      case SExps(pairs) if pairs.length >= 2 =>
+      case SExps(pairs) if pairs.length >= 1 =>
         pairs.last match {
           case p: Pair =>
             // A globally-scoped declaration
             // (let (vi . ei )*)
             if (isVar)
-              for { Pair(Variable(bv), expr) <- pairs } global.define(bv, Ref(bv, expr.eval(env)))
+              for { Pair(bv, expr) <- pairs } whenRedefinable(bv) { global.define(bv.toString, Ref(bv.toString, expr.eval(env))) }
             else
-              for { Pair(Variable(bv), expr) <- pairs } global.define(bv, expr.eval(env))
+              for { Pair(bv, expr) <- pairs } whenRedefinable(bv) { global.define(bv.toString, expr.eval(env)) }
             Nothing
           // A locally-scoped declaration
           // (let (vi . ei )* body)
           case body =>
             try {
               val decls = pairs.take(pairs.length-1)
-              //val bindings = (for {i <- 0 until pairs.length - 1} yield pairs(i)).toList
-              val bvs = decls.map { case Pair(bv, _) => bv }
-              // val bvs = (for { SExps(List(bv, _)) <- bindings } yield bv).toList
+              val bvs   = decls.map { case Pair(bv, _) => bv }
               val args =
                 if (isVar)
-                  for { Pair(bv, expr)  <- decls } yield Ref(bv.toString, expr.eval(env))
+                  for { Pair(bv, expr)  <- decls } yield whenRedefinable(bv) { Ref(bv.toString, expr.eval(env)) }
                 else
-                  for { Pair(bv, expr)  <- decls } yield expr.eval(env)
+                  for { Pair(bv, expr)  <- decls } yield whenRedefinable(bv) { expr.eval(env) }
               body.eval(env.extend(SExps(bvs), args.toList))
             } catch {
-              case exn: MatchError => throw SyntaxError(s"Malformed declaration")
+              case exn: MatchError => throw SyntaxError(s"Malformed declaration: $form (${exn.getMessage()})")
             }
         }
 
-      case other => throw SyntaxError(s"Malformed declaration")
+      case other => throw SyntaxError(s"Malformed declaration: there should be at least one (variable.value)")
     }
   }
 
@@ -145,8 +152,8 @@ class Evaluator {
     form match {
       //   def (f . arg) body
       case SExps(Pair(Variable(name),  (allArg: Variable))  :: body) =>
-        global.define(name, ExprAll(env, allArg, mkSequential(body)) )
-        Nothing
+           global.define(name, ExprAll(env, allArg, mkSequential(body)) )
+           Nothing
       //   def (f a b c) body
       case SExps(SExps(Variable(name) :: pattern) :: body) if isPattern(pattern) =>
            global.define(name, Expr(env, SExps(pattern), mkSequential(body)))
@@ -169,10 +176,17 @@ class Evaluator {
     }
   }
 
+  /**
+   * `(map (name.value)* )`
+   */
   def evMap(env: Env, form: SExp): SExp = form match {
-    case SExps(pairs) => EnvExpr(new LocalEnv(pairs.map { case (SExps(List(d, r))) => (d.eval(env).toPlainString, r.eval(env)) }))
+    case SExps(pairs) => EnvExpr(new LocalEnv(pairs.map { case (Pair(d,r)) => (d.eval(env).toPlainString, r.eval(env)) }))
   }
 
+  /** Evaluate a by-value function expression (to a closure)
+   *
+   * TODO: check redefinability of parameter names
+   */
   def evFun(env: Env, form: SExp): SExp = {
     form match {
       // fun var body -- binds all params to the variable
@@ -185,6 +199,10 @@ class Evaluator {
     }
   }
 
+  /** Evaluate a by-syntax function expression (to a closure)
+   *
+   *  TODO: check redefinability of parameter names
+   */
   def evForm(env: Env, form: SExp): SExp = {
     form match {
       // form (env . args) body
@@ -215,12 +233,12 @@ class Evaluator {
   /**  Workhorse to implement the transformations (for N>1):
    *
    *   {{{
-   *   (expr params e1 e2 eN) => (expr params (Seq e1 e2 eN))
+   *   (expr params e1 e2 eN) => (expr params (seq e1 e2 eN))
    *   }}}
    *   and
    *
    *   {{{
-   *   (def f(params) e1 e2 eN) => (def  f(params) (Seq e1 e2 eN))
+   *   (def (f params) e1 e2 eN) => (def  f(params) (seq e1 e2 eN))
    *   }}}
    */
   def mkSequential(exprs: List[SExp]): SExp = exprs match {

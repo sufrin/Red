@@ -5,6 +5,14 @@ import RedScript.Test.SourceCode
     TODO: needs reorganising as separate parsing and semantic tests
 */
 
+"""
+  |(val (a.3))
+  |a
+  |(constant + 4)
+  |(val (nil . 99))
+  |+ 3 4
+  |""".stripMargin.rep
+
 """ (+ \x123ab  1)
  (toNum (+ \x123ab  1))
  toHex (toNum (+ \x123ab  1))

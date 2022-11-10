@@ -197,6 +197,13 @@ object EditSessionCommands extends Logging.Loggable {
     }
   }
 
+  /** Do nothing */
+  val doNothing: SessionCommand = new SessionCommand {
+    def DO(session: EditSession): StateChangeOption = {
+      Some(Command.undoNothing)
+    }
+  }
+
   /**
    * An insertion from the keyboard that cuts the selection first if
    * the session is in type-over-selection mode, and the selection

@@ -4,6 +4,7 @@ import RedScript.Language._
 import RedScript.{Env, Evaluator, Language, SourcePosition}
 import Useful.PrefixMap
 
+import java.io.File
 import java.nio.file.{Path, Paths}
 import scala.swing.{Dialog, Font}
 
@@ -280,6 +281,13 @@ object Personalised extends Logging.Loggable {
           }
         }
 
+      def evalAndThen(specs: List[SExp]) : Const = {
+        val command = specs.foldLeft(EditSessionCommand("", EditSessionCommands.doNothing)){
+          case (EditSessionCommand(n1, c1), EditSessionCommand(n2, c2)) => EditSessionCommand(s"$n1; $n2", c1 &&& c2)
+        }
+        command
+      }
+
       import Language._
       val bindingPrimitives: List[(String, Const)] = List(
         "abbrev"      -> Subr("abbrev",      {  case List(Str(abbr), Str(text)) => mapTo(abbr, text); Nothing }),
@@ -297,8 +305,9 @@ object Personalised extends Logging.Loggable {
                                                                           case Some(detail) => Num(detail.mods)
                                                                         }}),
         "command"     -> Subr("command",     evalCommand(_)),
+        "andThen"     -> Subr("andThen",     evalAndThen(_)),
         "hashCode"    -> Subr("hashCode",    { case List(value) => Num(value.hashCode) }),
-        "inputToString" -> Subr("inputToString",        { case List(UserInput(in)) => Str(in.toInput) }),
+        "inputToString" -> Subr("inputToString", { case List(UserInput(in)) => Str(in.toInput) }),
         "font"        -> Subr("font",        { case List(Str(name)) => FontExpr(name, Utils.mkFont(name))}),
         "useFont"     -> FSubr("useFont",    useFont),
         "persist"     -> FSubr("persist",    declPersistent),
@@ -334,6 +343,14 @@ object Personalised extends Logging.Loggable {
       importBindings()
     }
 
+    /** Maps each included file to its timestamp */
+    val fileTime = new collection.mutable.LinkedHashMap[File,Long]
+    def anyFileChanged: Boolean = {
+      fileTime.exists {
+        case (file, time) => file.exists && file.lastModified()>time
+      }
+    }
+
     def importBindings(depth: Int, context: Path, path: Path, show: Boolean = false): Unit = {
 
     /**
@@ -343,6 +360,7 @@ object Personalised extends Logging.Loggable {
      */
       val file = path.toFile
       val timeStamp = if (file.exists) file.lastModified() else 0
+      fileTime.addOne((file,timeStamp))
 
       def readFile(): Unit = {
         if (logging) info(s"importing bindings from: $file")
@@ -353,10 +371,18 @@ object Personalised extends Logging.Loggable {
       if (file.exists()) {
          if (depth==0) {
            // re-read root if necessary
+           /*
            if (timeStamp>lastImportTime) {
               clearBindings()
               readFile()
               lastImportTime = timeStamp
+           }
+           */
+           if (timeStamp>lastImportTime || anyFileChanged) {
+             clearBindings()
+             fileTime.clear()
+             readFile()
+             lastImportTime = timeStamp
            }
          }
          else

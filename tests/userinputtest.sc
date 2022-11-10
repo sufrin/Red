@@ -1,10 +1,15 @@
+import Red.KeySymbol.keyWithName
 import Red.UserInput
 // Strings that denote UserInput values
 
+keyWithName("F5")
+keyWithName("NUMPAD-5")
+keyWithName("NUMPAD+")
+keyWithName("NUMPAD +")
 UserInput("NumPad-5(C)@Numpad")
 UserInput("NumPad-5(ACSM)")
 UserInput("NumPad-0(ACSM)@")
-UserInput("NumPad +(ACSM)Left")
+UserInput("NumPad +(ACSM)@Left")
 UserInput("Paste(ACSM)@Numpad")
 UserInput("Find(ACSM)")
 UserInput("\\x0065(ACSM)@")
