@@ -3,8 +3,11 @@ package Red
 import scala.swing.event.Key
 
 /**
- * Mappings from key names to their numeric identities and back
+ * Mappings (implemented by linear search) from key names to their numeric identities and back.
  * Circumvents a well-hidden bug in the reflective implementation of `Key.withName`
+ *
+ * Official names have spaces and capitals in them; I have added unofficial variants as
+ * reserves.
  */
 object KeySymbol {
 
