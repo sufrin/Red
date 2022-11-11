@@ -153,7 +153,7 @@ object EditSessionCommands extends Logging.Loggable {
       try {
         Some((if (replaceSelection) "" else input) ++ evaluator.run(SExps(List(Variable(functionName), Str(path), Str(argLine), Str(findLine), Str(replLine), Str(input)))).toPlainString)
       } catch {
-        case exn => Some(exn.toString)
+        case exn: Throwable => Some(exn.toString)
       }
     }
   }
@@ -164,13 +164,14 @@ object EditSessionCommands extends Logging.Loggable {
 
     protected override def transform(input: String, cwd: Path): Option[String] = {
       try {
-        val expr = Personalised.Bindings.RedScriptEvaluator.UserInput(key)
-        evaluator.run(evaluator.run(SExps(List(Variable("unhandledInput"), expr)))) match {
+        val theKey = Personalised.Bindings.RedScriptEvaluator.UserInput(key)
+        evaluator.run(evaluator.run(SExps(List(Variable("UI:unhandledInput"), theKey)))) match {
           case Str(s) => Some(s+"\n")
           case _      => None
         }
       } catch {
-        case exn => Some(exn.toString)
+            // TODO: deal with unbound UI:....
+        case exn: Throwable => Some(exn.toString)
       }
     }
   }
@@ -212,6 +213,13 @@ object EditSessionCommands extends Logging.Loggable {
   def insertCommand(ch: Char): SessionCommand = ifTypeOver(cut &&& notifyNow) &&& insert(ch)
 
   /**
+   * An insertion from the keyboard that cuts the selection first if
+   * the session is in type-over-selection mode, and the selection
+   * isn't indicative.
+   */
+  def insertCommand(chars: String): SessionCommand = ifTypeOver(cut &&& notifyNow) &&& insert(chars)
+
+  /**
    *  An `InsChange` is either the representation of a `StateChange` for a single character insertion,
    *  or the representation of a `StateChange` for a sequence of single character insertions.
    *
@@ -230,7 +238,7 @@ object EditSessionCommands extends Logging.Loggable {
    *  `redo` have the appropriate effects.
    *
    */
-  class InsChange(session: EditSession, var chars: Either[Char, StringBuilder]) extends StateChange {
+  private class InsChange(session: EditSession, var chars: Either[Char, StringBuilder]) extends StateChange {
     override val kind: String = if (isEol(chars)) "InsEol" else "Ins" // break insertion merges
 
     def undo(): Unit = session.deleteFor(-length)
@@ -282,6 +290,18 @@ object EditSessionCommands extends Logging.Loggable {
       }
     }
   }
+
+  def insert(chars: String): SessionCommand =
+    new SessionCommand {
+      def DO(session: EditSession): StateChangeOption = {
+        val change = new StateChange {
+          def redo(): Unit = session.insert(chars)
+          def undo(): Unit = session.delete(-chars.length)
+        }
+        change.redo()
+        Some(change)
+      }
+    }
 
   val delete: SessionCommand = new SessionCommand {
     def DO(session: EditSession): StateChangeOption =

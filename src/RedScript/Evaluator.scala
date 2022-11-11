@@ -377,7 +377,10 @@ class Evaluator {
     "false"     -> Bool(false),
     "ENV"       -> Subr("ENV",   evalENV),
     "PROP"      -> Subr("PROP",  evalPROP),
-    "SOURCE"    -> Subr("SOURCE",  { case Nil => Str(position.toString) })
+    "SOURCE"    -> PositionSubr("SOURCE",  { case List(s: Str) => s }) // special case
+  )
+
+  val globals: List[(String, SExp)] = List (
   )
 
   def run(sexp: SExp): SExp = {
@@ -389,6 +392,8 @@ class Evaluator {
   }
 
   for { (name, value) <- primitives } syntaxEnv.define(name, value)
+  for { (name, value) <- globals }    global.define(name, value)
+
 
   def normalFeedback(s: String): Unit   = { Console.print(s); Console.flush() }
   def normalFeedbackLn(s: String): Unit = { Console.println(s); Console.flush() }

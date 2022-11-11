@@ -26,16 +26,16 @@ object Personalised extends Logging.Loggable {
   }
 
   def latexBlockTypes(path: String): Seq[String] =
-  { applyScript("latexBlockTypes",  path) match {
-      case SExps(es)  => es.map(_.toPlainString)
+  { applyScript("UI:latexBlockTypes",  path) match {
       case SExps(Nil) => Nil
+      case SExps(es)  => es.map(_.toPlainString)
       case other      => profileWarning(s"latexBlockTypes: path -> Seq[String]: $other"); Nil
     }
   }
 
   def needsLatex(path: String): Boolean = {
     Bindings.importBindings()
-    applyScript("needsLatex", path) match {
+    applyScript("UI:needsLatex", path) match {
       case Bool(bool) => bool
       case other      => profileWarning(s"needsLatex: path -> Bool: $other"); false
     }
@@ -43,7 +43,7 @@ object Personalised extends Logging.Loggable {
 
   def needsPandoc(path: String): Boolean = {
     Bindings.importBindings()
-    applyScript("needsPandoc", path) match {
+    applyScript("UI:needsPandoc", path) match {
       case Bool(bool) => bool
       case other      => profileWarning(s"needsPandoc: path -> Bool: $other"); false
     }
@@ -51,7 +51,7 @@ object Personalised extends Logging.Loggable {
 
   def pipeShellCommands(path: String): Seq[String] =
   { Bindings.importBindings()
-    applyScript("pipeShellCommands", path) match {
+    applyScript("UI:pipeShellCommands", path) match {
       case SExps(es) => es.map(_.toPlainString)
       case other     => profileWarning(s"pipeShellCommands: path -> Seq[String]: $other"); Nil
     }
@@ -59,7 +59,7 @@ object Personalised extends Logging.Loggable {
 
   def pipeRedScripts(path: String): Seq[String] =
   { Bindings.importBindings()
-    applyScript("pipeRedScripts", path) match {
+    applyScript("UI:pipeRedScripts", path) match {
       case SExps(es) => es.map(_.toPlainString)
       case other     => profileWarning(s"pipeRedScripts: path -> Seq[fun]: $other"); Nil
     }
@@ -174,6 +174,13 @@ object Personalised extends Logging.Loggable {
         Nothing
       }
 
+      /**
+       * Invoked from a keys declaration, which takes precedence over the alt key tables
+       */
+      def fixAlt(char: Character): Unit = {
+        AltKeyboard.mapTo(char.char.toUpper, char.char, char.mods.hasShift)
+      }
+
       def doPopup(message: List[SExp]): SExp = {
         val lines = message.map(_.toPlainString).mkString("", "\n", "")
         Dialog.showMessage(
@@ -262,10 +269,13 @@ object Personalised extends Logging.Loggable {
          override def toString: String = name
       }
 
-      def declKey(specs: List[SExp]) : Const = {
+      def declKeys(specs: List[SExp]) : Const = {
         if (logging) info(s"Keys Declared: $specs")
         for { Pair(Str(spec), effect) <- specs } Red.UserInput(spec) match  {
-          case ch:   Character    => character.addOne((ch, effect))
+          case ch:   Character    =>
+            // key declarations take precedence
+            if (ch.mods.hasAlt) fixAlt(ch)
+            character.addOne((ch, effect))
           case inst: Instruction  => instruction.addOne((inst, effect))
           case other => profileWarning(s"Declaring key $other")
         }
@@ -280,6 +290,11 @@ object Personalised extends Logging.Loggable {
             case Some(command) => EditSessionCommand(name, command)
           }
         }
+
+      def evalInsert(specs: List[SExp]) : Const =
+      { val List(Str(chars)) = specs
+        EditSessionCommand("insert", EditSessionCommands.insertCommand(chars))
+      }
 
       def evalAndThen(specs: List[SExp]) : Const = {
         val command = specs.foldLeft(EditSessionCommand("", EditSessionCommands.doNothing)){
@@ -298,18 +313,14 @@ object Personalised extends Logging.Loggable {
         "include"     -> Subr("include",     doInclude(_)),
         // "module"     -> Subr("module",     doModule(_)), // TODO: (module name "path") defines a module environment from the file. module.name is a composite variable name
         "popup"       -> Subr("popup",       doPopup(_)),
-        "keys"        -> Subr("keys",        declKey(_)),
-        "keySpec"     -> Subr("keySpec",     { case List(Str(spec)) => Str(s"$spec ==> ${Red.UserInput(spec).toString}")}),
-        "modSpec"     -> Subr("modSpec",     { case  List(Str(spec)) => UserInputDetail.Detail.withDetail(spec) match {
-                                                                          case None => nil
-                                                                          case Some(detail) => Num(detail.mods)
-                                                                        }}),
+        "UI:keys"     -> Subr("UI:keys",     declKeys(_)),
         "command"     -> Subr("command",     evalCommand(_)),
+        "insert"      -> Subr("insert",      evalInsert(_)),
         "andThen"     -> Subr("andThen",     evalAndThen(_)),
         "hashCode"    -> Subr("hashCode",    { case List(value) => Num(value.hashCode) }),
         "inputToString" -> Subr("inputToString", { case List(UserInput(in)) => Str(in.toInput) }),
         "font"        -> Subr("font",        { case List(Str(name)) => FontExpr(name, Utils.mkFont(name))}),
-        "useFont"     -> FSubr("useFont",    useFont),
+        "UI:useFont"  -> FSubr("useFont",    useFont),
         "persist"     -> FSubr("persist",    declPersistent),
         "tickbox"     -> FSubr("tickbox",    declTick),
         "readEval"    -> Subr  ("readEval", {
