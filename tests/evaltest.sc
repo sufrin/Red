@@ -4,6 +4,12 @@ import RedScript.Test.SourceCode
     A grab bag of little tests used during development.
     TODO: needs reorganising as separate parsing and semantic tests
 */
+""" SOURCE
+  | (SOURCE)
+  | 0AABB
+  | 0xab00
+  | \xaabb
+  |""".stripMargin.rep
 
 """
   |(val (a.3))

@@ -107,6 +107,11 @@ object Language {
           val operator = elements.head.opVal(env0)
           val result =
             operator match {
+              case PositionSubr(_, scala) =>
+                withErrorHandling {
+                  val args = elements.tail.map(_.eval(env0))
+                  scala(Str(position.toString) :: args)
+                }
               case Subr(_, scala) =>
                 withErrorHandling {
                   val args = elements.tail.map(_.eval(env0))
@@ -179,7 +184,7 @@ object Language {
    * `Hex` numbers combine arithmetically with numbers to form `Hex` numbers.
    */
   class Hex(_value: Long) extends Num(_value) {
-    override def toString = f"\\x$value%08x"
+    override def toString = f"0x$value%08x"
   }
 
 
@@ -216,6 +221,11 @@ object Language {
   }
 
   case class Subr(name: String, scala: List[SExp] => SExp) extends Const {
+    override def toString = name // s"Strict: $name"
+  }
+
+  // Invoked with the position of its call as its first argument
+  case class PositionSubr(name: String, scala: List[SExp] => SExp) extends Const {
     override def toString = name // s"Strict: $name"
   }
 

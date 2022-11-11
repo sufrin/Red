@@ -186,6 +186,14 @@ class Parser(source: io.Source, val path: String="") {
              while ({getNext(); inSymbol}) buf.append(in.ch)
              Chunk(buf.toString().intern(), symbolic = true)
          }
+
+       case '0' => //Hexadecimal numbers start with 0 or 0x or 0X
+         val buf = new collection.mutable.StringBuilder()
+         if (! {getNext(); in.ch=='X' || in.ch=='x'}) { buf.append(in.ch) }
+         while ({getNext(); inHex }) buf.append(in.ch)
+         import Useful.CharSequenceOperations._
+         Hex(buf.toString().hexToLong.get)
+
        case other if other.isDigit =>
          var n: Long = other-'0'
          while (getNext().isDigit) n = n*10 + (in.ch-'0')
@@ -193,7 +201,7 @@ class Parser(source: io.Source, val path: String="") {
 
        case other if (other.isLetterOrDigit) =>
          val buf = new collection.mutable.StringBuilder()
-         while (in.ch.isLetterOrDigit || in.ch=='\'' || in.ch=='*') { buf.append(in.ch); getNext() }
+         while (in.ch.isLetterOrDigit || in.ch=='\'' || in.ch=='*' || in.ch==':') { buf.append(in.ch); getNext() }
          Chunk(buf.toString().intern(), symbolic = false)
 
        case other if inSymbol =>
