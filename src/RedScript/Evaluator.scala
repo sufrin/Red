@@ -342,7 +342,7 @@ class Evaluator {
     }),
     "map"       -> FSubr  ("map",     evMap),
     "seq"       -> Subr  ("seq",      { case Nil => Nothing; case args => args.last }),
-    "readEvalPrint"  -> Subr  ("readEvalPrint", { case Str(text) :: Bool(show) :: rest => readEvalPrint(text, show); Nothing}),
+    "readEvalPrint"  -> Subr  ("readEvalPrint", { case Str(text) :: Bool(show) :: rest => readEvalPrint(text, show, false); Nothing}),
     "println"   -> Subr  ("println",  { case args => args.foreach{ case k => normalFeedback(k.toPlainString); normalFeedback(" ") } ; normalFeedbackLn(""); Nothing }),
     "log"       -> Subr  ("log",      { case args => Logging.Default.log(Logging.INFO, args.map(_.toPlainString).mkString("", " ", "")); Nothing }),
     "?"         -> Subr  ("?",        { case args => args.foreach{ case k => normalFeedback(k.toPlainString); normalFeedback(" ") }; args.last }),
@@ -387,7 +387,7 @@ class Evaluator {
     try sexp.eval(global) catch {
       case exn: RuntimeError => exn.position = sexp.position; exn
       case exn: SyntaxError  => exn.position = sexp.position; exn
-      case exn: scala.Error  => Str(s"Scala Error: ${exn.getMessage} $position")
+      case exn: scala.Error  => RuntimeError(s"Scala Error: ${exn.getMessage} $position")
     }
   }
 
@@ -399,40 +399,40 @@ class Evaluator {
   def normalFeedbackLn(s: String): Unit = { Console.println(s); Console.flush() }
   def errorFeedback(s: String): Unit    = { Console.println(s); Console.flush() }
 
-  def readEvalPrint(path: Path, show:  Boolean =  true): Unit = {
+  def readEvalPrint(path: Path, show:  Boolean, throwError: Boolean): Unit = {
     val file   = path.toFile
     val source = new BufferedSource(new FileInputStream(file))
     val parser = new Parser(source, path.toString)
-    readEvalPrint(parser, show)
+    readEvalPrint(parser, show, throwError)
     source.close()
   }
 
-  def readEvalPrint(sourceString: String, show:  Boolean): Unit =
-      readEvalPrint(new Parser(io.Source.fromString(sourceString), "<String>"), show)
+  def readEvalPrint(sourceString: String, show:  Boolean, throwError: Boolean): Unit =
+      readEvalPrint(new Parser(io.Source.fromString(sourceString), "<String>"), show, throwError)
 
-  def readEvalPrint(parser: Parser, show:  Boolean): Unit = {
+  def readEvalPrint(parser: Parser, show:  Boolean, throwError: Boolean): Unit = {
     parser.syntaxEnv=syntaxEnv // for JIT compilation of operators
     try {
       while (parser.nextSymb() != Lexical.EOF) try {
         val e = parser.read
         if (show) normalFeedbackLn(s"${e.position}: $e => «")
-        val result = try run(e) catch {
-          case exn: RuntimeError => exn
-          case exn: SyntaxError => exn
-        }
+        val result = run(e)
         result match {
           case Nothing          =>
           case _ if result==nil =>
+          case SyntaxError(message, reason) => errorFeedback(message)
+          case RuntimeError(message, reason, level) => errorFeedback(message)
           case _                => if (show) normalFeedbackLn(s"$result »") else normalFeedbackLn(result.toPlainString)
         }
 
       } catch {
-        case exn: SyntaxError => errorFeedback(exn.toPlainString)
+        case exn: SyntaxError => errorFeedback(exn.toPlainString); throw exn
       }
     }
     catch {
-      case exn: SyntaxError => errorFeedback(exn.toPlainString)
-      case exn: Exception   => errorFeedback(exn.toString)
+      case exn: SyntaxError  => if (throwError) throw exn else errorFeedback(exn.toPlainString)
+      case exn: RuntimeError => if (throwError) throw exn else errorFeedback(exn.toPlainString)
+      case exn: Throwable   => if (throwError) throw exn else errorFeedback(exn.toString)
     }
   }
 

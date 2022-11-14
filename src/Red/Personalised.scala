@@ -1,7 +1,7 @@
 package Red
 
 import RedScript.Language._
-import RedScript.{Env, Evaluator, Language, SourcePosition}
+import RedScript.{Env, Evaluator, Language, Parser, SourcePosition}
 import Useful.PrefixMap
 
 import java.io.File
@@ -31,6 +31,18 @@ object Personalised extends Logging.Loggable {
       case SExps(es)  => es.map(_.toPlainString)
       case other      => profileWarning(s"latexBlockTypes: path -> Seq[String]: $other"); Nil
     }
+  }
+
+  def latexClasses(path: String): Seq[(String,String)] =
+  { applyScript("UI:latexClasses",  path) match {
+    case SExps(Nil) => Nil
+    case SExps(es)  => es.map {
+      case Pair(Str(button), (Str(text))) => (button, text)
+      case List(Str(button), (Str(text))) => (button, text)
+      case other => profileWarning(s"UI:latexClasses $other"); ("BAD", other.toString)
+    }
+    case other      => profileWarning(s"latexClasses: path -> Seq[(String, String)]: $other"); Nil
+  }
   }
 
   def needsLatex(path: String): Boolean = {
@@ -72,7 +84,7 @@ object Personalised extends Logging.Loggable {
 
   }
 
-  def profileWarning(message: String): Unit = warning(s"", message)
+  def profileWarning(message: String): Unit = { warning(s"", message) }
 
   def warning(heading: String, message: String): Unit = {
     Dialog.showMessage(
@@ -104,21 +116,12 @@ object Personalised extends Logging.Loggable {
 
     def clearMapping(): Unit = trie.clear()
 
-    def longestSuffixMatch(chars: CharSequence, upTo: Int): Option[(String, Int)] = {
+    def findAbbreviation(chars: CharSequence, upTo: Int): Option[(String, Int)] = {
        importBindings()
        trie.longestSuffixMatch(chars, upTo)
     }
 
-    /** Add an abbreviation mapping */
-    def addMap(abbrevs: (String, String)*): Unit =
-        for { (abbrev, result) <- abbrevs } mapTo(abbrev, result)
-
     def mapTo(abbrev: String, result: String): Unit = trie.reverseUpdate(abbrev, result)
-
-    /** Add a single cycle of abbreviations */
-    def addCycle(abbrevs: String*): Unit = {
-      for { i<-0 until abbrevs.length -1 } trie.reverseUpdate(abbrevs(i), abbrevs(i+1))
-    }
 
     def toPath(context: Path, path: String): Path =
       if (path.startsWith("~/"))
@@ -142,17 +145,85 @@ object Personalised extends Logging.Loggable {
 
       val output = new StringBuilder()
 
-      override def errorFeedback(s: String): Unit = throw AbortBindings(s)
-      override def normalFeedback(s: String): Unit = output.append(s)
-      override def normalFeedbackLn(s: String): Unit = output.append(s)
+      override def errorFeedback(s: String): Unit    = profileWarning(s) // throw AbortBindings(s)
+      override def normalFeedback(s: String): Unit   = output.append(s)
+      override def normalFeedbackLn(s: String): Unit = { output.append(s); output.append('\n') }
 
       def reset(): Unit = { global.clear(); character.clear(); instruction.clear() }
 
       val paths = new collection.mutable.Stack[Path]
 
-      override def readEvalPrint(path: Path, show: Boolean): Unit = {
+      private var notfoundCount = 0
+
+      /**
+       * What to do if the root bindings script file is not found.
+       */
+      def bindingsNotFound(path: Path): Unit = {
+        if (notfoundCount==0) {
+            profileWarning(s"""
+           |USING THE BUILT-IN MINIMAL CONFIGURATION SCRIPT
+           |
+           |This is because there is no configuration script file: $path
+           |
+           |This is not catastrophic; but to avoid seeing this message again
+           |
+           |    1. ensure the ~/.red folder is present
+           |    2. copy AppleRed.app/Contents/Resources/Bindings/* to ~/.red
+           |
+           |or provide a configuration file of your own and then restart the editor.
+           |""".stripMargin)
+          notfoundCount += 1
+          minimalReadEvalPrint(minimalBindings, false, true)
+        }
+      }
+
+      /**
+       * RedScript minimal configuration. This provides functionality equivalent to
+       * my original Red, but without abbreviations. It's here in case there's no
+       * script in the expected location.
+       */
+      def minimalBindings = """
+                              |persist  style   "Features" "Font Style"  "plain" (list "plain" "bold")
+                              |persist  size    "Features" "Font Size"   18 (list 12 14 16 18 20 24 28)
+                              |constant fontA (font (string "Monospaced" "/" style "/" size))
+                              |constant fontB (font (string "Monospaced" "/" style "/" (- size 2)))
+                              |constant fontC (font (string "Dialog" "/" "bold" "/" (max size 16)))
+                              |UI:useFont fontA widget default button menu menubutton feedback
+                              |UI:useFont fontB menu menubutton feedback
+                              |UI:useFont fontC menu menubutton button
+                              |constant shellCommands (list "wc" "ls -lt" "date" "printenv")
+                              |
+                              |(def (UI:pipeShellCommands path) shellCommands)
+                              |(def (UI:needsLatex      path) (endsWith path ".tex"))
+                              |(def (UI:latexBlockTypes path) latexblocktypes)
+                              |
+                              |
+                              |(constant latexblocktypes
+                              |  `(    foil     itemize   enumerate        -
+                              |        note     exercise  answer           -
+                              |        code     "-code"   "code*"  alltt   -
+                              |        center   verbatim  comment  smaller -
+                              |        question part      ans
+                              |  )
+                              |)
+                              |
+                              |(def (UI:unhandledInput key)
+                              |     (seq (popup "Unhandled: " (inputToString key))
+                              |          ()
+                              |          ))
+                              |
+                              |(def (UI:pipeRedScripts path) ())
+                              |(def (UI:needsPandoc path) (endsWith path ".md"))
+                              |
+                              |
+                              |""".stripMargin
+
+      def minimalReadEvalPrint(sourceString: String, show:  Boolean, throwError: Boolean): Unit =
+          readEvalPrint(new Parser(io.Source.fromString(sourceString), "<Minimal Red Bindings>"), show, throwError)
+
+      override def readEvalPrint(path: Path, show: Boolean, throwError: Boolean): Unit = {
           paths.push(path)
-          super.readEvalPrint(path, show)
+          try { super.readEvalPrint(path, show, false) }
           paths.pop()
       }
 
@@ -167,18 +238,6 @@ object Personalised extends Logging.Loggable {
         else
           profileWarning(s"Error including:  $exPath)\nFrom           : ${position}\nNon-existent path or unreadable file.")
         Nothing
-      }
-
-      def doAlt(shifted: Boolean)(args: List[SExp]): SExp = {
-        for { Str(map) <- args }  AltKeyboard.mapTo(map(0).toUpper, map(1), shifted)
-        Nothing
-      }
-
-      /**
-       * Invoked from a keys declaration, which takes precedence over the alt key tables
-       */
-      def fixAlt(char: Character): Unit = {
-        AltKeyboard.mapTo(char.char.toUpper, char.char, char.mods.hasShift)
       }
 
       def doPopup(message: List[SExp]): SExp = {
@@ -269,15 +328,19 @@ object Personalised extends Logging.Loggable {
          override def toString: String = name
       }
 
+
+
       def declKeys(specs: List[SExp]) : Const = {
         if (logging) info(s"Keys Declared: $specs")
         for { Pair(Str(spec), effect) <- specs } Red.UserInput(spec) match  {
-          case ch:   Character    =>
-            // key declarations take precedence
-            if (ch.mods.hasAlt) fixAlt(ch)
+          case ch@Character(char, _, mods)    =>
+            // key declarations take precedence over the AltKeyboard map
+            if (ch.mods.hasAlt) AltKeyboard.mapTo(char.toUpper, char, mods.hasShift)
             character.addOne((ch, effect))
-          case inst: Instruction  => instruction.addOne((inst, effect))
-          case other => profileWarning(s"Declaring key $other")
+          case inst: Instruction  =>
+            instruction.addOne((inst, effect))
+          case other =>
+            profileWarning(s"Declaring key $other")
         }
         if (logging) fine(s"CH: $character\nINST: $instruction")
         Nothing
@@ -308,8 +371,6 @@ object Personalised extends Logging.Loggable {
         "abbrev"      -> Subr("abbrev",      {  case List(Str(abbr), Str(text)) => mapTo(abbr, text); Nothing }),
         "diacritical" -> Subr("diacritical", doDia(_)),
         "altclear"    -> Subr("altclear",    {  Nil => AltKeyboard.clear(); Nothing }),
-        "altplain"    -> Subr("altplain",    doAlt(false)(_)),
-        "altshift"    -> Subr("altshift",    doAlt(true)(_)),
         "include"     -> Subr("include",     doInclude(_)),
         // "module"     -> Subr("module",     doModule(_)), // TODO: (module name "path") defines a module environment from the file. module.name is a composite variable name
         "popup"       -> Subr("popup",       doPopup(_)),
@@ -326,7 +387,7 @@ object Personalised extends Logging.Loggable {
         "readEval"    -> Subr  ("readEval", {
               case Str(text) :: Bool(show) :: rest =>
                    output.clear()
-                   readEvalPrint(text, show)
+                   readEvalPrint(text, show, false)
                    val result = output.toString()
                    output.clear()
                    Str(result)
@@ -375,20 +436,12 @@ object Personalised extends Logging.Loggable {
 
       def readFile(): Unit = {
         if (logging) info(s"importing bindings from: $file")
-        RedScriptEvaluator.readEvalPrint(path, show)
+        RedScriptEvaluator.readEvalPrint(path, show, true)
       }
-
 
       if (file.exists()) {
          if (depth==0) {
-           // re-read root if necessary
-           /*
-           if (timeStamp>lastImportTime) {
-              clearBindings()
-              readFile()
-              lastImportTime = timeStamp
-           }
-           */
+           // re-read from root if necessary
            if (timeStamp>lastImportTime || anyFileChanged) {
              clearBindings()
              fileTime.clear()
@@ -404,7 +457,7 @@ object Personalised extends Logging.Loggable {
            throw AbortBindings(s"Attempting, from $context, to include:\n $path\nThis bindings file forms a cycle or is nested too deeply (>6)")
       } else
         if (depth==0)
-           throw AbortBindings(s"No bindings file $path   (this is not catastrophic)\nEither copy AppleRed.app/Contents/Resources/Bindings to ~/.red\nor export REDBINDINGS=...a bindings file...")
+           RedScriptEvaluator.bindingsNotFound(path)
         else
            throw AbortBindings(s"Attempting, from $context, to include:\n $path\nThere is no such bindings file\n")
 

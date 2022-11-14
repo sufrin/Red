@@ -562,7 +562,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
       }
 
       for { program <- Personalised.pipeShellCommands(theSession.path) } {
-        contents += menuButton(s"$program", s"Pipe the selection through the shell command \"$program\" (see also \"Append Selection\")") {
+        contents += menuButton(s"$program", s"Pipe the selection through the shell command \"$program\" (see also \"(++sel'n)\"") {
           withFilterWarnings(s"$program") { UI_DO(EditSessionCommands.pipeThrough(program, replaceSelection = !augmentSelection)) }
         }
       }
@@ -570,7 +570,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
       contents += Separator()
 
       for { program <- Personalised.pipeRedScripts(theSession.path) } {
-        contents += menuButton(s"$program", s"Evaluate the Redscript script ($program <thepath> Ⓐ \u24bb \u24c7 ...)  (see also \"Append Selection\")") {
+        contents += menuButton(s"$program", s"Evaluate the Redscript ($program <the session path> Ⓐ \u24bb \u24c7 <the selection>)  (see also \"(++sel'n)\"") {
           withFilterWarnings(s"$program") {
             UI_DO(EditSessionCommands.pipeThroughScript(program, theSession.path, argLine.text, findLine.text, replLine.text, replaceSelection = !augmentSelection))
           }
@@ -579,15 +579,9 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
 
       contents += Separator()
 
-      contents += new CheckMenuItem(" (keep) ") {
+      contents += new Buttons.PersistentCheckItem("(++sel'n)", "appendselectiontopipedoutput", {b => selected=b}, augmentSelection) {
         tooltip  = "When enabled, the original selection is appended to the piped output from the above commands."
         font     = Utils.buttonFont
-        selected = augmentSelection
-        listenTo(this)
-        reactions += {
-          case event.ButtonClicked(_) =>
-            augmentSelection = selected
-        }
       }
 
     } // Pipe Menu
@@ -597,12 +591,14 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
 
     if (Red.Personalised.needsLatex(theSession.path)) {
 
-        contents += new Label("        ")
+        contents += new Label("     ")
 
         contents += Button("Tex", toolTip = "Run redpdf now") {
           saveOperation()
           UI_DO(EditSessionCommands.latexToPDF)
         }
+
+        val headers = Red.Personalised.latexClasses(theSession.path)
 
         contents += new EmbeddedDynamicMenu("\\begin{...}", { Red.Personalised.latexBlockTypes(theSession.path) }) {
           font = Utils.menuButtonFont
@@ -638,43 +634,48 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
           suffix += Separator()
 
           // Infrequent additions
-          suffix += new Menu("Class") {
+          suffix += new Menu("Tex") {
 
-
-            contents += menuButton("\\documentclass{article}") {
-              val up = "\\usepackage[]{}"
-              val header =
-                s"""\\documentclass[11pt,a4paper]{article}
-                   |%%%%%%%%%%%%%%%%%%%%%
-                   |$up
-                   |%%%%%%%%%%%%%%%%%%%%%
-                   |\\author{}
-                   |\\title{}
-                   |\\date{}
-                   |%%%%%%%%%%%%%%%%%%%%%
-                   |\\begin{document}
-                   |\\maketitle
-                   |
-                   |\\end{document}
-                   |""".stripMargin
-              UI_DO(EditSessionCommands.latexInsert(header))
+            for { (button, header) <- headers }
+              contents += menuButton(button) { UI_DO(EditSessionCommands.latexInsert(header)) }
+            if (headers.isEmpty) { // PRO-TEM until we get template-definition implemented in RedScript
+              contents += menuButton("\\documentclass{article}") {
+                val up = "\\usepackage[]{}"
+                val header =
+                  s"""\\documentclass[11pt,a4paper]{article}
+                     |%%%%%%%%%%%%%%%%%%%%%
+                     |$up
+                     |%%%%%%%%%%%%%%%%%%%%%
+                     |\\author{}
+                     |\\title{}
+                     |\\date{}
+                     |%%%%%%%%%%%%%%%%%%%%%
+                     |\\begin{document}
+                     |\\maketitle
+                     |
+                     |\\end{document}
+                     |""".stripMargin
+                UI_DO(EditSessionCommands.latexInsert(header))
+              }
             }
-
-            contents += menuButton("\\documentclass{letter}") {
-              val header =
-                s"""\\documentclass[12pt,lab|wor|home|magd,bernard|sufrin]{letter} %
-                   |\\To{lines\\\\of\\\\mailing address}
-                   |\\Dear[Dear]{Victim}
-                   |\\Re{subject matter}
-                   |    This is the body
-                   |\\Ps{ps paragraph}
-                   |\\PostSig{post signature para}
-                   |\\Cc{carrbon1, carbon2, ...}
-                   |\\Sign[yours sincerely]{Bernard Sufrin}
-                   |""".stripMargin
-              UI_DO(EditSessionCommands.latexInsert(header))
+            if (headers.isEmpty) { // PRO-TEM
+              contents +=
+                menuButton(
+                  "\\documentclass{letter}") {
+                  val header =
+                    s"""\\documentclass[12pt,lab|wor|home|magd,bernard|sufrin]{letter} %
+                       |\\To{lines\\\\of\\\\mailing address}
+                       |\\Dear[Dear]{Victim}
+                       |\\Re{subject matter}
+                       |    This is the body
+                       |\\Ps{ps paragraph}
+                       |\\PostSig{post signature para}
+                       |\\Cc{carrbon1, carbon2, ...}
+                       |\\Sign[yours sincerely]{Bernard Sufrin}
+                       |""".stripMargin
+                  UI_DO(EditSessionCommands.latexInsert(header))
+                }
             }
-
             contents += Separator()
             contents += Separator()
 

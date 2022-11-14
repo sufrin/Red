@@ -56,9 +56,9 @@ object EditSessionCommands extends Logging.Loggable {
     }
   }
 
-  // TODO: make these a user preference
-  private val indentBy = "    "
-  private val undentBy = "    "
+  // TODO: make these a user preference (maybe)
+  private val indentBy = " "
+  private val undentBy = " "
 
   /**
    *  Prefix each line of the current selection with
@@ -928,7 +928,7 @@ object EditSessionCommands extends Logging.Loggable {
         session.deSelect()
       }
 
-      Red.Personalised.Bindings.longestSuffixMatch(session.document.characters, session.cursor) match {
+      Red.Personalised.Bindings.findAbbreviation(session.document.characters, session.cursor) match {
         case None =>
           // it may be a unicode
           if (session.cursor > 6) {
