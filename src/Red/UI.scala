@@ -410,6 +410,11 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
         font     = Utils.menuButtonFont
       }
 
+      contents += new Buttons.PersistentCheckItem("Select (... @)", "autoselectup", { b => theSession.insertionSelects = b;  Personalised.Settings.insertionSelects = b}, Personalised.Settings.clickSelects) {
+        tooltip  = "When this is enabled, inserting a closing bracket of any kind, selects back up to the corresponding opening bracket"
+        font     = Utils.menuButtonFont
+      }
+
 
       contents += new Buttons.PersistentCheckItem("Auto indent", "autoindent", { b => theSession.autoIndenting = b; Personalised.Settings.autoIndenting = b }, Personalised.Settings.autoIndenting) {
         tooltip  = "When this is enabled, the insertion of a newline will align the cursor (and any non-space material to its right) with the indentation of the current line"

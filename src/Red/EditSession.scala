@@ -191,6 +191,7 @@ class EditSession(val document: DocumentInterface, private var _path: String)
   var typeOverSelection: Boolean = Personalised.Settings.typeOverSelection
   var autoIndenting:     Boolean = Personalised.Settings.autoIndenting
   var clickSelects:      Boolean = Personalised.Settings.clickSelects
+  var insertionSelects:  Boolean = Personalised.Settings.insertionSelects
 
   /** Remove the mark
    *  (OPTIONAL PRACTICAL: cut the selection if in typeover mode)

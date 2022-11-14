@@ -100,6 +100,7 @@ object Personalised extends Logging.Loggable {
     var typeOverSelection: Boolean = true
     var clickSelects:      Boolean = true
     var autoIndenting:     Boolean = true
+    var insertionSelects:  Boolean = true
   }
 
 
