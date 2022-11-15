@@ -42,11 +42,16 @@ package Commands
    *     is guaranteed to restore the original state `s` whenever executed
    *     in the target state `s'` that is the result of the successful
    *     `DO`.
+   *
+   *     `(c1>>>c2).DO(target)` succeeds only if `c1.DO(target)` succeeds.
+   *     In that case it yields the resulting `StateChange`
+   *     but only after executng  `c2.DO(target)`.
    */
   trait Command[T] {
     def DO(target: T): Option[StateChange]
     def &&&(that: Command[T]): Command[T] = Command.andThen(this, that)
     def |||(that: Command[T]): Command[T] = Command.orElse(this, that)
+    def >>>(that: Command[T]): Command[T] = Command.andThenSilently(this, that)
     def when(condition: T => Boolean): Command[T] = Command.when(condition, this)
   }
 
@@ -139,6 +144,16 @@ package Commands
               case None     => u1.undo(); None
             }
           case None => None
+        }
+    }
+
+    private def andThenSilently[T](c1: Command[T], c2: Command[T]): Command[T] = new Command[T] {
+      def DO(target: T): Option[StateChange] =
+        c1.DO(target) match {
+          case None => None
+          case some =>
+            c2.DO(target)
+            some
         }
     }
 

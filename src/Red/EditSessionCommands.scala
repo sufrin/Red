@@ -216,7 +216,7 @@ object EditSessionCommands extends Logging.Loggable {
    * An insertion that selects matching closing brackets. It is (surprisingly) efficient, since the number
    * of closing brackets that require a substantive pattern match is minimal.
    */
-  def selectInsert(ch: Char): SessionCommand = insert(ch) &&& (selectMatchingUp.when(_.insertionSelects) ||| doNothing)
+  def selectInsert(ch: Char): SessionCommand = insert(ch) >>> (selectMatchingUp.when(_.insertionSelects) ||| doNothing)
 
   /**
    * An insertion from the keyboard that cuts the selection first if
