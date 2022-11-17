@@ -731,7 +731,12 @@ class EditSession(val document: DocumentInterface, private var _path: String)
   def stopDragging: Unit = { draggingFrom = None }
 
   /**
-   * Set the cursor whilst preserving the current mark, if there is one.
+   * Set the cursor and mark whilst noting the dragging origin
+   * if a drag has just started. Extend the selection only if
+   * there already is a selection and the cursor has been
+   * dragged over at least one character. This condition
+   * avoids turning a tentative to a definite selection by
+   * an accidental nudge when the mouse is down.
    * Notify observers of changes in the selection/cursor.
    */
   def dragCursor(row: Int, col: Int): Unit = {
@@ -739,8 +744,11 @@ class EditSession(val document: DocumentInterface, private var _path: String)
       finer(s"DragCursor($row, $col) with selection=$selection")
     val newcursor = document.coordinatesToPosition(row, col)
     if (draggingFrom.isEmpty) draggingFrom = Some(cursor)
+    val moved = draggingFrom.get - cursor
     cursor=newcursor
-    if (selection ne NoSelection) selectUntil(selection.mark)
+    // The following condition requires at least one
+    // character of movement before we change the selection.
+    if (moved!=0 && (selection ne NoSelection)) selectUntil(selection.mark)
   }
 
   //////////////////////////////////////////
