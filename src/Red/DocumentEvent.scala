@@ -15,7 +15,7 @@ sealed abstract class DocumentEvent
  */
 
 object DocumentChanged {
-  def apply(cursor: (Int, Int)): DocumentEvent = new SelectionChanged(0, 0, 0, cursor._1, cursor._2) {
+  def apply(cursor: (Int, Int)): DocumentEvent = new SelectionChanged(0, 0, 0, cursor._1, cursor._2, indicative = false) {
     override def toString: String = s"DocumentChanged $cursor"
   }
 }
@@ -30,5 +30,6 @@ case class SelectionChanged(markRow:        Int,
                             markCol:        Int,
                             selectionSize:  Int,
                             cursorRow:      Int,
-                            cursorCol:      Int
+                            cursorCol:      Int,
+                            indicative:     Boolean
                            ) extends DocumentEvent

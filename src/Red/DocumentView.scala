@@ -61,6 +61,10 @@ import java.awt.{Color, Graphics2D, RenderingHints}
     private var markedCol, markedRow, markedTextLength = 0
     /** current cursor column and row */
     private var cursorCol, cursorRow = 0
+
+    /** The current selection was tentative (indicative) */
+    private var tentative: Boolean = false
+
     /** current location within the document of the top-left corner of the view  */
     private var originCol, originRow = 0
 
@@ -257,7 +261,7 @@ import java.awt.{Color, Graphics2D, RenderingHints}
           width = colsToPixels(selectionRight - originCol)
         else
           width = colsToPixels(textWidth-originCol)
-        g.setColor(Color.lightGray)
+        g.setColor(if (tentative) Color.pink else Color.lightGray)
         g.fillRect(hBorder + left, baseLine - charAscent, width, charHeight)
         g.setColor(foreground)
       }
@@ -364,13 +368,14 @@ import java.awt.{Color, Graphics2D, RenderingHints}
          */
         repaint()
 
-      case SelectionChanged(markedRow, markedCol, size, cursorRow, cursorCol) =>
+      case SelectionChanged(markedRow, markedCol, size, cursorRow, cursorCol, indicative) =>
         recomputeOrigin(cursorRow, cursorCol)
         this.markedRow  = markedRow
         this.markedCol  = markedCol
         this.markedTextLength = size
         this.cursorRow = cursorRow
         this.cursorCol = cursorCol
+        this.tentative = indicative
         if (logging)
           finer(s"SelectionChanged: ($markedRow, $markedCol)" +
             s"-->($cursorRow, $cursorCol) ($size chars)")

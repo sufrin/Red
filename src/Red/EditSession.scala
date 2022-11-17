@@ -91,7 +91,7 @@ class EditSession(val document: DocumentInterface, private var _path: String)
       val (mRow, mCol) = document.positionToCoordinates(_selection.mark)
       val (cRow, cCol) = document.positionToCoordinates(this.cursor)
       forceRefresh = false
-      SelectionChanged(mRow,mCol,_selection.extent,cRow,cCol)
+      SelectionChanged(mRow,mCol,_selection.extent,cRow,cCol, _selection.indicative)
     } else
     if (_cursor != _lastCursor) {
         // only the cursor has changed
@@ -116,8 +116,10 @@ class EditSession(val document: DocumentInterface, private var _path: String)
   /** Sets the cursor to `(row, col)` */
   def setCursor(row: Int, col: Int): Unit = {
     val newcursor = document.coordinatesToPosition(row, col)
-    if (logging)
+    if (logging) {
       finer(s"theSession.setCursor($row, $col)->$newcursor ($selection)")
+    }
+    if (selection ne NoSelection) selection = Span(selection.cursor, selection.mark, false) //selection.indicative=false
     cursor = newcursor
   }
 
@@ -808,7 +810,7 @@ object EditSession extends Logging.Loggable
  * in insert-cuts-selection mode. It can still be cut deliberately
  * by the usual commands.
  */
-case class Span(cursor: Int, mark: Int, indicative: Boolean=false) {
+case class Span(cursor: Int, mark: Int, var indicative: Boolean=false) {
   // derived expressions
   @inline def markFrom(newCursor: Int): Int = newCursor + mark - cursor
   @inline def markAtRight: Boolean  = cursor<=mark

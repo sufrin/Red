@@ -141,7 +141,7 @@ class EditSessionHandlers(val UI_DO: Commands.Command[EditSession]=>Unit) {
         case MouseReleased(_, _,       Button1)           => UI_DO(commands.mouseUp)
 
         case MousePressed(row, col, n, ControlButton1)  => UI_DO(commands.setCursor(row, col))
-        case MouseDragged(row, col,    ControlButton1)  => UI_DO(commands.setCursor(row, col))
+        case MouseDragged(row, col,    ControlButton1)  => UI_DO(commands.dragCursor(row, col))
         case MouseReleased(_, _,       ControlButton1)  => UI_DO(commands.mouseUp)
 
         case MousePressed(row, col, n, detail) if detail.hasButton3 => UI_DO(commands.setMark(row, col))
