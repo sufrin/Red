@@ -391,6 +391,10 @@ class EditSession(val document: DocumentInterface, private var _path: String)
     val brace       = Brackets("""{""", """}""")
     val par         = Brackets("""\(""", """\)""")
     val bra         = Brackets("""\[""", """\]""")
+    val slashpar    = Brackets("""\\\(""", """\\\)""")
+    val slashbra    = Brackets("""\\\[""", """\\\]""")
+    val slashbrace  = Brackets("""\\{""", """\\}""")
+
 
     // XML block and single tag patterns -- determined by experiment
     val xmlblock    = Brackets("""<([A-Za-z0-9:]+)(\s+([A-Za-z0-9:]+\s*=\s*"[^"]*"))*>""", """</[A-Za-z0-9]+>""")
@@ -400,7 +404,8 @@ class EditSession(val document: DocumentInterface, private var _path: String)
     val others = List (
       "«"    -> "»",
       "⁅"    -> "⁆",
-       "/\\*" -> "\\*/",
+      "/\\*" -> "\\*/",
+      "``"   -> "''",  // For ascii latex double brackets
       // Matched pairs (they happen to be adjacently unicoded)
       "\u2018"    -> "\u2019",
       "\u201c"    -> "\u201d",
@@ -429,10 +434,18 @@ class EditSession(val document: DocumentInterface, private var _path: String)
      *  the left.
      */
     def tryMatchUp(spec: Brackets.Specification): Boolean = {
-      if (spec.ket.suffixes(document.characters, 0, cursor).isEmpty) false else
-      spec.matchBackward(document.characters, 0, cursor) match {
-        case None => false
-        case Some(start) => setMark(start, tentative=true); true
+      if (spec.ket.suffixes(document.characters, 0, cursor).isEmpty) false
+      else {
+        if (logging) fine(s"tryMatchup: $spec suffixes")
+        spec.matchBackward(document.characters, 0, cursor) match {
+          case None =>
+            if (logging) fine(s"tryMatchup: $spec fails to match backward")
+            false
+          case Some(start) =>
+            if (logging) fine(s"tryMatchup: $spec matches backward at $start")
+            setMark(start, tentative=true)
+            true
+        }
       }
     }
 
@@ -460,11 +473,13 @@ class EditSession(val document: DocumentInterface, private var _path: String)
   def selectMatchingUp(): Boolean   = {
     import Bracketing._
     if (cursor==0) false else {
+      // Some sets of brackets share suffixes: we resolve the ambiguity with a sledgehammer: scanning sequentially
+      // TODO: (maybe) use a Branched regex to scan concurrently: needs some preprocessing
       document.character(cursor-1) match {
-        case '}' => tryMatchUp(begin)      || tryMatchUp(brace)     // not particularly inefficient (see tryMatchUp)
-        case '>' => tryMatchUp(xmlcomment) || tryMatchUp(xmlblock) || tryMatchUp(xmlsingle)  // not particularly inefficient (see tryMatchUp)
-        case ')' => tryMatchUp(par)
-        case ']' => tryMatchUp(bra)
+        case '}' => tryMatchUp(begin)      || tryMatchUp(slashbrace) || tryMatchUp(brace)     // not particularly inefficient (see tryMatchUp)
+        case '>' => tryMatchUp(xmlcomment) || tryMatchUp(xmlblock) || tryMatchUp(xmlsingle)   // not particularly inefficient (see tryMatchUp)
+        case ')' => tryMatchUp(slashpar)   || tryMatchUp(par)
+        case ']' => tryMatchUp(slashbra)   || tryMatchUp(bra)
         case ch  => rights.get(ch) match {
           case Some(spec) => tryMatchUp(spec)
           case None       => false
