@@ -332,14 +332,27 @@ import java.awt.{Color, Graphics2D, RenderingHints}
 
     /** Respond to `MouseWheel` events by scrolling.
       * There is no need to inform the session.
+      * BUT the selection background could be misplaced
+      * on a lateral scroll.
+      * TODO: FIX selection background on lateral scroll
+      *
       */
     def mouseWheel(rotation: Int, mods: UserInputDetail.Detail): Unit = {
         if (logging) info(s"wheel $rotation $mods")
         calculateDimensions()
-        val newRow = (originRow + rotation) max 0
-        if (newRow<originRow || newRow + rows <= theDocument.length + rows / 4) {
-          originRow = newRow
-          repaint()
+        if (mods.hasControl) {
+          val newCol = (originCol + rotation) max 0
+          if (newCol<originCol || newCol <= cols) {
+            originCol = newCol
+            repaint()
+          }
+        }
+        else {
+            val newRow = (originRow + rotation) max 0
+            if (newRow<originRow || newRow + rows <= theDocument.length + rows / 4) {
+              originRow = newRow
+              repaint()
+            }
         }
     }
 
