@@ -62,7 +62,7 @@ import java.awt.{Color, Graphics2D, RenderingHints}
     /** current cursor column and row */
     private var cursorCol, cursorRow = 0
 
-    /** The current selection was tentative (indicative) */
+    /** The current selection was tentative (tentative) */
     private var tentative: Boolean = false
 
     /** current location within the document of the top-left corner of the view  */

@@ -182,7 +182,7 @@ object EditSessionCommands extends Logging.Loggable {
    *   Otherwise the result simply succeeds having done nothing.
    */
   def ifTypeOver(command: SessionCommand): SessionCommand =
-    Command.when((s: EditSession) => s.typeOverMode && s.hasSelection && !s.selection.indicative, command)
+    Command.when((s: EditSession) => s.typeOverMode && s.hasSelection && !s.selection.tentative, command)
 
   /**  A utility command that always succeeds after notifying the
    *   session's handlers that something in the session (may have) changed.
@@ -208,7 +208,7 @@ object EditSessionCommands extends Logging.Loggable {
   /**
    * An insertion from the keyboard that cuts the selection first if
    * the session is in type-over-selection mode, and the selection
-   * isn't indicative.
+   * isn't tentative.
    */
   def insertCommand(ch: Char): SessionCommand = ifTypeOver(cut &&& notifyNow) &&& selectInsert(ch)
 
@@ -221,7 +221,7 @@ object EditSessionCommands extends Logging.Loggable {
   /**
    * An insertion from the keyboard that cuts the selection first if
    * the session is in type-over-selection mode, and the selection
-   * isn't indicative.
+   * isn't tentative.
    */
   def insertCommand(chars: String): SessionCommand = ifTypeOver(cut &&& notifyNow) &&& insert(chars)
 

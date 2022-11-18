@@ -91,7 +91,7 @@ class EditSession(val document: DocumentInterface, private var _path: String)
       val (mRow, mCol) = document.positionToCoordinates(_selection.mark)
       val (cRow, cCol) = document.positionToCoordinates(this.cursor)
       forceRefresh = false
-      SelectionChanged(mRow,mCol,_selection.extent,cRow,cCol, _selection.indicative)
+      SelectionChanged(mRow,mCol,_selection.extent,cRow,cCol, _selection.tentative)
     } else
     if (_cursor != _lastCursor) {
         // only the cursor has changed
@@ -119,7 +119,7 @@ class EditSession(val document: DocumentInterface, private var _path: String)
     if (logging) {
       finer(s"theSession.setCursor($row, $col)->$newcursor ($selection)")
     }
-    if (selection ne NoSelection) selection = Span(selection.cursor, selection.mark, false) //selection.indicative=false
+    if (selection ne NoSelection) selection = Span(selection.cursor, selection.mark, false) //selection.tentative=false
     cursor = newcursor
   }
 
@@ -172,18 +172,18 @@ class EditSession(val document: DocumentInterface, private var _path: String)
   }
 
   /** Set the mark and change the selection. */
-  def setMark(newPosition: Int, indicative: Boolean=false): Unit = {
+  def setMark(newPosition: Int, tentative: Boolean=false): Unit = {
     if (logging) finer(s"theSession.setMark($newPosition)")
-    selectUntil(newPosition, indicative)
+    selectUntil(newPosition, tentative)
   }
 
   /**
    * Change the current selection so that it spans the current `cursor`
    * position and the given `mark` position.
    */
-  def selectUntil(mark: Int, indicative: Boolean = false): Unit = {
+  def selectUntil(mark: Int, tentative: Boolean = false): Unit = {
     if (logging) finer(s"selectUntil $cursor -> $mark")
-    selection = Span(cursor, mark, indicative)
+    selection = Span(cursor, mark, tentative)
   }
 
   ///////////////////////////////////////////////////////////////////////////////////
@@ -432,7 +432,7 @@ class EditSession(val document: DocumentInterface, private var _path: String)
       if (spec.ket.suffixes(document.characters, 0, cursor).isEmpty) false else
       spec.matchBackward(document.characters, 0, cursor) match {
         case None => false
-        case Some(start) => setMark(start, indicative=true); true
+        case Some(start) => setMark(start, tentative=true); true
       }
     }
 
@@ -446,7 +446,7 @@ class EditSession(val document: DocumentInterface, private var _path: String)
       if (spec.bra.prefixes(document.characters, cursor).isEmpty) false else
       spec.matchForward(document.characters, cursor, document.characters.length) match {
         case None      => false
-        case Some(end) => setMark(end, indicative=true); true
+        case Some(end) => setMark(end, tentative=true); true
       }
     }
   }
@@ -805,12 +805,12 @@ object EditSession extends Logging.Loggable
 
 /**
  * Representation of the state of a selection in an editing session.
- * An `indicative` selection is one made to indicate a certain
+ * An `tentative` selection is one made to indicate a certain
  * region of text that should probably not be cut automatically
  * in insert-cuts-selection mode. It can still be cut deliberately
  * by the usual commands.
  */
-case class Span(cursor: Int, mark: Int, var indicative: Boolean=false) {
+case class Span(cursor: Int, mark: Int, var tentative: Boolean=false) {
   // derived expressions
   @inline def markFrom(newCursor: Int): Int = newCursor + mark - cursor
   @inline def markAtRight: Boolean  = cursor<=mark
