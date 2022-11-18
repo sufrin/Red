@@ -31,7 +31,7 @@ object CutRing extends Logging.Loggable {
   }
 
   /** The maximum number of entries in the ring */
-  var bound = 80
+  var bound = 240
 
   /** The actual number of entries in the ring: <= `bound` */
   def length: Int = cutRing.length

@@ -383,6 +383,7 @@ object Personalised extends Logging.Loggable {
         "inputToString" -> Subr("inputToString", { case List(UserInput(in)) => Str(in.toInput) }),
         "font"        -> Subr("font",        { case List(Str(name)) => FontExpr(name, Utils.mkFont(name))}),
         "UI:useFont"  -> FSubr("useFont",    useFont),
+        "UI:cutringBound" -> Subr("UI:cutringBound", { case List(Num(bound)) => CutRing.bound = bound.toInt; Nothing; case Nil => Num(CutRing.bound)}),
         "persist"     -> FSubr("persist",    declPersistent),
         "tickbox"     -> FSubr("tickbox",    declTick),
         "readEval"    -> Subr  ("readEval", {
