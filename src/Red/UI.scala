@@ -476,7 +476,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
 
       contents += Utils.Recents.menu()
 
-      contents += menuButton("Open New", "Edit the document at the path specified by the \u24b6 field or by making a choice of path") {
+      contents += menuButton("Open New", "Create and edit a new document") {
         Red.Server.process(Utils.freshDocumentName())
       }
 
@@ -584,7 +584,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
 
       contents += Separator()
 
-      contents += new Buttons.PersistentCheckItem("(++sel'n)", "appendselectiontopipedoutput", {b => selected=b}, augmentSelection) {
+      contents += new Buttons.PersistentCheckItem("(++sel'n)", "appendselectiontopipedoutput", {b => augmentSelection=b}, augmentSelection) {
         tooltip  = "When enabled, the original selection is appended to the piped output from the above commands."
         font     = Utils.buttonFont
       }

@@ -37,8 +37,8 @@ object Personalised extends Logging.Loggable {
   { applyScript("UI:latexClasses",  path) match {
     case SExps(Nil) => Nil
     case SExps(es)  => es.map {
-      case Pair(Str(button), (Str(text))) => (button, text)
-      case List(Str(button), (Str(text))) => (button, text)
+      case Pair(button, (Str(text))) => (button.toPlainString, text)
+      case Pair(button, (Str(text))) => (button.toPlainString, text)
       case other => profileWarning(s"UI:latexClasses $other"); ("BAD", other.toString)
     }
     case other      => profileWarning(s"latexClasses: path -> Seq[(String, String)]: $other"); Nil
@@ -293,7 +293,6 @@ object Personalised extends Logging.Loggable {
             case (_: Str, Str(v)) => feature.value=v
             case _          => throw RuntimeError(s"Persistent($name), initially ${_value}, cannot be set to $newValue")
           }
-
           override def eval(env: Env): SExp = value
         }
         global.set(name, persist)
@@ -315,7 +314,6 @@ object Personalised extends Logging.Loggable {
           }
           override def eval(env: Env): SExp = value
         }
-
         global.set(name, persist)
         Features.add(feature)
         Nothing
@@ -328,8 +326,6 @@ object Personalised extends Logging.Loggable {
       case class EditSessionCommand(name: String, command: EditSessionCommands.SessionCommand) extends Const {
          override def toString: String = name
       }
-
-
 
       def declKeys(specs: List[SExp]) : Const = {
         if (logging) info(s"Keys Declared: $specs")
