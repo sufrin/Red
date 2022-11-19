@@ -205,12 +205,18 @@ class Parser(source: io.Source, val path: String="") {
              Chunk(buf.toString().intern(), symbolic = true)
          }
 
-       case '0' => //Hexadecimal numbers start with 0 or 0x or 0X
+       case '0'  => //Hexadecimal numbers start with 0x or 0X
          val buf = new collection.mutable.StringBuilder()
-         if (! {getNext(); in.ch=='X' || in.ch=='x'}) { buf.append(in.ch) }
-         while ({getNext(); inHex }) buf.append(in.ch)
-         import Useful.CharSequenceOperations._
-         Hex(buf.toString().hexToLong.get)
+         val hex = "Xx".contains(getNext())
+         if (hex) {
+           while ( { getNext(); inHex }) buf.append(in.ch)
+           import Useful.CharSequenceOperations._
+           Hex(buf.toString().hexToLong.get)
+         } else {
+           var n: Long = in.ch-'0'
+           while (getNext().isDigit) n = n*10 + (in.ch-'0')
+           Num(n)
+         }
 
        case other if other.isDigit =>
          var n: Long = other-'0'
