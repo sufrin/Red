@@ -33,15 +33,15 @@ object Personalised extends Logging.Loggable {
     }
   }
 
-  def latexClasses(path: String): Seq[(String,String)] =
-  { applyScript("UI:latexClasses",  path) match {
+  def latexSnippets(path: String): Seq[(String,String)] =
+  { applyScript("UI:latex:Snippets",  path) match {
     case SExps(Nil) => Nil
     case SExps(es)  => es.map {
       case Pair(button, (Str(text))) => (button.toPlainString, text)
       case Pair(button, (Str(text))) => (button.toPlainString, text)
-      case other => profileWarning(s"UI:latexClasses $other"); ("BAD", other.toString)
+      case other => profileWarning(s"UI:latex:Snippets $other"); ("BAD", other.toString)
     }
-    case other      => profileWarning(s"latexClasses: path -> Seq[(String, String)]: $other"); Nil
+    case other => profileWarning(s"UI:latex:Snippets: path -> Seq[(Symbol, String)]: $other"); Nil
   }
   }
 
@@ -172,9 +172,12 @@ object Personalised extends Logging.Loggable {
            |    2. copy AppleRed.app/Contents/Resources/Bindings/* to ~/.red
            |
            |or provide a configuration file of your own and then restart the editor.
+           |
+           |The button Pipe/MinimalConfiguration inserts the minimal configuration
+           |script into the current document.
            |""".stripMargin)
           notfoundCount += 1
-          minimalReadEvalPrint(minimalBindings, false, true)
+          minimalReadEvalPrint(minimalConfiguration, false, true)
         }
       }
 
@@ -183,39 +186,151 @@ object Personalised extends Logging.Loggable {
        * my original Red, but without abbreviations. It's here in case there's no
        * script in the expected location.
        */
-      def minimalBindings = """
-                              |persist  style   "Features" "Font Style"  "plain" (list "plain" "bold")
-                              |persist  size    "Features" "Font Size"   18 (list 12 14 16 18 20 24 28)
-                              |constant fontA (font (string "Monospaced" "/" style "/" size))
-                              |constant fontB (font (string "Monospaced" "/" style "/" (- size 2)))
-                              |constant fontC (font (string "Dialog" "/" "bold" "/" (max size 16)))
-                              |UI:useFont fontA widget default button menu menubutton feedback
-                              |UI:useFont fontB menu menubutton feedback
-                              |UI:useFont fontC menu menubutton button
-                              |constant shellCommands (list "wc" "ls -lt" "date" "printenv")
+      lazy val minimalConfiguration = """
+                              |##############################################################################
+                              |# AppleRed minimal configuration file:
+                              |##############################################################################
+                              |#
+                              |# Persistent features for the profile
+                              |#
+                              |constant font:pref "Dejavu Sans Mono"
+                              |constant font:fams (list font:pref "Monospaced")
                               |
-                              |(def (UI:pipeShellCommands path) shellCommands)
+                              |persist  font:style   "Features" "Font Style"  "plain" (list "plain" "bold")
+                              |persist  font:size    "Features" "Font Size"   18 (list 12 14 16 18 20 24 28)
+                              |persist  font:family  "Features" "Font Family" font:pref font:fams
+                              |
+                              |tickbox  develop      "Features" "Development"           false
+                              |tickbox  monitoring   "Features" "Monitoring"            false
+                              |tickbox  mathkeyboard "Features" "Mathematical Keyboard" true
+                              |#
+                              |#############################################################################
+                              |
+                              |# syntactic sugar for several global constant declarations
+                              |(val (monitor . (if monitoring popup (fun x ())))
+                              |     (user    . (ENV "USER"))
+                              |     (os      . (PROP "os.name"))
+                              |     (OSX     . (<=  "Mac" os))
+                              |)
+                              |
+                              |(monitor (SOURCE)
+                              |         user
+                              |         os
+                              |         (if OSX "OSX" "Linux")
+                              |         #(string "Cut Ring: " (UI:cutringBound))
+                              |         )
+                              |
+                              |#############################################################################
+                              |#
+                              |#
+                              |#       Declare fonts and their roles
+                              |#
+                              |constant font:A (font (string font:family "/" font:style "/" font:size))
+                              |constant font:B (font (string font:family "/" font:style "/" (- font:size 2)))
+                              |constant font:C (font (string "Dialog" "/" "bold" "/" (max font:size 16)))
+                              |
+                              |monitor (SOURCE) (list font:family font:style font:size) font:A font:B font:C
+                              |
+                              |UI:useFont font:A widget default button menu menubutton feedback
+                              |UI:useFont font:B menu menubutton feedback
+                              |UI:useFont font:C menu menubutton button
+                              |#
+                              |#
+                              |#
+                              |#############################################################################
+                              |
+                              |
+                              |#############################################################################
+                              |#
+                              |#
+                              |#       Declare features of the UI
+                              |#
+                              |constant shell:Commands (list "wc" "ls -lt" "date" "printenv")
+                              |
+                              |(def (UI:pipeShellCommands path) shell:Commands)
+                              |
+                              |#
+                              |#       Latex menu is to be present for .tex files / what's on the menu
+                              |#
                               |(def (UI:needsLatex      path) (endsWith path ".tex"))
-                              |(def (UI:latexBlockTypes path) latexblocktypes)
+                              |(def (UI:latexBlockTypes path) latex:blocktypes)
+                              |
+                              |variable latex:Snippets ()
+                              |(def (UI:latex:Snippets path)  latex:Snippets)
+                              |(constant latex:snippet
+                              |  (form (env tag text)
+                              |        (:= latex:Snippets (:: (tag . text) latex:Snippets))
+                              |        ()))
                               |
                               |
-                              |(constant latexblocktypes
-                              |  `(    foil     itemize   enumerate        -
-                              |        note     exercise  answer           -
-                              |        code     "-code"   "code*"  alltt   -
-                              |        center   verbatim  comment  smaller -
-                              |        question part      ans
+                              |(constant latex:blocktypes
+                              |  (quote  foil     itemize   enumerate        -
+                              |          note     exercise  answer           -
+                              |          code     "-code"   "code*"  alltt   -
+                              |          center   verbatim  comment  smaller -
+                              |          question part      ans
                               |  )
                               |)
                               |
+                              |
+                              |#
+                              |#
+                              |#
+                              |#############################################################################
+                              |
+                              |#############################################################################
+                              |#
+                              |#
+                              |#       Report unhandled input
+                              |#
                               |(def (UI:unhandledInput key)
-                              |     (seq (popup "Unhandled: " (inputToString key))
-                              |          ()
-                              |          ))
+                              |     (seq (popup "Unhandled Input: " (inputToString key))
+                              |          ()))
+                              |#
+                              |#
+                              |#############################################################################
                               |
-                              |(def (UI:pipeRedScripts path) ())
-                              |(def (UI:needsPandoc path) (endsWith path ".md"))
+                              |#############################################################################
+                              |#
+                              |#
+                              |#       Experimental scripts for the foot of the "Pipe" menu
+                              |#
                               |
+                              |def  (Eval path arg find repl sel) (readEval sel false)
+                              |def  (MinimalConfiguration path arg find repl sel) UI:minimalconfiguration
+                              |
+                              |(def (UI:pipeRedScripts path) (list `Eval `MinimalConfiguration))
+                              |(def (UI:needsPandoc    path) (endsWith path ".md"))
+                              |
+                              |#
+                              |#
+                              |#
+                              |#############################################################################
+                              |#############################################################################
+                              |#
+                              |#    Declaration notation for specification of alt-keystrokes
+                              |#
+                              |#       alt: ch ins             -- alt-ch       inserts ins
+                              |#       ALT: ch ins'            -- alt-shift-ch inserts ins'
+                              |#       ALTS: ch ins ins'       == both the above
+                              |#
+                              |(def (alt: ch ins)
+                              |     (UI:keys ( (string "'" ch "'(A)")  . (insert (string ins)) )))
+                              |
+                              |(def (ALT: ch ins)
+                              |     (UI:keys ( (string "'" ch "'(AS)") . (insert (string ins)) )))
+                              |
+                              |(def (ALTS: ch insUnshifted insShifted)
+                              |  (seq
+                              |     #(log "ALTS: " ch insUnshifted insShifted)
+                              |     (UI:keys
+                              |         ( (string "'" ch "'(A)")  . (insert (string insUnshifted)) )
+                              |         ( (string "'" ch "'(AS)") . (insert (string insShifted))   )
+                              |     )))
+                              |#
+                              |#
+                              |#
+                              |#############################################################################
                               |
                               |""".stripMargin
 
@@ -378,6 +493,7 @@ object Personalised extends Logging.Loggable {
         "hashCode"    -> Subr("hashCode",    { case List(value) => Num(value.hashCode) }),
         "inputToString" -> Subr("inputToString", { case List(UserInput(in)) => Str(in.toInput) }),
         "font"        -> Subr("font",        { case List(Str(name)) => FontExpr(name, Utils.mkFont(name))}),
+        "UI:minimalconfiguration" -> Str(minimalConfiguration),
         "UI:useFont"  -> FSubr("useFont",    useFont),
         "UI:cutringBound" -> Subr("UI:cutringBound", { case List(Num(bound)) => CutRing.bound = bound.toInt; Nothing; case Nil => Num(CutRing.bound)}),
         "persist"     -> FSubr("persist",    declPersistent),

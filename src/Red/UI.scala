@@ -464,8 +464,6 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
       contents += Separator()
 
       contents += menuButton("Quit", toolTip = "Quit now if there are no unsaved document sessions; else ask each unsaved document session what to do")  { top.closeOperation() }
-
-
     }
 
     contents += new Utils.Menu("File") {
@@ -603,7 +601,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
           UI_DO(EditSessionCommands.latexToPDF)
         }
 
-        val headers = Red.Personalised.latexClasses(theSession.path)
+        val headers = Red.Personalised.latexSnippets(theSession.path)
 
         contents += new EmbeddedDynamicMenu("\\begin{...}", { Red.Personalised.latexBlockTypes(theSession.path) }) {
           font = Utils.menuButtonFont
