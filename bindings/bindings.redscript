@@ -1,1 +1,173 @@
-/Users/sufrin/.red/bindings.redscript
+#
+# Red profile and bindings in RedScript: 19/11/2022
+#
+
+##############################################################################
+#
+# Persistent features for the profile
+#
+constant font:pref "Dejavu Sans Mono"
+constant font:fams (list font:pref "Monospaced")
+
+persist  font:style   "Features" "Font Style"  "plain" (list "plain" "bold")
+persist  font:size    "Features" "Font Size"   18 (list 12 14 16 18 20 24 28)
+persist  font:family  "Features" "Font Family" font:pref font:fams
+
+tickbox  develop      "Features" "Development"           false
+tickbox  monitoring   "Features" "Monitoring"            false
+tickbox  mathkeyboard "Features" "Mathematical Keyboard" true
+#
+#############################################################################
+
+# syntactic sugar for several global constant declarations
+(val (monitor . (if monitoring popup (fun x ())))
+     (user    . (ENV "USER"))
+     (os      . (PROP "os.name"))
+     (OSX     . (<=  "Mac" os))
+)
+
+(monitor (SOURCE)
+         user
+         os
+         (if OSX "OSX" "Linux")
+         #(string "Cut Ring: " (UI:cutringBound))
+         )
+
+#############################################################################
+#
+#
+#       Declare fonts and their roles
+#
+constant font:A (font (string font:family "/" font:style "/" font:size))
+constant font:B (font (string font:family "/" font:style "/" (- font:size 2)))
+constant font:C (font (string "Dialog" "/" "bold" "/" (max font:size 16)))
+
+monitor (SOURCE) (list font:family font:style font:size) font:A font:B font:C
+
+UI:useFont font:A widget default button menu menubutton feedback
+UI:useFont font:B menu menubutton feedback
+UI:useFont font:C menu menubutton button
+#
+#
+#
+#############################################################################
+
+
+#############################################################################
+#
+#
+#       Declare features of the UI
+#
+constant shell:Commands (list "wc" "ls -lt" "date" "printenv")
+
+(def (UI:pipeShellCommands path) shell:Commands)
+
+#
+#       Latex menu is to be present for .tex files / what's on the menu
+#
+(def (UI:needsLatex      path) (endsWith path ".tex"))
+(def (UI:latexBlockTypes path) latex:blocktypes)
+
+
+(constant latex:blocktypes
+  `(      foil     itemize   enumerate        -
+          note     exercise  answer           -
+          code     "-code"   "code*"  alltt   -
+          center   verbatim  comment  smaller -
+          question part      ans
+  )
+)
+
+# Latex snippets are on the \begin{...}/Tex menu 
+(def (UI:latex:Snippets path) latex:Snippets)
+
+variable  latex:Snippets ()
+
+(constant latex:snippet
+  (form (env tag text)
+        (:= latex:Snippets (:: (tag . text) latex:Snippets))
+        ()))
+
+
+#
+#
+#
+#############################################################################
+
+#############################################################################
+#
+#    Declaration notation for specification of alt-keystrokes
+#
+#       alt: ch ins             -- alt-ch       inserts ins
+#       ALT: ch ins'            -- alt-shift-ch inserts ins'
+#       ALTS: ch ins ins'       == both the above
+#
+(def (alt: ch ins)
+     (UI:keys ( (string "'" ch "'(A)")  . (insert (string ins)) )))
+
+(def (ALT: ch ins)
+     (UI:keys ( (string "'" ch "'(AS)") . (insert (string ins)) )))
+
+(def (ALTS: ch insUnshifted insShifted)
+  (seq
+     #(log "ALTS: " ch insUnshifted insShifted)
+     (UI:keys
+         ( (string "'" ch "'(A)")  . (insert (string insUnshifted)) )
+         ( (string "'" ch "'(AS)") . (insert (string insShifted))   )
+     )))
+#
+#
+#
+#############################################################################
+
+#############################################################################
+#
+#
+#       Report unhandled input
+#
+(def (UI:unhandledInput key)
+     (seq (popup "Unhandled: " (inputToString key))
+          (log   "Unhandled: " (inputToString key))
+          ()))      
+#
+#
+#############################################################################
+
+#############################################################################
+#
+#
+#       Experimental scripts for the foot of the "Pipe" menu 
+#
+def  (EvalArg  path arg find repl sel)(readEval arg false)
+def  (Fail path arg find repl sel) (fail)
+def  (Eval path arg find repl sel) (readEval sel false)
+
+(def (UI:pipeRedScripts path) (list `EvalArg `Eval `Fail))
+(def (UI:needsPandoc    path) (endsWith path ".md"))
+
+#
+#
+#
+#############################################################################
+
+#############################################################################
+#
+#
+#       Abbreviations
+#
+include "symbols.redscript"
+#
+#
+#
+#############################################################################
+
+#############################################################################
+#
+#
+#       Latex templates
+#
+include "latex.redscript"
+#
+#
+#
+#############################################################################
