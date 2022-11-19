@@ -1,6 +1,8 @@
 package RedScript
 
 
+import Red.Personalised.Bindings.RedScriptEvaluator.REGEX
+
 import java.io.FileInputStream
 import java.nio.file.Path
 import scala.io.BufferedSource
@@ -377,7 +379,33 @@ class Evaluator {
     "false"     -> Bool(false),
     "ENV"       -> Subr("ENV",   evalENV),
     "PROP"      -> Subr("PROP",  evalPROP),
-    "SOURCE"    -> PositionSubr("SOURCE",  { case List(s: Str) => s }) // special case
+    "SOURCE"    -> PositionSubr("SOURCE",  { case List(s: Str) => s }), // special case
+    "str:range" -> Subr("str:range", {
+      case List(Str(text), Num(from), Num(to)) => Str(text.subSequence(from.toInt, to.toInt).toString)
+    }),
+    "list:range" -> Subr("list:range", {
+      case List(SExps(elts), Num(from), Num(to)) => SExps(elts.drop(from.toInt).take((to-from).toInt))
+    }),
+    "list:nth" -> Subr("list:nth", {
+      case List(SExps(elts), Num(n)) => elts(n.toInt)
+    }),
+    "re:regex" -> Subr("re:regex", {
+      case List(Str(source)) => REGEX(sufrin.regex.Regex(source))
+    }),
+    "re:match" -> Subr("re:match", {
+      case List(REGEX(regex), Str(text)) =>
+        regex.matches(text, 0, text.length) match {
+          case None => nil
+          case Some(matchResult) => SExps(matchResult.toStrings.map(Str(_)).toList)
+        }
+    }),
+    "re:find" -> Subr("re:find", {
+      case List(REGEX(regex), Str(text)) =>
+        regex.findPrefix(text, 0, text.length) match {
+          case None => nil
+          case Some(matchResult) => SExps(List(Num(matchResult.start), Num(matchResult.end), SExps(matchResult.toStrings.map(Str(_)).toList)))
+        }
+    })
   )
 
   val globals: List[(String, SExp)] = List (

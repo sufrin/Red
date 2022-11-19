@@ -149,7 +149,6 @@ object Language {
                   body.eval(env1.extend(SExps(List(envArg, argsArg)), List(EnvExpr(env0), SExps(args))))
                 }
 
-
               case other =>
                 throw RuntimeError(s"$operator is not a functional value: $this ($position)")
             }

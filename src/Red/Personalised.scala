@@ -478,6 +478,10 @@ object Personalised extends Logging.Loggable {
         command
       }
 
+      case class REGEX(regex: sufrin.regex.Regex) extends Const {
+           override def toString: String = s"(re:regex \"${regex.toString()}\")"
+      }
+
       import Language._
       val bindingPrimitives: List[(String, Const)] = List(
         "abbrev"      -> Subr("abbrev",      {  case List(Str(abbr), Str(text)) => mapTo(abbr, text); Nothing }),
@@ -506,6 +510,7 @@ object Personalised extends Logging.Loggable {
                    output.clear()
                    Str(result)
         }),
+
       )
       locally {
         for { (name, value) <- bindingPrimitives } syntaxEnv.define(name, value)
