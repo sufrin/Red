@@ -1,10 +1,7 @@
-# This delivers (name . insertion) pairs
-# it needs refinement
-(def (UI:latexClasses path) latexclasses)
-
-constant latexclasses `(
-("Letter" .
-“%xelatex
+#   
+#   Latex snippet declarations: 19/11/2022
+#
+latex:snippet Letter “%xelatex
 \documentclass[12pt,lab|wor|home|magd,bernard|sufrin]{letter} %
 \To{lines\\of\\mailing address}
 \Dear[Dear]{Victim}
@@ -14,10 +11,9 @@ constant latexclasses `(
 \PostSig{post signature para}
 \Cc{carrbon1, carbon2, ...}
 \Sign[yours sincerely]{Bernard Sufrin}
-”)
+”
 
-("Article" . 
-“%xelatex
+latex:snippet Article “%xelatex
 \documentclass[11pt,a4paper]{article}
 %%%%%%%%%%%%%%%%%%%%%
 \usepackage[]{}
@@ -30,5 +26,5 @@ constant latexclasses `(
 \maketitle
 
 \end{document}
-”)
-)
+”
+

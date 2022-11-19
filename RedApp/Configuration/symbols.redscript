@@ -1,28 +1,12 @@
-#
-#    Declaration notation for specification of alt-keystrokes
-#
-#       alt: ch ins             -- alt-ch       inserts ins
-#       ALT: ch ins'             -- alt-shift-ch inserts ins'
-#       ALTS: ch ins ins'       ==
-#
-
-(def (alt: ch ins) (UI:keys ( (string "'" ch "'(A)")  . (insert (string ins)) )))
-(def (ALT: ch ins) (UI:keys ( (string "'" ch "'(AS)") . (insert (string ins)) )))
-(def (ALTS: ch insUnshifted insShifted)
-  (seq
-     #(log "ALTS: " ch insUnshifted insShifted)
-     (UI:keys
-         ( (string "'" ch "'(A)")  . (insert (string insUnshifted)) )
-         ( (string "'" ch "'(AS)") . (insert (string insShifted))   )
-     )))
-
-#
-#  Binds some keystrokes directly to symbols
+#  19/11/2022
+#  Bind some keystrokes directly to symbol
+#  Bind some symbols to abbreviations
 #
 [def (BindMathematicalKeys)
    
   (altclear) 
 
+  # Bind alt and alt-shift variants of some regular keys
   (ALTS: "," "←" "≤")
   (ALTS: "." "→" "≥")
   (ALTS: "1" "⇓" "⇑")
@@ -34,22 +18,22 @@
   (ALT:  "Z" "↯")
 
   (UI:keys
-        # Bind ALT variants of some function keys
-        ("LEFT(SA)"   . (insert "⇐"))
-        ("RIGHT(SA)"  . (insert "⇒"))
-        ("LEFT(A)"    . (insert "←"))
-        ("RIGHT(A)"   . (insert "→"))
-        ("UP(SA)"     . (insert "⇑"))
-        ("DOWN(SA)"   . (insert "⇓"))
-        ("UP(A)"      . (insert "↑"))
-        ("DOWN(A)"    . (insert "↓"))
-        # And some keypad keys directly
-        ("Numpad*@Numpad" . (insert "×"))
-        ("Numpad/@Numpad" . (insert "÷"))
+    # Bind ALT variants of some function keys
+    ("LEFT(SA)"   . (insert "⇐"))
+    ("RIGHT(SA)"  . (insert "⇒"))
+    ("LEFT(A)"    . (insert "←"))
+    ("RIGHT(A)"   . (insert "→"))
+    ("UP(SA)"     . (insert "⇑"))
+    ("DOWN(SA)"   . (insert "⇓"))
+    ("UP(A)"      . (insert "↑"))
+    ("DOWN(A)"    . (insert "↓"))
+    # And bind some keypad keys directly
+    ("Numpad*@Numpad" . (insert "×"))
+    ("Numpad/@Numpad" . (insert "÷"))
   )
 ]
 
-[if OSX (diacritical "´`^~¨") ()]
+[if OSX          (diacritical "´`^~¨")  ()]
 [if mathkeyboard (BindMathematicalKeys) ()]
 
 #
