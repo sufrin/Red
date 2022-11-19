@@ -1,0 +1,34 @@
+# This delivers (name . insertion) pairs
+# it needs refinement
+(def (UI:latexClasses path) latexclasses)
+
+constant latexclasses `(
+("Letter" .
+“%xelatex
+\documentclass[12pt,lab|wor|home|magd,bernard|sufrin]{letter} %
+\To{lines\\of\\mailing address}
+\Dear[Dear]{Victim}
+\Re{subject matter}
+    This is the body
+\Ps{ps paragraph}
+\PostSig{post signature para}
+\Cc{carrbon1, carbon2, ...}
+\Sign[yours sincerely]{Bernard Sufrin}
+”)
+
+("Article" . 
+“%xelatex
+\documentclass[11pt,a4paper]{article}
+%%%%%%%%%%%%%%%%%%%%%
+\usepackage[]{}
+%%%%%%%%%%%%%%%%%%%%%
+\author{}
+\title{}
+\date{}
+%%%%%%%%%%%%%%%%%%%%%
+\begin{document}
+\maketitle
+
+\end{document}
+”)
+)

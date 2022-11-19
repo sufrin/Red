@@ -103,6 +103,21 @@ class Parser(source: io.Source, val path: String="") {
    @inline private def isHexit(c: Char): Boolean =
      ('a'<=c&&c<='f') || ('A'<=c&&c<='F')|| ('0'<=c&&c<='9')
 
+   def nextLongString(close: Char): Lexical.Symbol = {
+     val open  = in.ch
+     var count = 1
+     val start = position
+     val buf = new collection.mutable.StringBuilder()
+     while (count>0 && getNext()!='\u0000') {
+       if (in.ch==open)  {count += 1 }
+       else
+       if (in.ch==close) { count -= 1 }
+       if (count>0) buf.append(in.ch)
+     }
+     if (in.ch=='\u0000') throw Language.SyntaxError(s"Unclosed long string at $start")
+     getNext()
+     Str(buf.toString().intern())
+   }
    def nextSymb(): Lexical.Symbol = {
      lastPosition = SourcePosition(path, in.cline, in.ccol-1)
      symb =
@@ -125,6 +140,9 @@ class Parser(source: io.Source, val path: String="") {
        case '\t' =>
          getNext()
          nextSymb()
+       case '\u201c' => nextLongString('\u201d')
+       case '\u2018' => nextLongString('\u2019')
+
 
        // So as to avoid tedious error reports, we have a somewhat philistine approach:
        // * Malformed `\u` escapes are not flagged as errors but treated literally

@@ -4,6 +4,20 @@ import RedScript.Test.SourceCode
     A grab bag of little tests used during development.
     TODO: needs reorganising as separate parsing and semantic tests
 */
+"""
+  |“this is a long string
+  |that “occupies
+  |several” lines”
+  |
+  |"this is a short string"
+  |
+  | ‘Another
+  | long “
+  | string’
+  |
+  | “an erroneously nonterminated
+  |""".stripMargin.rep
+
 """ SOURCE
   | (SOURCE)
   | 0AABB
