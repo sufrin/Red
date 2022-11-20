@@ -86,7 +86,7 @@ object Buttons {
    * @param title title on the checkbox
    * @param persistentName name in the persistent store
    * @param set invoke whenever the checkitem is clicked
-   * @param default initial value
+   * @param default initial value if not persisted yet
    */
   class PersistentCheckItem(
       title: String,
@@ -95,6 +95,7 @@ object Buttons {
       default: => Boolean
   ) extends CheckMenuItem(title) {
     selected = appleRedUI.getBoolean(persistentName, default)
+    set(selected)
     reactions += { case event.ButtonClicked(_) =>
       set(selected)
       appleRedUI.putBoolean(persistentName, selected)

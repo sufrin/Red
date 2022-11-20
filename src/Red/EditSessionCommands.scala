@@ -151,7 +151,8 @@ object EditSessionCommands extends Logging.Loggable {
 
     protected override def transform(input: String, cwd: Path): Option[String] = {
       try {
-        Some((if (replaceSelection) "" else input) ++ evaluator.run(SExps(List(Variable(functionName), Str(path), Str(argLine), Str(findLine), Str(replLine), Str(input)))).toPlainString)
+        Some((if (replaceSelection) "" else input) ++
+            evaluator.run(SExps(List(Variable(functionName), Str(path), Str(argLine), Str(findLine), Str(replLine), Str(input)))).toPlainString)
       } catch {
         case exn: Throwable => Some(exn.toString)
       }

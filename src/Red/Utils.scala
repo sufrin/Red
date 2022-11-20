@@ -408,7 +408,7 @@ object Utils {
     lazy val paths = collection.mutable.ListBuffer[String]()
     lazy val recents = appleRed.node("recents")
     lazy val count = recents.getInt("count", 0)
-    lazy val limit = recents.getInt("limit", 10) // TODO: preference.
+    lazy val limit = recents.getInt("limit", 20) // TODO: preference.
     locally {
       for {i <- 0 until count} paths.addOne(recents.get(s"$i", ""))
     }
