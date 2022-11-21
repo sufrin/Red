@@ -183,6 +183,17 @@ class Evaluator {
     case SExps(pairs) => EnvExpr(new LocalEnv(pairs.map { case (Pair(d,r)) => (d.eval(env).toPlainString, r.eval(env)) }))
   }
 
+  def mapExtend(args: List[SExp]): SExp = {
+    val map :: maps = args
+    var EnvExpr(res) = map
+      for { m <- maps } m match {
+        case EnvExpr(env) => res = res + env
+        case Pair(Str(d), r) => res = new LocalEnv(List((d, r)), Some(res))
+        case Pair(d, r) => res = new LocalEnv(List((d.toPlainString, r)), Some(res))
+      }
+      EnvExpr(res)
+  }
+
   /** Evaluate a by-value function expression (to a closure)
    *
    * TODO: check redefinability of parameter names
@@ -347,14 +358,16 @@ class Evaluator {
     "@"         -> Subr  ("@",        {
       case List(EnvExpr(env), arg) => env.apply(arg.toPlainString) match { case None => Nothing; case Some(value) => value}
     }),
-    "map"       -> FSubr  ("map",     evMap),
+    "map:empty" -> EnvExpr(new LocalEnv(Nil)),
+    "map:"      -> FSubr  ("map:",       evMap),
+    "map:extend"-> Subr  ("map:extend", mapExtend(_)),
     "seq"       -> Subr  ("seq",      { case Nil => Nothing; case args => args.last }),
     "readEvalPrint"  -> Subr  ("readEvalPrint", { case Str(text) :: Bool(show) :: rest => readEvalPrint(text, show, false); Nothing}),
     "println"   -> Subr  ("println",  { case args => args.foreach{ case k => normalFeedback(k.toPlainString); normalFeedback(" ") } ; normalFeedbackLn(""); Nothing }),
     "log"       -> Subr  ("log",      { case args => Logging.Default.log(Logging.INFO, args.map(_.toPlainString).mkString("", " ", "")); Nothing }),
     "?"         -> Subr  ("?",        { case args => args.foreach{ case k => normalFeedback(k.toPlainString); normalFeedback(" ") }; args.last }),
     "toString*" -> Subr  ("toString*", evPlainString),
-    "quote"     -> FSubr ("quote",    { case (env, form) => Quote(form) }),
+    "quote"     -> FSubr ("quote",    { case (env, form) => form }),
     "list"      -> Subr  ("list",     { args => SExps(args)}),
     "isAtom"    -> forall("isAtom")   { case Quote(Variable(_)) => true; case _ => false },
     "isSymb"    -> forall("isSymb")   { case Quote(v@Variable(_)) => v.symbolic; case _ => false },

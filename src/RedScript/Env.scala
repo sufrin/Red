@@ -13,6 +13,8 @@ trait Env {
 
   def maplets: List[(String, SExp)]
 
+  def +(that: Env): Env = new LocalEnv(that.maplets, Some(this))
+
   /**
    * The environment that extends this by binding
    * successive variables in the pattern to successive
