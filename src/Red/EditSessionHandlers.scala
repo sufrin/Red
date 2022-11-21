@@ -36,11 +36,17 @@ class EditSessionHandlers(val UI_DO: Commands.Command[EditSession]=>Unit) {
   /**
    *
    * Handles user input with commands ''specified'' in the `character` and `instruction` tables
-   * of `Personalised.Bindings.RedScriptEvaluator` while bindings are being read.
+   * of
+   * {{{Personalised.Bindings.RedScriptEvaluator}}}
+   * while bindings are being read. If these tables are not specified then the default
+   * keyboard handler (see below) is in play.
    *
    * Characters not associated with a command are treated as `insertCommand`s. Use
    * `singleLineRedScriptInputHandler` for the single-line components used for the
    * (A), (F), and (R) fields.
+   *
+   * Instructions not associated with a command are reported to the (customized)
+   * function `(UI:unhandledInput key)` if it exists.
    *
    */
   val redScriptInputHandler: UserInputHandler = new UserInputHandler {
@@ -79,6 +85,10 @@ class EditSessionHandlers(val UI_DO: Commands.Command[EditSession]=>Unit) {
         }
       }
 
+      /**  The default keyboard input handler.
+       *   This is the keyboard used in the uncustomised editor.
+       *   It was originally the only keyboard input handler.
+       */
       val keyboard: UserInputHandler =  {
         case Character(char, _, NoModifier)            => UI_DO(commands.insertCommand(char))
         case Character(char, _, Shift)                 => UI_DO(commands.insertCommand(char))

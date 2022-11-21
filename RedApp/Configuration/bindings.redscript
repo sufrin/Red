@@ -13,7 +13,6 @@ PROFILE:select  font:style   "Features" "Font Style"  "plain" (list "plain" "bol
 PROFILE:select  font:size    "Features" "Font Size"   18 (list 12 14 16 18 20 24 28)
 PROFILE:select  font:family  "Features" "Font Family" font:pref font:fams
 
-PROFILE:bool    quietignore  "Features" "Silence Undefined Keys" false
 PROFILE:bool    mathkeyboard "Features" "Mathematical Keyboard"  true
 PROFILE:bool    develop      "Features" "Development"            false
 PROFILE:bool    monitoring   "Features" "Monitoring"             false
@@ -126,11 +125,13 @@ variable  latex:Snippets ()
 #
 #       Report unhandled input
 #
+PROFILE:bool    quietignore  "Features" "Silence Undefined Keys" false
+
+# 
 (def (UI:unhandledInput key)
      (if quietignore
          ()
-         (seq (popup "Undefined Keystroke: " (inputToString key))
-              ())))      
+         (popup "Undefined Keystroke: " (inputToString key))))
 #
 #
 #############################################################################
@@ -140,11 +141,9 @@ variable  latex:Snippets ()
 #
 #       Experimental scripts for the foot of the "Pipe" menu 
 #
-def  (EvalArg  path arg find repl sel)(readEval arg false)
-def  (Fail path arg find repl sel) (fail)
 def  (Eval path arg find repl sel) (readEval sel false)
 
-(def (UI:pipeRedScripts path) (list `EvalArg `Eval `Fail))
+(def (UI:pipeRedScripts path) (list `Eval))
 (def (UI:needsPandoc    path) (endsWith path ".md"))
 
 #

@@ -190,19 +190,20 @@ object Personalised extends Logging.Loggable {
                               |##############################################################################
                               |# AppleRed minimal configuration file:
                               |##############################################################################
+                              ##############################################################################
                               |#
                               |# Persistent features for the profile
                               |#
                               |constant font:pref "Dejavu Sans Mono"
                               |constant font:fams (list font:pref "Monospaced")
                               |
-                              |persist  font:style   "Features" "Font Style"  "plain" (list "plain" "bold")
-                              |persist  font:size    "Features" "Font Size"   18 (list 12 14 16 18 20 24 28)
-                              |persist  font:family  "Features" "Font Family" font:pref font:fams
+                              |PROFILE:select  font:style   "Features" "Font Style"  "plain" (list "plain" "bold")
+                              |PROFILE:select  font:size    "Features" "Font Size"   18 (list 12 14 16 18 20 24 28)
+                              |PROFILE:select  font:family  "Features" "Font Family" font:pref font:fams
                               |
-                              |tickbox  develop      "Features" "Development"           false
-                              |tickbox  monitoring   "Features" "Monitoring"            false
-                              |tickbox  mathkeyboard "Features" "Mathematical Keyboard" true
+                              |PROFILE:bool    mathkeyboard "Features" "Mathematical Keyboard"  true
+                              |PROFILE:bool    develop      "Features" "Development"            false
+                              |PROFILE:bool    monitoring   "Features" "Monitoring"             false
                               |#
                               |#############################################################################
                               |
@@ -225,9 +226,9 @@ object Personalised extends Logging.Loggable {
                               |#
                               |#       Declare fonts and their roles
                               |#
-                              |constant font:A (font (string font:family "/" font:style "/" font:size))
-                              |constant font:B (font (string font:family "/" font:style "/" (- font:size 2)))
-                              |constant font:C (font (string "Dialog" "/" "bold" "/" (max font:size 16)))
+                              |constant font:A (UI:font (string font:family "/" font:style "/" font:size))
+                              |constant font:B (UI:font (string font:family "/" font:style "/" (- font:size 2)))
+                              |constant font:C (UI:font (string "Dialog" "/" "bold" "/" (max font:size 16)))
                               |
                               |monitor (SOURCE) (list font:family font:style font:size) font:A font:B font:C
                               |
@@ -255,16 +256,9 @@ object Personalised extends Logging.Loggable {
                               |(def (UI:needsLatex      path) (endsWith path ".tex"))
                               |(def (UI:latexBlockTypes path) latex:blocktypes)
                               |
-                              |variable latex:Snippets ()
-                              |(def (UI:latex:Snippets path)  latex:Snippets)
-                              |(constant latex:snippet
-                              |  (form (env tag text)
-                              |        (:= latex:Snippets (:: (tag . text) latex:Snippets))
-                              |        ()))
-                              |
                               |
                               |(constant latex:blocktypes
-                              |  (quote  foil     itemize   enumerate        -
+                              |  `(      foil     itemize   enumerate        -
                               |          note     exercise  answer           -
                               |          code     "-code"   "code*"  alltt   -
                               |          center   verbatim  comment  smaller -
@@ -272,40 +266,22 @@ object Personalised extends Logging.Loggable {
                               |  )
                               |)
                               |
+                              |# Latex snippets are on the \begin{...}/Tex menu
+                              |(def (UI:latex:Snippets path) latex:Snippets)
+                              |
+                              |variable  latex:Snippets ()
+                              |
+                              |(constant latex:snippet
+                              |  (form (env tag text)
+                              |        (:= latex:Snippets (:: (tag . text) latex:Snippets))
+                              |        ()))
+                              |
                               |
                               |#
                               |#
                               |#
                               |#############################################################################
                               |
-                              |#############################################################################
-                              |#
-                              |#
-                              |#       Report unhandled input
-                              |#
-                              |(def (UI:unhandledInput key)
-                              |     (seq (popup "Unhandled Input: " (inputToString key))
-                              |          ()))
-                              |#
-                              |#
-                              |#############################################################################
-                              |
-                              |#############################################################################
-                              |#
-                              |#
-                              |#       Experimental scripts for the foot of the "Pipe" menu
-                              |#
-                              |
-                              |def  (Eval path arg find repl sel) (readEval sel false)
-                              |def  (MinimalConfiguration path arg find repl sel) UI:minimalconfiguration
-                              |
-                              |(def (UI:pipeRedScripts path) (list `Eval `MinimalConfiguration))
-                              |(def (UI:needsPandoc    path) (endsWith path ".md"))
-                              |
-                              |#
-                              |#
-                              |#
-                              |#############################################################################
                               |#############################################################################
                               |#
                               |#    Declaration notation for specification of alt-keystrokes
@@ -327,6 +303,40 @@ object Personalised extends Logging.Loggable {
                               |         ( (string "'" ch "'(A)")  . (insert (string insUnshifted)) )
                               |         ( (string "'" ch "'(AS)") . (insert (string insShifted))   )
                               |     )))
+                              |#
+                              |#
+                              |#
+                              |#############################################################################
+                              |
+                              |#############################################################################
+                              |#
+                              |#
+                              |#       Report unhandled input
+                              |#
+                              |PROFILE:bool    quietignore  "Features" "Silence Undefined Keys" false
+                              |
+                              |# A () result needs no further evaluation
+                              |# A non-() result is re-evaluated, and the result inserted in the
+                              |# current document if it's a string.
+                              |(def (UI:unhandledInput key)
+                              |     (if quietignore
+                              |         ()
+                              |         (seq (popup "Undefined Keystroke: " (inputToString key))
+                              |              ())))
+                              |#
+                              |#
+                              |#############################################################################
+                              |
+                              |#############################################################################
+                              |#
+                              |#
+                              |#       Experimental scripts for the foot of the "Pipe" menu
+                              |#
+                              |def  (Eval path arg find repl sel) (readEval sel false)
+                              |
+                              |(def (UI:pipeRedScripts path) (list `Eval))
+                              |(def (UI:needsPandoc    path) (endsWith path ".md"))
+                              |
                               |#
                               |#
                               |#

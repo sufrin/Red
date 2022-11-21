@@ -767,7 +767,6 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
           feedback(s"[$mark]")
 
         case other: UserInput =>
-          Logging.Default.info(s"Unhandled user input [[$other]] ")
           UI_DO(EditSessionCommands.unhandledInput(other))
       }
     }

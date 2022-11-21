@@ -2,7 +2,7 @@ package Red
 
 import Commands.{Command, StateChange}
 import Red.FilterUtilities.inputStreamOf
-import RedScript.Language.{SExps, Str, Variable}
+import RedScript.Language.{RuntimeError, SExps, Str, Variable}
 
 import java.nio.file.Path
 import scala.sys.process.{Process, ProcessLogger}
@@ -159,21 +159,17 @@ object EditSessionCommands extends Logging.Loggable {
     }
   }
 
-  def unhandledInput(key: UserInput): SessionCommand = new Filter {
+  def unhandledInput(key: UserInput): SessionCommand = new SessionCommand  {
     val evaluator = Personalised.Bindings.RedScriptEvaluator
-    val global = evaluator.global
+    val global    = evaluator.global
+    val theKey    = Personalised.Bindings.RedScriptEvaluator.UserInput(key)
 
-    protected override def transform(input: String, cwd: Path): Option[String] = {
-      try {
-        val theKey = Personalised.Bindings.RedScriptEvaluator.UserInput(key)
-        evaluator.run(evaluator.run(SExps(List(Variable("UI:unhandledInput"), theKey)))) match {
-          case Str(s) => Some(s+"\n")
-          case _      => None
-        }
-      } catch {
-            // TODO: deal with unbound UI:....
-        case exn: Throwable => Some(exn.toString)
+    override def DO(target: EditSession): Option[StateChange] = {
+      evaluator.run(SExps(List(Variable("UI:unhandledInput"), theKey))) match {
+        case r: Error => Logging.Default.error(s"Unhandled input: $r")
+        case other    =>
       }
+      None
     }
   }
 
