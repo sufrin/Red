@@ -1,7 +1,7 @@
 package Red
 
 import RedScript.Language._
-import RedScript.{Env, Evaluator, Language, Parser, SourcePosition}
+import RedScript._
 import Useful.PrefixMap
 
 import java.io.File
@@ -385,8 +385,8 @@ object Personalised extends Logging.Loggable {
         Nothing
       }
 
-      /** Implements {{{(persist name path menu-title initialValue choices)}}}*/
-      def declPersistent(env: Env, params: SExp) : Const = {
+      /** Implements {{{(PROFILE:select name path menu-title initialValue choices)}}}*/
+      def declSelect(env: Env, params: SExp) : Const = {
         val SExps(Variable(name) :: args) = params
         val Str(path) :: Str(title) :: _value :: SExps(_choices) :: update = args.map(_.eval(env))
         val feature = new Persistent.StringFeature(name, path, _value.toPlainString, title) {
@@ -416,7 +416,7 @@ object Personalised extends Logging.Loggable {
       }
 
       /** Implements: {{{(tick name path menu-title initialValue)}}} */
-      def declTick(env: Env, params: SExp) : Const = {
+      def declBool(env: Env, params: SExp) : Const = {
         val SExps(Variable(name) :: args) = params
         val Str(path) :: Str(title) :: Bool(value) :: update = args.map(_.eval(env))
         val feature = new Persistent.BoolFeature(name, path, value, title)
@@ -478,8 +478,8 @@ object Personalised extends Logging.Loggable {
         command
       }
 
-      case class REGEX(regex: sufrin.regex.Regex) extends Const {
-           override def toString: String = s"(re:regex \"${regex.toString()}\")"
+      case class SESSION(theSession: Session) extends Const {
+        override def toString: String = theSession.toString
       }
 
       import Language._
@@ -494,15 +494,14 @@ object Personalised extends Logging.Loggable {
         "command"     -> Subr("command",     evalCommand(_)),
         "insert"      -> Subr("insert",      evalInsert(_)),
         "andThen"     -> Subr("andThen",     evalAndThen(_)),
-        "hashCode"    -> Subr("hashCode",    { case List(value) => Num(value.hashCode) }),
         "inputToString" -> Subr("inputToString", { case List(UserInput(in)) => Str(in.toInput) }),
-        "font"        -> Subr("font",        { case List(Str(name)) => FontExpr(name, Utils.mkFont(name))}),
+        "UI:font"         -> Subr("UI:font",        { case List(Str(name)) => FontExpr(name, Utils.mkFont(name))}),
         "UI:minimalconfiguration" -> Str(minimalConfiguration),
-        "UI:useFont"  -> FSubr("useFont",    useFont),
+        "UI:useFont"      -> FSubr("useFont",    useFont),
         "UI:cutringBound" -> Subr("UI:cutringBound", { case List(Num(bound)) => CutRing.bound = bound.toInt; Nothing; case Nil => Num(CutRing.bound)}),
-        "persist"     -> FSubr("persist",    declPersistent),
-        "tickbox"     -> FSubr("tickbox",    declTick),
-        "readEval"    -> Subr  ("readEval", {
+        "PROFILE:select"  -> FSubr("PROFILE:select", declSelect),
+        "PROFILE:bool"    -> FSubr("PROFILE:bool",   declBool),
+        "readEval"        -> Subr  ("readEval", {
               case Str(text) :: Bool(show) :: rest =>
                    output.clear()
                    readEvalPrint(text, show, false)
@@ -510,7 +509,16 @@ object Personalised extends Logging.Loggable {
                    output.clear()
                    Str(result)
         }),
-
+        "RED:session" -> Subr("RED:session", {
+          case List(Str(path)) =>
+              Sessions.findRed(path) match {
+                case None => nil
+                case Some(session) => SESSION(session)
+              }
+        }),
+        "RED:startSession" -> Subr("RED:startSession", {
+          case List(Str(path)) => SESSION(Sessions.startSession(path))
+        }),
       )
       locally {
         for { (name, value) <- bindingPrimitives } syntaxEnv.define(name, value)

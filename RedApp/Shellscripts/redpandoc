@@ -8,6 +8,8 @@
 echo redpandoc "$@"
 inputfile=${1%%.md}.md
 pdffile=${inputfile%%.md}.pdf
+htmlfile=${inputfile%%.md}.html
+texfile=${inputfile%%.md}.tex
 line="${2-0}"
 editing="${3-$inputfile}"
 cwd=$(dirname $inputfile)
@@ -15,10 +17,25 @@ echo "++++++++++++ REDPPDF ++++++++++"
 echo "EDITING:" $editing
 echo "INPUT:  " $inputfile
 echo "PDF:    " $pdffile 
+echo "HTML:   " $htmlfile 
 echo "CWD:    " $cwd
 echo "+++++++++++++++++++++++++++++++"
 
-(cd $cwd ; pandoc --pdf-engine=xelatex -f markdown+tex_math_dollars --output=$pdffile $inputfile)
+if [ -e $cwd/PANDOC-HTML -o $cwd/PANDOC-PDF-VIA-HTML ]
+then
+    echo pandoc ... --output=$htmlfile
+    (cd $cwd ; pandoc  -s --from markdown+tex_math_dollars+pandoc_title_block --output=$htmlfile $inputfile)
+fi
+if [ -e $cwd/PANDOC-PDF-VIA-HTML ]
+then
+    echo pandoc ... --input $htmlfile --output=$texfile
+    (cd $cwd ; pandoc -s --output=$texfile $htmlfile)
+    (cd $cwd ; xelatex $texfile; xelatex $texfile)
+else
+    echo pandoc  -s --pdf-engine=xelatex --from markdown+tex_math_dollars+pandoc_title_block --output=$pdffile $inputfile
+    (cd $cwd ; pandoc  -s --pdf-engine=xelatex --from markdown+tex_math_dollars+pandoc_title_block --output=$pdffile $inputfile)
+fi
+
 
 if [ $(uname) = Linux ]
 then
@@ -27,5 +44,5 @@ then
 else
     echo open -a Skim $pdffile
     # skim invokes pdfsync %file %line at the right gesture (shift cmd point)
-    exec open -a Skim $pdffile
+    open -a Skim $pdffile
 fi

@@ -9,13 +9,14 @@
 constant font:pref "Dejavu Sans Mono"
 constant font:fams (list font:pref "Monospaced")
 
-persist  font:style   "Features" "Font Style"  "plain" (list "plain" "bold")
-persist  font:size    "Features" "Font Size"   18 (list 12 14 16 18 20 24 28)
-persist  font:family  "Features" "Font Family" font:pref font:fams
+PROFILE:select  font:style   "Features" "Font Style"  "plain" (list "plain" "bold")
+PROFILE:select  font:size    "Features" "Font Size"   18 (list 12 14 16 18 20 24 28)
+PROFILE:select  font:family  "Features" "Font Family" font:pref font:fams
 
-tickbox  develop      "Features" "Development"           false
-tickbox  monitoring   "Features" "Monitoring"            false
-tickbox  mathkeyboard "Features" "Mathematical Keyboard" true
+PROFILE:bool    quietignore  "Features" "Silence Undefined Keys" false
+PROFILE:bool    mathkeyboard "Features" "Mathematical Keyboard"  true
+PROFILE:bool    develop      "Features" "Development"            false
+PROFILE:bool    monitoring   "Features" "Monitoring"             false
 #
 #############################################################################
 
@@ -38,9 +39,9 @@ tickbox  mathkeyboard "Features" "Mathematical Keyboard" true
 #
 #       Declare fonts and their roles
 #
-constant font:A (font (string font:family "/" font:style "/" font:size))
-constant font:B (font (string font:family "/" font:style "/" (- font:size 2)))
-constant font:C (font (string "Dialog" "/" "bold" "/" (max font:size 16)))
+constant font:A (UI:font (string font:family "/" font:style "/" font:size))
+constant font:B (UI:font (string font:family "/" font:style "/" (- font:size 2)))
+constant font:C (UI:font (string "Dialog" "/" "bold" "/" (max font:size 16)))
 
 monitor (SOURCE) (list font:family font:style font:size) font:A font:B font:C
 
@@ -126,9 +127,10 @@ variable  latex:Snippets ()
 #       Report unhandled input
 #
 (def (UI:unhandledInput key)
-     (seq (popup "Unhandled: " (inputToString key))
-          (log   "Unhandled: " (inputToString key))
-          ()))      
+     (if quietignore
+         ()
+         (seq (popup "Undefined Keystroke: " (inputToString key))
+              ())))      
 #
 #
 #############################################################################

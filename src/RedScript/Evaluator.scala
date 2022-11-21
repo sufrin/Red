@@ -1,8 +1,6 @@
 package RedScript
 
 
-import Red.Personalised.Bindings.RedScriptEvaluator.REGEX
-
 import java.io.FileInputStream
 import java.nio.file.Path
 import scala.io.BufferedSource
@@ -303,6 +301,13 @@ class Evaluator {
 
   var position: SourcePosition = SourcePosition("",0,0)
 
+  case class REGEX(regex: sufrin.regex.Regex) extends Const {
+    override def toString: String = s"(re:regex \"${regex.toString()}\")"
+  }
+  case class REGMATCH(regmatch: sufrin.regex.Regex.StringMatch) extends Const {
+    override def toString: String = s"$regmatch"
+  }
+
   /**
    *  The top-level environment binds, as `SExps`, names subject to "just-in-time"
    *  translation in the parser. When any of the names defined here appear
@@ -380,7 +385,7 @@ class Evaluator {
     "ENV"       -> Subr("ENV",   evalENV),
     "PROP"      -> Subr("PROP",  evalPROP),
     "SOURCE"    -> PositionSubr("SOURCE",  { case List(s: Str) => s }), // special case
-    "str:range" -> Subr("str:range", {
+    "string:range" -> Subr("string:range", {
       case List(Str(text), Num(from), Num(to)) => Str(text.subSequence(from.toInt, to.toInt).toString)
     }),
     "list:range" -> Subr("list:range", {
@@ -389,6 +394,7 @@ class Evaluator {
     "list:nth" -> Subr("list:nth", {
       case List(SExps(elts), Num(n)) => elts(n.toInt)
     }),
+    // Regex material
     "re:regex" -> Subr("re:regex", {
       case List(Str(source)) => REGEX(sufrin.regex.Regex(source))
     }),
@@ -396,15 +402,43 @@ class Evaluator {
       case List(REGEX(regex), Str(text)) =>
         regex.matches(text, 0, text.length) match {
           case None => nil
-          case Some(matchResult) => SExps(matchResult.toStrings.map(Str(_)).toList)
+          case Some(theMatch) => REGMATCH(theMatch)
         }
+      case other => throw RuntimeError(s"re:match: REGEX -> nil | REGMATCH")
+    }),
+    "re:span" -> Subr("re:span", {
+      case List(REGMATCH(theMatch)) => SExps(List(Num(theMatch.start), Num(theMatch.end)))
+      case other => throw RuntimeError(s"re:span: REGMATCH->[Num,Num]")
+    }),
+    "re:subst" -> Subr("re:subst", {
+      case List(REGMATCH(theMatch), Str(theTemplate)) => Str(theMatch.substitute(theTemplate))
+      case other => throw RuntimeError(s"re:subst: REGMATCH STRING -> STRING")
+    }),
+    "re:group" -> Subr("re:group", {
+      case List(REGMATCH(theMatch), Num(i)) => Str(theMatch.group(i.toInt))
+      case other => throw RuntimeError(s"re:group: REGMATCH Num -> STRING")
+    }),
+    "re:groups" -> Subr("re:groups", {
+      case List(REGMATCH(theMatch)) => SExps(theMatch.groups.map(Str(_)).toList)
+      case other => throw RuntimeError(s"re:groups: REGMATCH -> [STRING]")
     }),
     "re:find" -> Subr("re:find", {
       case List(REGEX(regex), Str(text)) =>
         regex.findPrefix(text, 0, text.length) match {
           case None => nil
-          case Some(matchResult) => SExps(List(Num(matchResult.start), Num(matchResult.end), SExps(matchResult.toStrings.map(Str(_)).toList)))
+          case Some(theMatch) =>  REGMATCH(theMatch)
         }
+      case List(REGEX(regex), Str(text), Num(from)) =>
+        regex.findPrefix(text, from.toInt, text.length) match {
+          case None => nil
+          case Some(theMatch) =>  REGMATCH(theMatch)
+        }
+      case List(REGEX(regex), Str(text), Num(from), Num(to)) =>
+        regex.findPrefix(text, from.toInt, to.toInt, text.length) match {
+          case None => nil
+          case Some(theMatch) =>  REGMATCH(theMatch)
+        }
+      case other => throw RuntimeError(s"re:find: REGEX STRING Num? Num? -> nil | REGMATCH")
     })
   )
 
