@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>AppleRed</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    span.underline{text-decoration: underline;}
+    div.column{display: inline-block; vertical-align: top; width: 50%;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    ul.task-list{list-style: none;}
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
+  
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">AppleRed</h1>
+</header>
+<h1 id="applered-version-1.01">AppleRed (Version 1.01)</h1>
+<pre><code>    Bernard Sufrin
+    University of Oxford
+    November 14, 2022</code></pre>
+<h2 id="introduction">Introduction</h2>
+<p><code>Red</code> (also known as <code>AppleRed</code>) is no-frills <code>UNICODE</code>-capable <em>modeless</em> (and <em>colourless</em>) text editor with a simple implementation that can be customized using the <code>redscript</code> language, and can be straightforwardly extended using <code>scala</code>. It has no pretensions to being an all-encompassing workplace, and unlike many IDE and modern editors does not confuse its user by spontaneously trying to be helpful: everything it does it does in response to user input from mouse, pad, or keyboard.</p>
+<p>Its <code>undo</code>/<code>redo</code> facility is conventional, but in addition to this it has a <em>cut ring</em> that retains the last 240 or so <em>recently deleted</em> blocks of contiguous text. This feature is orthogonal to <code>undo</code>/<code>redo</code> and makes it straightforward to re-insert material that has – perhaps inadvertently – been deleted from any editing session running in the same editor server. The cut ring interface is similar to an editing session interface, so material can be transferred from it by copy/paste to any application (including <code>Red</code>) that has an interface to the system clipboard.</p>
+<hr />
+<p>I have used <code>Red</code> mainly for preparing <code>(xe-)latex</code> and <code>markdown</code> manuscripts, as well as for preparing programs that don’t warrant the burden of getting to grips with an IDE.</p>
+<p>Its support for <code>latex</code> manuscripts includes the straightforward manipulation of nested blocks delimited by <code>\begin{...}</code> and <code>\end{...}</code>.</p>
+<p>Its support for <code>xml</code> includes the straightforward manipulation of nested blocks delimited by <code>&lt;id ... &gt;</code> and <code>&lt;/id&gt;</code>, as well as <code>&lt;id ... /&gt;</code> constructs.</p>
+<p>In both cases, when <code>Red/Select</code> is enabled, clicking at the left of the opening of a block, or at the right of the closing of a block will cause that entire block (including nested sub-blocks) to be selected (“tentatively”).</p>
+<p>In addition, clicking at the right of any closing bracket will cause all text between that bracket and the corresponding opening bracket to be selected. Dually, clicking at the left of any opening bracket will cause all text between that bracket and the corresponding closing bracket to be selected (“tentatively”). The built-in corresponding pairs are: “<code>{}</code>”, “<code>()</code>”, “<code>[]</code>”, as well as most of the unicode bracketing pairs. Additional pairs can be added straightforwardly.</p>
+<h3 id="tex-pandoc"><code>Tex</code>, <code>Pandoc</code></h3>
+<p>The <strong><code>Tex</code></strong> button on the menu bar generates <code>pdf</code> from the (default tex) source manuscript – usually, but not necessarily, the manuscript being edited – using a script <code>redpdf</code> that is expected to be somewhere on the user’s <code>PATH</code>. The <code>redpdf</code> I use assumes that the manuscript is in latex format (<code>xelatex</code> format if its first line is the comment <code>%xelatex</code>), and invokes <code>pdflatex</code> (or <code>xelatex</code>) with appropriate parameters before invoking the platform <code>pdf</code> viewer (<code>Skim</code> on <code>OS/X</code>, <code>evince</code> on <code>Linux</code>).</p>
+<p>The <strong><code>Pandoc</code></strong> button on the menu bar translates the manuscript being edited into <code>.pdf</code> form using the script <code>redpandoc</code>.</p>
+<p>The script I use assumes that the manuscript is in <code>markdown+tex_math_dollars+pandoc_title_block</code> format; and uses <code>xelatex</code> as its final <code>--pdf-engine</code>; so you can use a wide variety of Unicode symbols directly in the manuscript. For example:</p>
+<pre><code>    $$e^{iπ}+1=0$$</code></pre>
+<p>yields: <span class="math display"><em>e</em><sup><em>i</em><em>π</em></sup> + 1 = 0</span></p>
+<p>The <code>pandoc_title_block</code> used for <em>the present</em> markdown file <code>AppleRed.md</code> ensures that fonts are used that implement all relevant unicode glyphs:</p>
+<pre><code>    ---
+    title: AppleRed
+    fontfamily: DejaVu Sans
+    mainfont: DejaVuSerif.ttf
+    sansfont: DejaVuSans.ttf
+    monofont: DejaVuSansMono.ttf 
+    mathfont: DejaVuSans.ttf
+    header-includes:
+      - &#39;`\usepackage{unicode-math}`{=xelatex}&#39;
+    ---</code></pre>
+<p>It’s possible, but pretty pointless, to revert to straight <code>pdflatex</code>: you just deny yourself the use of a fuller range of Unicode characters in your manuscript.</p>
+<p>My <code>redpandoc</code> script will simultaneously generate an <code>.html</code> version of the output if a file <code>PANDOC-HTML</code> is present in the source folder; and will generate pdf <em>via</em> the html file (rather than directly) if a file <code>PANDOC-PDF-VIA-HTML</code> is present.</p>
+<h3 id="synctex-features"><code>SyncTex</code> features</h3>
+<p>The <code>redpdf</code> script invoked by the <code>Tex</code> button uses <code>synctex</code> features to collaborate with the platform viewer (<code>Skim</code> on <code>OS/X</code>, <code>evince</code> on <code>Linux</code>).</p>
+<ol type="1">
+<li><p>The current editing position in the manuscript being edited is shown as the viewer opens (or reopens) the newly-generated <code>pdf</code> file after the <code>Tex</code> button is pressed.</p></li>
+<li><p>The current position in the editing session can be changed from the viewer by the appropriate gesture (From <code>Skim</code> this is <code>Shift-Cmd-click</code> on one of the pdf lines).</p></li>
+</ol>
+<p>There are similarly-functioning scripts available for <code>Linux</code>.</p>
+<h2 id="installation">Installation</h2>
+<p>The <code>AppleRed.app</code> directory can be installed either on <code>OS/X</code> or on <code>Linux</code> by copying it to <code>~/Applications</code>. Before use it is essential to copy the three Profiles files to your <code>$(HOME)</code> and adjust them to your own requirements.</p>
+<p>The profiles are nearly identical – the important things to change are the PATHs exported from <code>.AppleRed-application.profile</code>; the other profiles are (but needn’t be) essentially the same. The following command will do the copy.</p>
+<pre><code>cp -pr $(find ~/Applications/AppleRed.app -name &quot;.AppleRed*.profile&quot;) ~</code></pre>
+<p>The following commands will run from anywhere:</p>
+<p><code>$(find ~/Applications/AppleRed.app -name red)</code> <em>paths</em></p>
+<p><code>$(find ~/Applications/AppleRed.app -name cred)</code> <em>paths</em></p>
+<p>The former starts an editing server (if it hasn’t already started) to starting editing sessions for the documents denoted in the filestore by <em>paths</em>. The server runs until the last of its editing sessions is closed; but keeps running in this case if it was started with an empty <em>paths</em>.</p>
+<p>The latter starts its editing sessions independently of any server. It terminates when its last editing session is closed.</p>
+<p>The <code>red</code>, and <code>cred</code> scripts function on both operating systems, independently of whether the <code>AppleRed</code> app has been used. On <code>OS/X</code> the app acts as a drop-target, or as an open-with subject. When invoked, it starts a editing server (if necessary), then passes its arguments to it, then (finally) terminates. Think of it as a “start button” for the server and don’t expect it to hang around between “starts”. Drop the <code>AppleRed.app</code> icon onto the <code>OS/X</code> dock if you want to make it easily available.</p>
+<h2 id="editing-sessions">Editing Sessions</h2>
+<p>In each editing session window you will see the main text editing component at the bottom, with three minitext-editing components in a row above it. The minitexts have buttons to their left labelled <strong>(A)</strong> (<em>Argument</em>), <strong>(F)</strong> (<em>Find</em>) and <strong>(R)</strong> (<em>Replace</em>). Pressing one of these buttons clears the adjacent minitext.</p>
+<p>The <em>Argument</em> minitext provides arguments for many of the other editing actions, including those on the <em>File</em> menu which start new editing sessions, allow the document to be saved in a different file, and so forth.</p>
+<p>The <em>Find</em> and <em>Replace</em> minitexts provide arguments for the actions of the same name. The checkbox next to <em>Find</em> indicates whether its content will be interpreted as a regular expression or as a literal pattern. The same checkbox indicates whether the <em>Replace</em> content will be treated as a substitution for a matching regular expression or as a literal pattern.</p>
+<p>Many of the editing actions described below are bound to keystrokes, and can also be used on the minitexts.</p>
+<p>Red shows which of its (mini-)text windows has the keyboard focus by showing its cursor in red. A text window with a greyed-out cursor doesn’t have the keyboard focus. Focus usually moves into a text window as the mouse-cursor moves into it, but occasionally after popup warnings it’s necessary to force the issue by clicking in the desired window.</p>
+<h2 id="the-editing-model">The Editing Model</h2>
+<p>At any stage, the document in a window (minitext or main) may have a <em>selection</em> – which is a contiguous region of the document. The selection is bounded at one end by the <em>document cursor</em> – which is shown as a thin red rectangle – and at the other end by the <em>mark</em> – which is shown as a (thinner) blue rectangle. When the cursor and mark are in the same position only the cursor is shown, and the selection (in that document) is effectively empty.</p>
+<p>The document cursor can be moved in small increments by the arrow keys, or can be placed anywhere in the document by clicking with the left mouse-button. The mark can be placed anywhere in the document by clicking with the right mouse button.</p>
+<p>The text of a selection is always shown on a coloured background: grey if the selection was <em>definite</em> and pink if the selection was <em>tentative</em>. (See <strong>Treatment of the Selection</strong> for further detail).</p>
+<p>After every editing action the position of the document in the editor window is adjusted automatically so that <em>the document cursor is visible.</em> Between editing actions the position of the document in the window can be adjusted manually by the scrollwheel, This can make the document cursor “disappear” temporarily.</p>
+<p>“Dragging” the mouse with left button pressed causes a selection to be started (and then extended as the mouse is dragged). If the mouse is dragged outside the window, then the position of the document is adjusted so that it remains visible.</p>
+<p>There is a <em>cut-ring</em> which holds the last several texts copied (<code>C-C</code>) or deleted from the document. The most recent such text is also placed on the operating system’s clipboard and the most recent material placed in the system clipboard by Red or any other application is accessible and can be <em>paste</em>d into the document or <em>swap</em>ped with the current selection by invoking the the <em>Paste</em> (<em>Swap</em>) actions. These are usually bound to the keys <code>C-V</code>, and <code>C-B</code>. The <em>cut</em> action deletes the entire selection; it is usually bound to the key <code>C-X</code>. When two ore more adjacent parts of the document are deleted (or cut) in successive actions they are treated as if they had been cut at the same time.</p>
+<h2 id="editing-commands">Editing Commands</h2>
+<p>A comprehensive set of editing actions are built-in, and bound to a standard set of keys or menu entries. Some actions are available on more than one key or menu entry. The actions described below are a selection of those provided.</p>
+<p>The editor can be customised using the <code>redscript</code> language that supports the definition of new actions as well as changes of binding of actions to keys. The language will be described in a separate section.</p>
+<p>Neither AppleRed nor I distinguish between the control-shift and (OS/X) command-shift keys: they appear as <code>C-</code> below. This is entirely to preserve my sanity, because I use both Linux and OS/X. Although it reduces the absolute number of keys it is possible to bind to separate actions, there are still enough for any (sane) user – especially one prepared to use the mouse to navigate or hit a menu button occasionally.</p>
+<h3 id="undo-and-redo">Undo and Redo</h3>
+<p>As editing actions happen their effects are pushed onto the <em>done stack</em>.</p>
+<p><em>Undo</em> (<code>C-z</code>) undoes the topmost effect on the <em>done stack</em> and pushes it onto the <em>undone stack</em>.</p>
+<p><em>Redo</em> (<code>C-Z</code>) re-does the topmost effect on the <em>undone stack</em>, – pops it from that stack.</p>
+<p><em>Redo</em> can also be invoked from the redo button at the right end of the menu bar: it is labelled <em>n</em><code>&gt;</code>, where <em>n</em> is the depth of the <em>undone stack</em>. <em>Undo</em> can also be invoked from the redo button to the left of the redo button: it is labelled <em>n</em><code>&lt;</code>, where <em>n</em> is the depth of the <em>done stack</em>. Consecutive character insertions on the same line (between other actions) “bunched”, so that their effect can be undone all at once. Consecutive cuts or other deletions are also bunched.</p>
+<p>When editing actions other than <em>Undo</em> or <em>Redo</em> happen, the entire <em>redo stack</em> is emptied.</p>
+<h3 id="cut-and-paste">Cut and Paste</h3>
+<p><em>Cut</em> (<code>C-x</code>, or <code>F1</code>) removes the selection from the document puts it in the cut-buffer, and adds it to the cut-ring.</p>
+<p><em>Paste</em> (<code>C-v</code>, or <code>F2</code>) inserts the content of the cut-buffer into the document and re-selects it.</p>
+<p><em>Copy</em> (<code>C-c</code>, or <code>F3</code>) replaces the cut-buffer with the selection (if there is a selection).</p>
+<p><em>SwapSel</em> (<code>C-b</code>, or <code>F4</code>) exchanges the selection and the cut-buffer (except that if the selection is null, then the cut-buffer doesn’t change). The replaced text is added to the cut ring as if it had been deleted.</p>
+<p><em>SwapCursorAndMark</em> (<code>F5</code>) does what its name suggests.</p>
+<h3 id="find-and-replace-principles">Find and Replace (Principles)</h3>
+<p>In what follows:</p>
+<ul>
+<li><p><em>following</em> means “at a position to the right of or below the <em>editing cursor</em>.”</p></li>
+<li><p><em>preceeding</em> means “at a position to the left of or above the <em>editing cursor</em>.”</p></li>
+<li><p><strong>(F)</strong> means “the pattern specified by the <em>Find</em> minitext.”</p></li>
+<li><p><strong>(R)</strong> means “the replacement specified by the <em>Replace</em> minitext.”</p></li>
+</ul>
+<p>If the checkbox adjacent to the <em>Find</em> minitext is checked then the find text is interpreted as a (Java-style) regular expression. Otherwise it is interpreted literally.</p>
+<p>When the find text is interpreted as a regular expression, the replacement text is interpreted as the text obtained (using standard Java regular-expression substitution rules) by substituting each instance of <code>$n</code> in it by the text that matches the <code>n</code>th bracketed expression in the instance of the pattern that is being replaced. Otherwise it is interpreted literally.</p>
+<ul>
+<li><p><em>FindDown</em> (<code>C-f</code>, or <code>Numpad-0</code>) selects the nearest <em>following</em> instance of <strong>(F)</strong></p></li>
+<li><p><em>FindUp</em> <code>(C-F)</code>, or <code>Shift-Numpad-0</code>) selects the nearest <em>preceeding</em> instance of <strong>(F)</strong></p></li>
+<li><p><em>FindSelDown</em> (<code>C-Alt-f</code>, or <code>Alt-Numpad-0</code>) makes the current selection the <em>Find</em> pattern, turns off regular expression interpretation, and then acts as <em>FindDown</em>.</p></li>
+<li><p><em>FindSelUp</em> (<code>C-Alt-F</code>, or <code>Shift-Alt-Numpad-0</code>) makes the current selection the <em>Find</em> pattern, then acts as <em>FindUp</em>.</p></li>
+<li><p><em>ClearFind</em> (<code>C-Numpad-0</code>, or <code>Button(F)</code>) clears the find minitext, and moves the editing cursor to that text.</p></li>
+<li><p><em>ClearRepl</em> (<code>C-Numpad-.</code>, or <code>Button(R)</code>) clears the replace minitext, and moves the editing cursor to that text.</p></li>
+<li><p><em>ClearArg</em> (<code>C-Numpad-Enter</code>, or <code>Button(A)</code>) clears the argument minitext, and moves the editing cursor to that text.</p></li>
+</ul>
+<p>If the current selection is an instance of <strong>(F)</strong> then:</p>
+<ul>
+<li><p><em>ReplaceDown</em> <code>(C-r)</code>, <code>Numpad-.</code> saves the current selection in the cut-buffer and replaces it with the <strong>(R)</strong> selecting the replacement text and leaving the cursor to the right of the mark.</p></li>
+<li><p><em>ReplaceUp</em> <code>(C-R)</code>, <code>Shift-Numpad-.</code> saves the current selection in the cut-buffer and replaces it with the <strong>(R)</strong> selecting the replacement text and leaving the cursor to the left of the mark.</p></li>
+</ul>
+<h3 id="find-and-replace-technique">Find and Replace (Technique)</h3>
+<p>Many editors provide a multiplicity of modes for finding and replacing, and some include the possibility of “approving” replacements. In what follows we explain our simpler approach.</p>
+<p>A way of replacing the next instance of <code>"FOO"</code> with <code>"BAR"</code> without using the mouse to move between texts is to type:</p>
+<pre><code>    C-Numpad-0 F O O Numpad-0 C-Numpad-. B A R Numpad-.</code></pre>
+<p>Replacing the following instance just requires</p>
+<pre><code>    C-Numpad-0 Numpad-.</code></pre>
+<p>or</p>
+<pre><code>    C-f C-r</code></pre>
+<p>Since the <em>Find</em> and <em>Repl</em> minitexts are already set to the right pattern and replacement. Obviously subsequent instances can be found/replaced with the same keystrokes.</p>
+<ul>
+<li><p><em>ReplaceAll</em> (<code>(F)-&gt;(R)</code> on the edit menu) replaces (without any interaction) all instances of the <em>Find</em> minitext in the current selection with the <em>Repl</em> minitext, and selects the resulting transformed text.</p>
+<p>The original selection is preserved in the cut buffer (and therefore in the cut ring), so this action can be undone immediately with <em>SwapSel</em> if you are immediately overcome with remorse afterwards, and by browsing in the cut ring if the remorse takes longer to arrive.</p>
+<p>If you want to “approve” each replacement interactively, then just use <em>FindDown</em> <em>ReplaceDown</em> in sequence repeatedly, undoing any replacement you don’t approve of with <em>SwapSel</em> (or <em>Undo</em>).</p></li>
+</ul>
+<p>To find/replace earlier instances just type the same actions with the shift key pressed.</p>
+<h2 id="indentation">Indentation</h2>
+<p><strong>Indenting one or more lines when there is a nonempty selection:</strong></p>
+<ul>
+<li><p><em>Indent selection</em> (<code>Tab</code>) indents the selected lines by 1 space. If invoked with the <strong>alt</strong>-shift pressed, then the selected lines are indented by prefixing them with the <strong>(A)</strong> text, and then re-selected.</p></li>
+<li><p><em>Undent selection</em> (<code>Shift-Tab</code>) (when there is a nonempty selection) reduces the indentation of the selected lines by 1 space where possible. If invoked with the <strong>alt</strong>-shift pressed, then the selected lines are “undented” by the (literal) <strong>(A)</strong> text where possible, and then re-selected.</p></li>
+</ul>
+<p>The indent and undent selection actions effectively <em>cut</em> the selection and replace it with the indented (undented) text.</p>
+<p><em>When there is no selection</em> <code>Tab</code> inserts enough spaces to move the cursor so that it is a multiple of 8 characters from the left margin.</p>
+<p>When <code>Red/Autoindent</code> is enabled, it is assumed that the indentation of the text following a newline is to be the same as the indentation of the current line. This is achieved by inserting spaces after <code>Enter</code> is typed, and removing spaces to the right of the cursor if necessary.</p>
+<h2 id="treatment-of-the-selection">Treatment of the Selection</h2>
+<p>Red offers two modes of treating the selection. Most users will decide on one of them and stick to it forever. In what follows, a “tentative” selection means one made by auto-selecting material between matching brackets.</p>
+<p>Having grown accustomed to the second mode in my homegrown editors for more than thirty years I was reluctant to adopt the first: but after implementing the differential treatment of “tentative” and “definite” selections I changed my mind.</p>
+<ol type="1">
+<li><p><strong>Typing-cuts-selection:</strong> Typing new material automatically cuts a “definite” selection into the cut buffer (and adds it to the cut ring). This is (almost) the behaviour that most people have come to expect of editors; except that it does not cut “tentative” selections.</p></li>
+<li><p><strong>Typing-removes-mark:</strong> Typing new characters removes the mark, and thus deselects the <em>selection</em>, but does not delete the selected material. In this mode Red does not distinguish between “tentative” and “definite” selections.</p></li>
+</ol>
+<p>The choice of modes is made using the <strong>Red/Typeover</strong> checkbox. As with most other preferences its value is preserved between <code>Red</code> invocations.</p>
+<p>Tentative selections are made when a closing bracket (of some kind) is typed, or when the mouse is clicked just to the left of an opening bracket or to the right of a closing bracket. In both cases the scope of the selection is the well-nested bracketed text (if there is one) between the opening and closing bracket. By well-nested we mean well-nested with respect to the opening (closing) bracket of a bracketing pair.</p>
+<p><code>Red</code> builds-in most unicode bracketing pairs in addition to the obvious “{}”, “()”, “[]” and can be easily adapted to add more pairs specified by regular expressions; such as those that match the built-in (Latex and HTML blocks)</p>
+<pre><code>    \begin{...}    \end{...}
+    &lt;id ... &gt;      &lt;/id&gt;       </code></pre>
+<p>(See also <strong>Introduction</strong>)</p>
+<p>These behaviours are enabled by the <strong>Red/Select/(…@)}</strong> and <strong>Red/Select/{…}</strong> checkboxes respectively: their values are preserved between <code>Red</code> invocations.</p>
+<h3 id="abbreviations">Abbreviations</h3>
+<p>Red can be configured with <em>abbreviations</em> for texts that contain unicode symbols that may not appear directly on the keyboard.</p>
+<p>One form of abbreviation is built-in, namely <code>\u</code><em>xxxx</em>, where each of the four <em>x</em> is a hex digit. It abbreviates the Unicode glyph with that code.</p>
+<p>The action <em>Abbrev</em> (<code>ESC</code>) finds the longest abbreviation that appears just before the cursor, and replaces it with the text it abbreviates.</p>
+<p>The action <em>Unabbrev</em> (<code>Alt-Shift-ESC</code>) replaces the character immediately to the left of the cursor with its unicode encoding, in the form <code>\u</code><em>xxxx</em>.</p>
+<h4 id="examples-of-abbreviations">Examples of abbreviations:</h4>
+<p>Here, for example, are extracts from the (extensive) bindings file <code>symbols.redscript</code> delivered with Red. Notice that both unicode glyphs and their <code>\u``XXXX</code> codes can be used in abbreviations and their substitutions.</p>
+<pre><code>abbrev &quot;lnot&quot;       &quot;\u00AC&quot;    # ¬
+abbrev  &quot;/\u2203&quot;   &quot;∄&quot;
+abbrev &quot;land&quot;       &quot;\u2227&quot;    # ∧
+abbrev &quot;/\\&quot;        &quot;\u2227&quot; 
+abbrev &quot;=&gt;&quot;         &quot;⇒&quot; 
+abbrev &quot;&lt;=&gt;&quot;        &quot;⇔&quot; 
+abbrev &quot;lor&quot;        &quot;∨&quot;         # ∨
+abbrev &quot;\\/&quot;        &quot;\u2228&quot;
+abbrev &quot;cap&quot;        &quot;\u2229&quot; 
+abbrev &quot;cup&quot;        &quot;\u222a&quot;  
+abbrev &quot;euro&quot;       &quot;€&quot;  
+abbrev &quot;pound&quot;      &quot;\u20a4&quot;</code></pre>
+<p>Words and phrases can also be abbreviated</p>
+<pre><code>abbrev &quot;lb&quot;         &quot;pound&quot;
+abbrev &quot;lbs&quot;        &quot;pounds and pounds&quot;</code></pre>
+<p>Further details of binding configurations will (eventually) be found in an appendix.</p>
+<h5 id="key-assignment-policy">Key Assignment Policy:</h5>
+<p>It makes sense for <em>FindUp</em> to be bound to the shifted key that <em>FindDown</em> is bound to; and for <em>ReplaceUp</em> to be bound to the shifted <em>ReplaceDown</em> key, and that is what we have done.</p>
+<h2 id="appendix-bindings-and-abbreviations">APPENDIX: Bindings and Abbreviations</h2>
+<h3 id="redscript">RedScript</h3>
+<p>As the editor is started it reads the file <code>~/.red/bindings.redscript</code>: the role of the script in this file is to provide information needed by each editing session. There is a good deal of room for customization here, but the distributed version of the script provides a decent minimum collection of features that permit some choices to be made by the user.</p>
+<h2 id="appendix-history-of-applered">APPENDIX: History of <code>AppleRed</code></h2>
+<h4 id="red-starts-life-as-a-toy">Red starts life as a toy:</h4>
+<p><strong>Red</strong> started life as a program to use as an exemplar for teaching first-year Oxford undergraduates a short course in object-orient programming using <strong><code>scala</code></strong>. It was to be the basis of a number of practical exercises.</p>
+<p>Its editing model was identical to that used in the <strong>dred</strong> editor I had built from scratch in <strong><code>java</code></strong> in the early 2000’s and had been using ever since. <strong>Dred</strong> had developed from a sequence of editors, all using the same <em>modeless</em> editing model derived from an abstract formal specification I had published in the late 1970’s.</p>
+<h4 id="red-becomes-my-editor-of-choice">Red becomes my editor of choice:</h4>
+<p>It wasn’t long before I decided that it would be a good idea to make <strong>Red</strong> more than a toy; and soon after I started its development (during the first pandemic lockdown period) it became my editor of choice. Shortly afterwards I found it straightforward to make it integrable with <code>OS/X</code> as an app, as well as runnable as an ordinary <code>JVM</code>-compatible program on <code>OS/X</code>, <code>Linux</code>, and <code>Windows</code>.</p>
+<p>My intention was to remove some of its more advanced features for use in the course, and this is what I did: the result was a simpler editor, <strong>jed</strong>, published for my students as the course started in Trinity term in the spring of 2022. For reasons of pedagogy that editor incorporated <code>undo/redo</code>.</p>
+<h4 id="red-inherits-undoredo-from-jed">Red inherits <code>undo/redo</code> from Jed:</h4>
+<p>The <code>undo</code>/<code>redo</code> feature of <strong>jed</strong> had not been implemented in the original <strong>Red</strong>, because the latter’s cut-ring feature met all my reasonable needs. But as soon as the course was over (early summer 2022) I started to enhance the original <strong>Red</strong> with <code>undo</code>/<code>redo</code>.</p>
+<h4 id="apple-changes-its-security-model">Apple changes its security model:</h4>
+<p>The next spasm of <strong>Red</strong>’s development was occasioned by a change in the <code>OS/X</code> security model for apps. To paraphrase my obituary for the unitary <code>AppleRed app</code> that provided editing sessions (on OS/X and Linux) through an embedded server as well as providing the more usual <em>drag-drop</em>, and <em>open-with</em> functionality:</p>
+<table>
+<tbody>
+<tr class="odd">
+<td>“On <code>Catalina</code> (versions above 10.14) and its successors the</td>
+</tr>
+<tr class="even">
+<td>situation is complicated by (welcome, but ferocious) Apple</td>
+</tr>
+<tr class="odd">
+<td>security measures that <em>forbid</em> the reception of messages (of</td>
+</tr>
+<tr class="even">
+<td>any kind) by uncertified apps. At the time of writing I see no</td>
+</tr>
+<tr class="odd">
+<td>reasonable way round these measures (and, believe me, I have</td>
+</tr>
+<tr class="even">
+<td>looked) that can be taken without paying the <strong>Apple Ransom</strong>,</td>
+</tr>
+<tr class="odd">
+<td>which imposes both a financial and an intellectual burden. I</td>
+</tr>
+<tr class="even">
+<td>have therefore decided to distribute the program as a simple</td>
+</tr>
+<tr class="odd">
+<td><code>OS/X app</code> that invokes a helper program to provide editing</td>
+</tr>
+<tr class="even">
+<td>session functionality.”</td>
+</tr>
+</tbody>
+</table>
+<p>But by dint of the simple but legitimate technique (outlined in the obituary, and explained in the source code) I nevertheless managed to deliver all functionality of an OS/X app on OS/X.</p>
+<p>Note that there had never been an analogous problem caused by security measures on Linux.</p>
+<h4 id="customization-gives-rise-to-redscript">Customization gives rise to RedScript:</h4>
+<p>A much more recent development was a dramatic increase in the sophistication of the notation used for customising the editor. <code>RedScript</code> is a straightforward language, reminiscent of <code>scheme</code>, that “collaborates” with the editor code to provide the editing context: the content of menus, and the bindings of keys to actions. Its facilities are still evolving as its potential is explored.</p>
+</body>
+</html>

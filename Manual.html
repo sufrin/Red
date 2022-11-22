@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>Manual</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    span.underline{text-decoration: underline;}
+    div.column{display: inline-block; vertical-align: top; width: 50%;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    ul.task-list{list-style: none;}
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
+</head>
+<body>
+<table style="width:43%;">
+<colgroup>
+<col style="width: 43%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">title: “Example PDF” author: [Author] date: “2022-03-04” subject: “Markdown” keywords: [Markdown, Example] lang: “en” toc: true toc-own-page: true …</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Dred ====</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">(May 2017)</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Contents</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><a href="#Unix/Linux%20Usage">Unix/Linux Usage</a></li>
+<li><a href="#Windows%20(XP)%20Usage">Windows (XP) Usage</a></li>
+<li><a href="#MACOS">Mac OS X Usage</a></li>
+<li><a href="#PDFSync">PDFSync</a></li>
+<li><a href="#The%20Dred%20Editing%20Session%20Window">The Dred Editing Session Window</a></li>
+<li><a href="#Editing%20Model">Editing Model</a></li>
+<li><a href="#Editing%20Actions">Editing Actions</a></li>
+<li><a href="#Mouse%20Actions">Mouse Actions</a></li>
+<li><a href="#Opening%20and%20Saving%20files">Opening and Saving files</a></li>
+<li><a href="#Fonts">Fonts</a></li>
+<li><a href="#Preferences">Preferences</a></li>
+<li><a href="#Etc">Etc</a></li>
+<li><a href="#Brief%20History">Brief History</a></li>
+<li><a href="index.html">Back to Dred Help Index</a></li>
+</ul>
+<p>Dred is a <em>lightweight</em>, customizeable, and extensible Unicode text editor. It comes, complete with documentation, in a single (350K) jar, and needs a 1.8 (or later) JRE to run.</p>
+<p>[]{#Unix/Linux Usage}</p>
+<h2 id="unixlinux-usage">Unix/Linux Usage</h2>
+<pre><code>        java -jar Dred.jar [--enc=encoding] [--bindings=bindings-url] --wait files </code></pre>
+<p>or</p>
+<pre><code>        java -jar Dred.jar [--enc=encoding] [--bindings=bindings-url] -w files </code></pre>
+<p>This starts edit sessions for each of the files. The program exits when the last session terminates.</p>
+<pre><code>        java -jar Dred.jar [--enc=encoding] [--bindings=bindings-url] files  &amp;</code></pre>
+<p>This starts edit sessions for each of the given files, <em>using the user's existing Dred server if one is running</em>, then exits immediately. If no server is running then it starts itself in server mode, puts up an (iconified) server control, and starts edit sessions for the filenames. Files are usually specified by paths in the local filestore, but can also be specifed by URL: see <a href="#Opening%20a%20URL">Opening a URL</a> for details.</p>
+<p>If <code>--bindings=...</code> is specified then the editor's bindings are taken from the file specified by the given URL; otherwise the default bindings are used. If <code>--enc=...</code> is specified, then the files are assumed to use the specified encoding; otherwise UTF8 is assumed.</p>
+<p>Bindings files describe</p>
+<ul>
+<li>the connections between keystrokes and editor actions</li>
+<li>abbreviations for Unicode symbols and their corresponding shortcut keystrokes</li>
+<li>loading and configuration of Dred extensions</li>
+</ul>
+<p>(see also <a href="Bindings.html">Specifying Bindings</a> and <a href="Underhood.html">Under the Hood</a>)</p>
+<p>The above commands are often embedded in simple shell scripts.</p>
+<p><strong>Remark (May 2017)</strong>: I have, in recent years, used the following script (named <code>dred</code>) to invoke the editor. Using this script the first invocation automatically establishes a server.</p>
+<pre><code>#/bin/sh
+#
+# shell command to invoke dred (as a server if necessary)
+#
+nohup java -jar ~/bin/Dred.jar &quot;$@&quot; &gt; /dev/null 2&gt;&amp;1 &amp;</code></pre>
+<p><br />
+<span id="MACOS"></span></p>
+<h2 id="mac-os-x-usage">Mac OS X Usage</h2>
+<p>Command-line usage is much the same as Linux/Unix usage (as outlined above), except that it makes sense to drive <code>dred</code> with a shell script containing the following command -- which enables some of the OS X specific features of java, and assumes <code>Dred.jar</code> is in <code>$HOME/Bin</code>.</p>
+<pre><code>exec java    -Xdock:icon=&quot;$HOME/Bin/dnought.png&quot; \
+             -Xdock:name=&quot;Dred&quot;                  \
+             -Dapple.laf.useScreenMenuBar=true -jar $HOME/Bin/Dred.jar &quot;$@&quot; </code></pre>
+<p>The <code>AppleDred.app</code> application is available from the Dred website and can also be installed into your local <code>Applications</code> directory or the system-wide <code>/Applications</code> directory. It is registered as handling all files. It's a good idea to pin it to the taskbar but it isn't necessary. Launching AppleDred on login can be slightly problematic unless you have ensured that it will pick up the right shell environment. The most important shell environment variables it uses are <code>PATH</code> and (if you use the Latex Tool) <code>TEXINPUTS</code>. Launching it for the first time (ie starting it in server mode) in a login session from a terminal window will cause it to pick these up from the terminal's shell envionment. <strong>Remark (May 2017)</strong>: the most recent variants of (Unix) Dred execute all the shell commands that it uses in the environment set by <code>source ~/.dred_profile</code> (if such a file exists). The one I use looks like this:</p>
+<pre><code># Establish the environment for shell-calls from Dred
+# Prefix a path if it isn&#39;t already present
+function CONSPATH ()
+{ (printenv PATH | grep -q -F &quot;:${1}
+${1}:&quot;) || export PATH=${1}:$PATH
+}
+
+# Append a path if it isn&#39;t already present
+function PATHCONS ()
+{ (printenv PATH | grep -q -F &quot;:${1}
+${1}:&quot;) || export PATH=$PATH:${1}
+}
+
+PATHCONS           /usr/texbin
+CONSPATH           $HOME/bin
+
+export TEXINPUTS=.:~/Tex//:
+export TEXFONTS=:.:~/Tex//:</code></pre>
+<p>The application file <code>AppleDred.app/Contents/Java/AppleDred.jar</code> can be started from the command-line as described elsewhere in the documentation. If the application is already running, then it will be used to service the command given on the command-line; if it isn't then a non-Application server will be started and thenceforth used to service command-line commands and subsequent invocations of the application. <strong>The important difference is that a server started as the application is a little more careful when <code>Apple-Q</code> is pressed, and will not let you lose your work without asking whether this is what you mean.</strong></p>
+<p>The following shell script can be used from the command line. It facilitates ''equal opportunity'' operation of <code>dred</code> from command line and Finder.</p>
+<pre><code>#!/bin/sh
+# OSX shell command to invoke dred
+#
+DRED=/Applications/AppleDred.app/Contents/Java/AppleDred.jar
+java -jar $DRED --serving || (open -a AppleDred; sleep 2)
+exec java -jar $DRED &quot;$@&quot; </code></pre>
+<p>There's a bug in the present Mac OS X implementation of scrollbars (in all look-and-feel variants) so (for the moment) we replace the active scrollbars under Mac OS X with a passive indicator of the position and relative size of the current view of the document. This indicator shows up as a narrow bluish rectangle in the right margin of the window. Vertical and horizontal scrolling can be accomplished with the scrollwheel and/or by dragging with button-2 pressed. (Remark (May 2017): I confess that I'm no longer interested in solvig this problem: it hasn't bothered me for a long time).</p>
+<p>[]{#Windows (XP) Usage}</p>
+<h2 id="windows-xp-usage">Windows (XP) Usage</h2>
+<p><em>(Warning: written in 2005: now probably obsolete)</em><br />
+Put the Dred.jar somewhere sensible, and make a shortcut to it whose target and start-in fields looks something like this:</p>
+<pre><code>Target:   C:\WINDOWS\system32\javaw.exe -jar &quot;C:\Documents and Settings\sufrin\Desktop\DRED\Dred.jar&quot; 
+Start in: &quot;C:\Documents and Settings\sufrin\Desktop&quot;</code></pre>
+<p>Doubleclicking this shortcut starts a new Dred in an editing session with an anonymous document; dropping a file onto it starts a new Dred in an editing session for that file.</p>
+<p>You may want to put a <code>dred.bindings</code> file in the installation directory once you have found out a bit more about bindings. When you have done so, add the following text to the shortcut target, just before the -jar switch:</p>
+<pre><code>-DDREDBINDINGS=&quot;C:\Documents and Settings\sufrin\Desktop\DRED\dred.bindings&quot; </code></pre>
+<p>If you really care about economy, then read <a href="Underhood.html">Under the Hood</a> for details of how Dred can be set up to use a single server. It's slightly trickier under Windows XP2, which tries hard to prevent "Trojan" ports being opened. The bottom line is that you should choose port number (####) above 8000 that you know won't be used by any other server, and change the shortcut to:</p>
+<pre><code>Target:   C:\WINDOWS\system32\javaw.exe -jar &quot;C:\Documents and Settings\sufrin\Desktop\DRED\Dred.jar&quot; --serve==####</code></pre>
+<p><span id="PDFSync"></span></p>
+<h2 id="pdfsync">PDFSync</h2>
+<p>Dred is compatible with <code>pdfsync</code> (at least on OS/X and Linux). On my Mac I use the Skim pdf viewer, and my <code>linedisplay</code> script calls the Skim <code>displayline</code> script to position the viewer at the location generated from the current text editing position. I have configured Skim to invoke the following shell script when the mouse is pointed at a position in the viewer.</p>
+<pre><code>file=$1
+line=$2
+dred --position=$file@$line</code></pre>
+<p>The script opens the named <code>$file</code> (if there is not already an open session for it), and positions it at the specified <code>$line</code>.</p>
+<p>The Latex tool gives the option of using the shell command <code>linedisplay</code> automatically whenever the manuscript file the tool is managing is latexed.</p>
+<pre><code># linedisplay script: called from dred&#39;s Latex tool with arguments linenumber pdffile texfile -- synctex is needed.
+# echo linedisplay &quot;$@&quot;
+displayline -b &quot;$@&quot;</code></pre>
+<p>[]{#The Dred Editing Session Window}</p>
+<h2 id="the-dred-editing-session-window">The Dred Editing Session Window</h2>
+<p>In each editing session window you will see the main text editing component at the bottom, with three "minitext"-editing components in a row above it. The minitexts are labelled ".…" (pronounced "Argument"), "Find" and "Repl".</p>
+<p>The <em>Find</em> and <em>Replace</em> minitexts provide arguments for the actions of the same name. The little checkboxes next to them indicate whether they are interpreted as "regular expression" or "literal".</p>
+<p>The <em>Argument</em> minitext provides arguments for many of the other editing commands, including those on the <em>File</em> menu which start new editing sessions, allow the document to be saved in a different file, and so forth.</p>
+<p>Many of the editing commands described below are bound to keys, and can also be used on the minitexts.</p>
+<p>Dred shows which of its (mini-)text windows has the keyboard focus by showing its cursor in red. A text window with a greyed-out cursor doesn't have the keyboard focus. Focus usually moves into a text window as the mouse-cursor moves into it, but occasionally after popup warnings it's necessary to force the issue by clicking in the desired window.</p>
+<p>[]{#Editing Model}</p>
+<h2 id="editing-model">Editing Model</h2>
+<p>At any stage, the document in a window (minitext or main) may have a <em>selection</em> (which is a contiguous region of the document). It is bounded at one end by the <em>document cursor</em> -- which is shown as a thin red rectangle -- and at the other end by the <em>mark</em> -- which is shown as a thin green rectangle. When the cursor and mark are in the same position only the cursor is shown, and the selection (in that document) is effectively empty.</p>
+<p>The document cursor is moved by the arrow keys. It can be placed anywhere in the document by clicking with the left mouse-button. The mark can be placed anywhere in the document by clicking with the right mouse button.</p>
+<p>The selection is always shown on a grey background.</p>
+<p>After every editing action the position of the document in the editor window is adjusted automatically so that <em>the document cursor is visible.</em> Between editing commands the position of the document in the window can be adjusted manually by the scroll bars, the scrollwheel, or by middle-dragging and this can make the document cursor disappear temporarily.</p>
+<p>There is a <em>cut-buffer</em> which holds at most one text. It is implemented by the system clipboard, and material placed in the cut buffer is also available in the clipboard. Material placed in the system clipboard by another application is accessible through the cut buffer.</p>
+<p>[]{#Editing Actions}</p>
+<h2 id="editing-actions">Editing Actions</h2>
+<p>The editing actions described below are a small selection of the actions provided by the editor. Brief documentation for <em>all</em> the actions, and indications of their current binding(s) to keys and/or Menu buttons can be seen by pressing the <strong>Help/Show Bindings</strong> menu item.</p>
+<p>(see also <a href="Bindings.html">Further documentation of bindings</a>)</p>
+<h3 id="cut-and-paste">Cut and Paste</h3>
+<p>The <em>Cut</em> (C-x) action removes the selection from the document and puts it in the cut-buffer. The <em>Paste</em> (C-v) action inserts the content of the cut-buffer into the document and re-selects it. The <em>Copy</em> (C-c) action replaces the cut-buffer with the selection (if there is a selection), and the <em>SwapSel</em> (C-V) action exchanges the selection and the cut-buffer (except that if the selection is null, then the cut-buffer doesn't change). The <em>SwapCursorAndMark</em> (C-s) action does what its name suggests.</p>
+<h3 id="search-and-replace">Search and Replace</h3>
+<h4 id="search-and-replace-basics">Search and Replace Basics</h4>
+<p>The three minitexts at the top of an editing window are called the <em>.…</em> (or <em>Argument</em>), the <em>Find</em>, and the <em>Replace</em> texts, respectively.</p>
+<p>The <em>FindDown</em> (C-f) action selects the next (<em>FindUp</em> (C-F) previous) instance of the pattern specified by the <em>Find</em> minitext.</p>
+<p>If the checkbox adjacent to the <em>Find</em> minitext is checked then the pattern is interpreted as a (Java-style) regular expression, otherwise it is interpreted literally.</p>
+<p>If the current selection is an instance of the Find text then the <em>ReplaceDown</em> (C-a) (C-r) action saves the current selection in the cut-buffer and replaces it with the (meaning of the) <em>Repl</em> minitext -- leaving the cursor to the right of the mark. The <em>ReplaceUp</em> (C-A) (C-R) button is analogous and leaves the cursor to the left of the mark in the replacement text.</p>
+<p>The meaning of the <em>Repl</em> minitext is the text itself if the checkbox adjacent to it is NOT checked. Otherwise its meaning is the text obtained (using standard Java regular-expression substitution rules) by substituting each instance of <code>$n</code> in it by the text that matched the <code>n</code>th bracketed expression in the instance of the pattern that is being replaced.</p>
+<p>The <em>FindUp</em> action is usually bound to the SHIFTED key that the <em>FindDown</em> action is bound to; likewise the <em>ReplaceUp</em> action is usually bound to the SHIFTED <em>ReplaceDown</em> key.</p>
+<p>The <em>FindSelDown</em> (C-A-f) action makes the current selection the <em>Find</em> pattern, turns off regular expression interpretation, and then acts as the <em>FindDown</em> action. Likewise <em>FindSelUp</em> (C-A-F) makes the current selection the <em>Find</em> text, then acts as the <em>FindUp</em> action.</p>
+<p>The <em>ClearArgument</em> (C-Ins) action moves the keyboard focus into the <em>Argument</em> minitext area and erases the text that is there. <em>ClearFind</em> (Ins) and <em>ClearRepl</em> (A-Ins) behave analogously in the <em>Find</em> and <em>Repl</em> minitexts.</p>
+<h4 id="search-and-replace-in-practice">Search and Replace in Practice</h4>
+<p>One way of replacing the next instance of "FOO" with "BAR" is to type the keystrokes bound to</p>
+<pre><code>      ClearFind F O O FindSelDown ClearRepl B A R ReplaceDown</code></pre>
+<p>Replacing the following instance just requires</p>
+<pre><code>      FindSelDown ReplaceDown</code></pre>
+<p>since the <em>Find</em> and <em>Repl</em> minitexts are already set to the right pattern and replacement.</p>
+<p>The <em>ReplaceAll</em> action replaces (without any interaction) all instances of the <em>Find</em> minitext within the current selection with the <em>Repl</em> minitext, and selects the resulting transformed text. The original selection is preserved in the cut buffer, so this action can be undone with <em>SwapSel</em>.</p>
+<p>If you want to "approve" each replacement interactively, then just use <em>FindSelDown</em> <em>ReplaceDown</em> in sequence repeatedly, undoing any replacement you don't approve of with <em>SwapSel</em>.</p>
+<h3 id="treatment-of-the-selection">Treatment of the Selection</h3>
+<p>Dred offers two modes of treating the selection. Most users will decide on one of them and stick to it forever. (I use the second, having grown accustomed to it in my homegrown editors for more than thirty years.)</p>
+<ol type="1">
+<li><strong>Typing-cuts-selection:</strong> Typing new material automatically cuts the selection into the cut buffer. This is the behaviour that most people have come to expect of editors.<br />
+In this mode Dred distinguish between three types of selection:
+<ul>
+<li><em>definite selections</em>: which are those made "manually" by the user with the mouse or cursor movement actions.</li>
+<li><em>tentative selections</em>: which are those made automatically by Dred when its automatic bracket-matching is enabled. A tentative selection is shown with a slightly lighter grey background than definite selections have.</li>
+<li><em>mixed selections</em>: which arise when a tentative selection is extended manually. A mixed selection may be shown with a mix of backgrounds, or with the same colour background as definite selections have.</li>
+</ul>
+<br />
+Tentative selections are not cut when new characters are typed, whereas mixed and definite selections are automatically cut when characters are typed.</li>
+<li><strong>Typing-removes-mark:</strong> Typing new characters removes the mark, and thus deselects the <em>selection</em>, but does not delete the selected material. In this mode Dred does not distinguish between tentative and definite selections.</li>
+</ol>
+<p>The choice between treatments is made using the <strong>File/Preferences/Typing Removes Selection</strong> checkbox. As with all other preferences its value is preserved between Dred invocations.</p>
+<h3 id="undoing-and-the-cut-ring">Undoing and the Cut Ring</h3>
+<p>Dred has no <em>general</em> mechanism for undoing, but all the commands that operate <em>by inserting, removing, or transforming the selection</em> are individually undoable. (This can feel uncomfortable for people who are accustomed to hitting <em>the</em> undo key whenever they make a mistake or change their minds about something, but one soon adapts)</p>
+<p>For example: when the selection is non-null</p>
+<pre><code>        Cut      is undone by Paste 
+                
+        SwapSel  is undone by SwapSel</code></pre>
+<p>and (whether or not the selection is null)</p>
+<pre><code>        Paste    is undone by Cut </code></pre>
+<p>Moreover if the selection is an instance of the Find text then</p>
+<pre><code>        Replace  is undone by SwapSel</code></pre>
+<p>The <em>Cut Ring</em> records the last few pieces of material that found their way into the cut buffer (the number is adjustable). The cut ring can be accessed by opening the <em>Cut Ring Editor</em>: this is a specialized editor session that normally shows the content of the cut ring. This editor session behaves in most respects like an ordinary editing session so material can be transferred from it to any other text window using <em>Copy</em> and <em>Paste</em>. (Of course the Cut Ring Editor doesn't itself send material to the cut ring!)</p>
+<h3 id="the-position-ring">The Position Ring</h3>
+<p>As an <em>aide-memoire</em>, whenever a "big" movement action is executed the position at which it was executed is appended to the <em>cut ring</em> if it isn't already in the ring. The <em>Prev Position</em> action moves the cursor to the last position in the ring and rotates the ring by one step: the <em>Next Position</em> action is its inverse. For the moment the size of the ring is fixed at 8.</p>
+<h3 id="markers">Markers</h3>
+<p>The characters with Unicodes <code>fff0</code> ... <code>fffa</code> (the "specials" range) are treated as markers and are shown (in red) as single glyphs that resemble <strong>(1), (2), ... (9), (10)</strong>). They are removed from the document as it is saved, but otherwise treated the same as ordinary characters. They can be used to mark places in the document to which you may wish to return. Don't forget to bind keystrokes to them (I use <code>ctrl 1</code> ... <code>crtrl 0</code>). You'll find that the standard extension <code>MarkTool</code> provides a menu which makes working with marks fairly easy. One way of loading this extension is to add the following bindings to one of your bindings files:</p>
+<pre><code>           extension path class:/MarkTool/
+           extension load MarkTool                  </code></pre>
+<h3 id="undoing-small-changes">Undoing "Small" Changes</h3>
+<p>Any single character insertion can be undone by the <em>Delete</em> action.</p>
+<p>When there is a nonempty selection in typing-cuts-selection mode, the <em>Delete</em> action behaves exactly like the <em>Cut</em> action, and can therefore be undone by the <em>Paste</em> action. In all other circumstances it removes the character to the left of the cursor from the document without affecting the cut buffer. In any case the mark is removed, thereby deselecting the selection.</p>
+<p>The <em>Swap2</em> action swaps the two characters immediately to the left of the cursor without affecting the cut buffer. It undoes itself.</p>
+<p>[]{#Mouse Actions}</p>
+<h2 id="mouse-actions">Mouse Actions</h2>
+<table>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Pressing</td>
+<td style="text-align: left;">Button 1</td>
+<td style="text-align: left;">Positions the text cursor and the mark. Automatic bracket-matching is triggered.</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Pressing</td>
+<td style="text-align: left;">ctrl Button 1</td>
+<td style="text-align: left;">Positions the text cursor but not the mark.</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Pressing</td>
+<td style="text-align: left;">Button 3</td>
+<td style="text-align: left;">Positions the mark but not the text cursor.</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Pressing</td>
+<td style="text-align: left;">ctrl Button 3</td>
+<td style="text-align: left;">Removes the mark and deselects the selection.</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Dragging</td>
+<td style="text-align: left;">Button 1</td>
+<td style="text-align: left;">Positions the text cursor, leaving the mark where the cursor started.</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Dragging</td>
+<td style="text-align: left;">Button 3</td>
+<td style="text-align: left;">Positions the mark, leaving the cursor where it is.</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Double-Clicking</td>
+<td style="text-align: left;">Button 1</td>
+<td style="text-align: left;">Selects the "word" under the click. The cursor moves to the end of the word nearest the click.</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Triple-Clicking</td>
+<td style="text-align: left;">Button 1</td>
+<td style="text-align: left;">Selects the line under the click. The cursor moves to the end of the line nearest the click.</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Rotating</td>
+<td style="text-align: left;">Mouse Wheel</td>
+<td style="text-align: left;">Scrolls the view of the document vertically without moving the document cursor.</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Dragging</td>
+<td style="text-align: left;">Button 2</td>
+<td style="text-align: left;">Scrolls the view of the document verticallywithout moving the document cursor.</td>
+</tr>
+</tbody>
+</table>
+<p>[]{#Opening and Saving files}</p>
+<h2 id="opening-and-saving-files">Opening and Saving files</h2>
+<h3 id="saving">Saving</h3>
+<p>When you have finished editing a file, you can save it using the <strong>File/Save</strong>, or <strong>File/Save As</strong> menu entries or the corresponding shortcuts. Dred saves a backup copy of the file in a file whose path is made by appending a tilde "<code>~</code>" to the path of the original file. If the "secondary backups" preference is enabled, and the single-tilde backup file exists, then a double-tilde backup file is written.</p>
+<p>Dred is quite cautious about saving a file. If it looks like the file has been written during the period that it has been being edited, then Dred will warn you and ask you what to do. Likewise, if you <strong>"Save As"</strong> using the name of an existing file, Dred will ask whether you really mean it.</p>
+<h4 id="character-set-encoding">Character Set Encoding</h4>
+<p>A file is usually saved in the character set encoding that it originated in. It can be saved in a different encoding by using the <strong>File/Save As (Browse)</strong> menu entry and changing the encoding using the encoding selector provided in the file browser.</p>
+<h3 id="opening">Opening</h3>
+<p>Use the <strong>File/Edit .…</strong> menu entry with the name of the file in the argument minitext, or use the <strong>File/Edit (browse)</strong> menu entry to start a new editing session. The browser opens in the current working directory of the editing session, which is usually that from which the session was started.</p>
+<h4 id="filename-completion">Filename Completion</h4>
+<p>The "filename completion" shortcut (usually TAB) in the argument minitext causes the text in that minitext to change to the longest common prefix of all the files in the <em>current scope</em> that start with the existing value of the minitext.</p>
+<ol type="1">
+<li>If the minitext is empty, then a browser is opened in the current working directory (the directory from which the session was started).</li>
+<li>If the minitext looks like an absolute path then the current scope is the parent of that path. For example, the scope of the path <code>/b</code> is <code>/</code>, and the scope of <code>/b/</code> is <code>/b/</code></li>
+<li>If the minitext starts with <code>./</code> then the leading <code>./</code> is replaced by the absolute path of the current working directory of the editing session (which is usually the current working directory directory from which the session was started), and rule 2 is applied.</li>
+<li>If the minitext starts with <code>../</code> then the leading <code>../</code> is replaced by the absolute path of the parent of the current working directory of the editing session, and rule 2 is applied.</li>
+<li>In all other cases, the minitext is prefixed with <em>the parent path of the file being edited</em> in the current session, and rule 2 is applied.</li>
+</ol>
+<p>[]{#Opening a URL}</p>
+<h4 id="opening-a-url">Opening a URL</h4>
+<p>Dred will do its best to read a filedenoted by URL, but it cannot yet <em>save</em> documents to locations specified by a URL. If you edit a URL-specified file, you will need to use <strong>Save As</strong> to save it somewhere else.<br />
+Protocols known to work (providing no credentials are required for the file) are <code>ftp:</code> and <code>http:</code><br />
+Dred has an additional protocol that gives it access to resources (such as documentation and pre-designed bindings files) that come packaged in its .jar file. To access such a file one prefixes its name with <code>dred:</code>. Specific examples that might be useful are: ``</p>
+<pre><code>   dred:/dred-bs.bindings
+   dred:/function.bindings
+   dred:/style.bindings
+   dred:/symbols.bindings
+   dred:/ctrl.bindings
+   dred:/Manual.html
+   dred:/Bindings.html
+   dred:/Underhood.html
+   dred:/index.html
+   dred:/MarkTool.java</code></pre>
+<h4 id="character-set-encoding-1">Character Set Encoding</h4>
+<p>A file may be loaded using a specified encoding by using the <strong>File/Edit (Browse)</strong> menu entry and changing the encoding using the encoding selector provided in the file browser. <span id="Fonts"></span></p>
+<h2 id="fonts">Fonts</h2>
+<p>Dred usually uses the platform standard font known to Java as <code>MONOSPACED 14</code>. But on some platforms this may lack glyphs for some of the Unicodes that you need to use. So it is possible to set up Dred to use a different default font, and it is also possible to change the font used in a particular session. (Note added in 2012: since this was written platform-standard fonts have dramatically improved their Unicode coverage, and I haven't needed to use another for about six years).</p>
+<p>If the Java system property (or the environment variable) <code>DREDFONT</code> is set, then it is interpreted as the specification (in the standard Java font specification notation) of a standard Java font, unless it takes one of the forms</p>
+<pre><code>        truetype:url options
+        type1:url    options</code></pre>
+<p>In that case, the <em>url</em> (default protocol <code>file:</code>) is assumed to denote a (truetype or type1) font description file.</p>
+<p>The <em>options</em> are either empty, or take one of the forms</p>
+<pre><code>        @pointSize
+        @pointSize-shape-options</code></pre>
+<p>When no point size is specified, the pointsize is taken to be 14.</p>
+<p>The <em>shape-options</em> may include up to one of each of the following:</p>
+<pre><code>        b[old]          # bold
+        i[italic]       # italic</code></pre>
+<p>and up to one of:</p>
+<pre><code>        m               # the font is deemed to be monospaced (char width is M-width)
+        f               # the font is deemed to be monospaced (char width is M-width)
+        uXXXX           # the font is deemed to be monospaced (char width is unicode XXXX-width)</code></pre>
+<p>The shape options are separated by "-".<br />
+Examples of font specifications are</p>
+<pre><code>        MONOSPACED-14                                             # 
+        Sanserif-bold-14                                          # 
+        truetype:arialuni.ttf@14-b                                # bold italic arial unicode from a local font file
+        truetype:arialuni.ttf@16.3-b-i-m                          # bold italic M-spaced arial unicode from a local font file
+        truetype:file:arialuni.ttf@16.3-b-i-u2167                 # bold italic spaced arial unicode from a local font file
+        type1:/usr/X11R6/lib/X11/fonts/Type1/courb.pfa@12-i       # italic courier from an X11 font file</code></pre>
+<p>The <strong>View/Monospaced</strong> menu checkbox switches Dred's rendering of a proportionally-spaced font to and from a simulation of that used for a monospaced font. The radiobuttons below it allow you to select (from a small number of models) the character whose width is used to determine the monospace pitch. This can be helpful if you want to work on material containing glyphs that cannot be found in a monospaced font.</p>
+<p>The <strong>View/Set font to ...</strong> and the <strong>View/Set default font to ...</strong> menu entries change the font used in the current window (or that used in the current windopw and all future windows) to the font specified in the Argument (...) minitext.</p>
+<p>The <strong>View/Antialising</strong> checkbox controls the degree of effort Dred puts into rendering characters. The only time I find antialiased rendering a little too slow for comfort (on my 1.8mhz PIV) is when rendering certain heavily hinted Type1 fonts of the kind that come with Acrobat Reader. Truetype fonts render more than fast enough for my taste.</p>
+<p><span id="Preferences"></span></p>
+<h2 id="persistent-preferences">Persistent Preferences</h2>
+<p>The <strong>File/Preferences</strong> submenu displays many of Dred's preferences that persist between Dred invocations. Amongst these are</p>
+<p>Typing removes selection (or not)</p>
+<p>Tooltips enabled</p>
+<p>Secondary backups (saving generates a secondary backup if a primary backup exists)</p>
+<p>Flat Look and Feel (if the slightly lurid Java standard turns you off)</p>
+<p>Save Preferences on Exit (if you want preference settings to be persistent)</p>
+<p>The bracket-matching settings on the <strong>Edit</strong> menu, and the <strong>Antialiasing</strong> setting on the <strong>View</strong> menu are also persistent.</p>
+<p><span id="Etc"></span></p>
+<h2 id="etc">Etc</h2>
+<h4 id="automatic-bracket-matching">Automatic bracket matching</h4>
+<p>When automatic bracket matching is enabled (I usually enable it), it is triggered when the cursor is moved (by the mouse) to the left of a left bracket, (respectively moved to the right of a right bracket, or when the last character of a right bracket is typed). The mark is then moved to the right of the corresponding right bracket (respectively to the left of the corresponding left bracket). Dred's interpretation of 'corresponding' respects nesting of the triggering bracket, but ignores others. The built-in correspondences are as follows.</p>
+<pre><code>        (               )
+        {               }
+        [               ]
+        &lt;.*&gt;            &lt;/.*&gt;
+        \begin{.*}      \end{.*}</code></pre>
+<p>At present there is no necessary link between the text matching ".*" that appears in an opening LaTeX or XML bracket and that which appears in the corresponding closing bracket.</p>
+<p>The above behavioural ''specification'' is ambiguous, for it says nothing about what would happen if the cursor were placed just after the closing <code>&lt;h2&gt;</code> in a text such as</p>
+<pre><code>&lt;a name=&quot;Etc&quot;&gt;&lt;h2&gt;Etc&lt;/h2&gt;&lt;/a&gt;</code></pre>
+<p>In fact the <code>h2</code>-tagged text will be chosen.</p>
+<h4 id="interrupting-long-running-tasks">Interrupting long-running tasks</h4>
+<p>The <em>KillProcess</em> action, invoked by pressing the little red button at the bottom right of the frame, will abort a long-running search or external process. If you're editing an enormous file and have bracket-matching enabled, then a search for a matching opening or closing bracket might take a very long time. The stop button's background turns red during a search, but not during execution of an external process.</p>
+<h4 id="unicode">Unicode</h4>
+<p>A good starting point for matters Unicode is Markus Kuhn's <a href="http://www.cl.cam.ac.uk/~mgk25/unicode.html">UTF-8 and Unicode FAQ for Unix/Linux</a></p>
+<p>A Truetype font that implements a very large proprtion of the Unicode set is Microsoft's Arial Unicode. Microsoft no longer distribute this font, but Googling <code>arialuni.ttf</code> is sure to help you find it. Although it may cost you nothing, this font is not free.… It also occupies about 24mb, and <em>has fewer mathematical symbols then many of the standard Java fonts</em>.</p>
+<h4 id="what-needs-rewriting">What needs rewriting?</h4>
+<ol type="1">
+<li>The core document representation is very robust and efficient, but at the cost of making some kinds of search slower than they might be, and making multiline searches impossible. One day .…</li>
+<li>I lost patience with Java/Swing's keyboard focus machinery: my replacement uses brute force.</li>
+</ol>
+<h4 id="what-needs-more-documenation">What needs more Documenation?</h4>
+<p>You name it! The Extension API is completely undocumented at present. Only by reading the source code and the JavaDoc can you .….</p>
+<p>[]{#Brief History}</p>
+<h2 id="brief-history">Brief History</h2>
+<p>Dred was written in Java 1.5 during between early February and mid-April 2005 because, having given up trying to maintain a decade-old editor I'd written in Python+Tk, I needed a run-anywhere lightweight and reliable editor that I could use to edit UTF8-encoded Jape theories. I had tried a number of public domain editors written in Java, but found that they made editing mathematical texts quite tedious, had very long startup times, or were insufficiently customizeable for me.</p>
+<p>I've been using Dred (on various x86 Linux distros, Solaris, OS/X (Tiger, Snow Leopard, Lion), and Windows) for all my editing since mid-May (2005), and have found it completely reliable.</p>
+<p>It runs on the (Sun/Oracle) Java 1.5 and later JVMs on all variants of Linux, Windows, and Solaris on which they can be installed.</p>
+<p>Remark (May 2017): I recently implemented <code>pdfsync</code> compatibility, and did some maintenance enabling the editor to run on OS/X with Java 1.[78], and to use recent variants of <code>subversion</code>. In doing so I corrected a couple of long-unnnoticed bugs.</p>
+<pre><code>Bernard Sufrin
+$Revision$
+$Date$
+$PrevRevision: 225 $
+$PrevDate: 2012-06-21 17:31:54 +0100 (Thu, 21 Jun 2012) $
+$PrevRevision: 194 $
+$PrevDate: 2007-07-05 18:10:51 +0100 (Thu, 05 Jul 2007) $</code></pre>
+</body>
+</html>

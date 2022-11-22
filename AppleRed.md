@@ -24,7 +24,7 @@ to be helpful: everything it does it does in response to user input
 from mouse, pad, or keyboard.
 
 Its `undo`/`redo` facility is conventional, but in addition to
-this it has  a *cut ring* that retains the last 80 or so *recently
+this it has  a *cut ring* that retains the last 240 or so *recently
 deleted* blocks of contiguous text. This feature is
 orthogonal to `undo`/`redo` and makes it straightforward 
 to re-insert material that has -- perhaps inadvertently -- 
@@ -36,7 +36,7 @@ that has an interface to the system clipboard.
 
 --------------
 
-I have used Red mainly for preparing `(xe-)latex` and `markdown`
+I have used `Red` mainly for preparing `(xe-)latex` and `markdown`
 manuscripts, as well as for preparing programs that don't warrant
 the burden of getting to grips with an IDE.
 
@@ -51,13 +51,14 @@ straightforward manipulation of nested blocks delimited by
 
 In both cases, when `Red/Select` is enabled, clicking at the left of
 the opening of a block, or at the right of the closing of a block
-will cause that entire block (including nested sub-blocks) to be selected.
+will cause that entire block (including nested sub-blocks) to be selected
+(“tentatively”).
 
 In addition, clicking at the right of any closing bracket will cause
 all text between that bracket and the corresponding opening bracket
 to be selected. Dually, clicking at the left of any opening  bracket
 will cause all text between that bracket and the corresponding
-closing bracket to be selected. The built-in corresponding pairs
+closing bracket to be selected (“tentatively”). The built-in corresponding pairs
 are: "`{}`", "`()`", "`[]`", as well as most of the unicode bracketing
 pairs. Additional pairs can be added straightforwardly.
 
@@ -108,7 +109,7 @@ It's possible, but pretty pointless, to revert to straight `pdflatex`:
 you just deny yourself the use of a fuller range of Unicode characters
 in your manuscript.
 
-My `redpandoc` script will simultaneously generates an `.html`
+My `redpandoc` script will simultaneously generate an `.html`
 version of the output if a file `PANDOC-HTML` is present in the
 source folder; and will generate pdf *via* the html file (rather
 than directly) if a file `PANDOC-PDF-VIA-HTML` is present.
@@ -215,7 +216,10 @@ keys, or can be placed anywhere in the document by clicking with
 the left mouse-button. The mark can be placed anywhere in the
 document by clicking with the right mouse button.
 
-The text of the selection is always shown on a grey background.
+The text of a selection is always shown on a coloured background: grey
+if the selection was *definite* and pink if the selection
+was *tentative*. (See **Treatment of the Selection**
+for further detail).
 
 After every editing action the position of the document in the
 editor window is adjusted automatically so that *the document
@@ -252,8 +256,13 @@ supports the definition of new actions as well as changes of
 binding of actions to keys. The language will be described in a
 separate section.
 
-To preserve my sanity, I do not distinguish between the control-shift
-and (OS/X) command-shift keys: they appear as `C-` below.
+Neither AppleRed nor I distinguish between the control-shift and
+(OS/X) command-shift keys: they appear as `C-` below. This is
+entirely to preserve my sanity, because I use both Linux and OS/X.
+Although it reduces the absolute number of keys it is possible to
+bind to separate actions, there are still enough for any (sane)
+user -- especially one prepared to use the mouse to navigate or hit
+a menu button occasionally.
 
 
 ### Undo and Redo
@@ -436,14 +445,13 @@ between matching brackets.
 
 Having grown accustomed to the second mode in my homegrown editors
 for more than thirty years I was reluctant to adopt the first: but
-the differential treatment of "tentative" and "definite" selections
-made me change my mind.
-
+after implementing the differential treatment of "tentative" and
+"definite" selections I changed my mind.
 
 1.  **Typing-cuts-selection:** Typing new material automatically
     cuts a "definite" selection into the cut buffer (and adds it
     to the cut ring).  This is (almost) the behaviour that most
-    people have come to expect of editors; execept that it does
+    people have come to expect of editors; except that it does
     not cut "tentative" selections.
 
 2.  **Typing-removes-mark:** Typing new characters removes the mark, and
@@ -452,8 +460,33 @@ made me change my mind.
     and "definite" selections.
 
 The choice of modes is made using the **Red/Typeover** checkbox.
-As with most other preferences its value is preserved between Red
+As with most other preferences its value is preserved between `Red`
 invocations.
+
+Tentative selections are made when a closing bracket (of some kind)
+is typed, or when the mouse is clicked just to the left of an opening
+bracket or to the right of a closing bracket. In both cases the
+scope of the selection is the well-nested bracketed text (if there
+is one) between the opening and closing bracket. By well-nested we
+mean well-nested with respect to the opening (closing) bracket
+of a bracketing pair. 
+
+`Red` builds-in most unicode bracketing pairs in addition to the
+obvious “{}”, “()”, “[]” and can be easily adapted to add more pairs
+specified by regular expressions; such as those that match
+the built-in (Latex and HTML blocks)
+
+        \begin{...}    \end{...}
+        <id ... >      </id>       
+
+(See also **Introduction**)
+
+
+These behaviours are enabled by the **Red/Select/(...@)}** and
+**Red/Select/{...}** checkboxes respectively: their values are
+preserved between `Red` invocations.
+
+
 
 ### Abbreviations
 
@@ -523,7 +556,7 @@ by the user.
 
 ## APPENDIX: History of `AppleRed`
 
-### Red starts life as a toy
+#### Red starts life as a toy:
 
 **Red** started life as a program to use as an exemplar for teaching
 first-year Oxford undergraduates a short course in object-orient
@@ -536,7 +569,7 @@ been using ever since.  **Dred** had  developed from a sequence of
 editors, all using the same *modeless* editing model derived from
 an abstract formal specification I had published in the late 1970's.
 
-### Red becomes my editor of choice
+#### Red becomes my editor of choice:
 
 It wasn't long before I decided that it would be a good idea to
 make **Red** more than a toy; and soon after I started its development
@@ -551,7 +584,7 @@ editor, **jed**, published for my students as the course started
 in Trinity term in the spring of 2022. For reasons of
 pedagogy that editor incorporated `undo/redo`.
 
-### Red inherits `undo/redo` from Jed
+#### Red inherits `undo/redo` from Jed:
 
 The `undo`/`redo` feature of **jed** had not been implemented in
 the original **Red**, because the latter's cut-ring feature met all
@@ -560,7 +593,7 @@ summer 2022) I started to enhance the original **Red** with
 `undo`/`redo`.
 
 
-### Apple changes its security model
+#### Apple changes its security model:
 
 The next spasm of **Red**'s development was occasioned by a change
 in the `OS/X` security model for apps. To paraphrase my obituary
@@ -589,11 +622,11 @@ Note that there had never been an analogous problem caused by
 security measures on Linux.
 
 
-### Customization gives rise to RedScript
+#### Customization gives rise to RedScript:
 
 A much more recent development was a dramatic increase in the
 sophistication of the notation used for customising the editor.
-RedScript is a straightforward language, reminiscent of `scheme`,
+`RedScript` is a straightforward language, reminiscent of `scheme`,
 that "collaborates" with the editor code to provide the editing
 context: the content of menus, and the bindings of keys
 to actions. Its facilities are still evolving as its potential

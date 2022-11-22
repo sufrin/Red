@@ -1,0 +1,1015 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+%
+\documentclass[
+]{article}
+\usepackage{lmodern}
+\usepackage{amssymb,amsmath}
+\usepackage{ifxetex,ifluatex}
+\ifnum 0\ifxetex 1\fi\ifluatex 1\fi=0 % if pdftex
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math}
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\IfFileExists{bookmark.sty}{\usepackage{bookmark}}{\usepackage{hyperref}}
+\hypersetup{
+  pdftitle={Manual},
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+\urlstyle{same} % disable monospaced font for URLs
+\usepackage{longtable,booktabs}
+% Correct order of tables after \paragraph or \subparagraph
+\usepackage{etoolbox}
+\makeatletter
+\patchcmd\longtable{\par}{\if@noskipsec\mbox{}\fi\par}{}{}
+\makeatother
+% Allow footnotes in longtable head/foot
+\IfFileExists{footnotehyper.sty}{\usepackage{footnotehyper}}{\usepackage{footnote}}
+\makesavenoteenv{longtable}
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+\ifluatex
+  \usepackage{selnolig}  % disable illegal ligatures
+\fi
+
+\title{Manual}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{longtable}[]{@{}l@{}}
+\toprule
+\begin{minipage}[b]{0.42\columnwidth}\raggedright
+title: ``Example PDF'' author: {[}Author{]} date: ``2022-03-04''
+subject: ``Markdown'' keywords: {[}Markdown, Example{]} lang: ``en''
+toc: true toc-own-page: true \ldots{}\strut
+\end{minipage}\tabularnewline
+\midrule
+\endhead
+\begin{minipage}[t]{0.42\columnwidth}\raggedright
+Dred ====\strut
+\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.42\columnwidth}\raggedright
+(May 2017)\strut
+\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.42\columnwidth}\raggedright
+Contents\strut
+\end{minipage}\tabularnewline
+\bottomrule
+\end{longtable}
+
+\begin{itemize}
+\tightlist
+\item
+  \protect\hyperlink{Unixux2fLinuxux5cux2520Usage}{Unix/Linux Usage}
+\item
+  \protect\hyperlink{Windowsux5cux2520ux28XPux29ux5cux2520Usage}{Windows
+  (XP) Usage}
+\item
+  \protect\hyperlink{MACOS}{Mac OS X Usage}
+\item
+  \protect\hyperlink{PDFSync}{PDFSync}
+\item
+  \protect\hyperlink{Theux5cux2520Dredux5cux2520Editingux5cux2520Sessionux5cux2520Window}{The
+  Dred Editing Session Window}
+\item
+  \protect\hyperlink{Editingux5cux2520Model}{Editing Model}
+\item
+  \protect\hyperlink{Editingux5cux2520Actions}{Editing Actions}
+\item
+  \protect\hyperlink{Mouseux5cux2520Actions}{Mouse Actions}
+\item
+  \protect\hyperlink{Openingux5cux2520andux5cux2520Savingux5cux2520files}{Opening
+  and Saving files}
+\item
+  \protect\hyperlink{Fonts}{Fonts}
+\item
+  \protect\hyperlink{Preferences}{Preferences}
+\item
+  \protect\hyperlink{Etc}{Etc}
+\item
+  \protect\hyperlink{Briefux5cux2520History}{Brief History}
+\item
+  \href{index.html}{Back to Dred Help Index}
+\end{itemize}
+
+Dred is a \emph{lightweight}, customizeable, and extensible Unicode text
+editor. It comes, complete with documentation, in a single (350K) jar,
+and needs a 1.8 (or later) JRE to run.
+
+{[}{]}\{\#Unix/Linux Usage\}
+
+\hypertarget{unixlinux-usage}{%
+\subsection{Unix/Linux Usage}\label{unixlinux-usage}}
+
+\begin{verbatim}
+        java -jar Dred.jar [--enc=encoding] [--bindings=bindings-url] --wait files 
+\end{verbatim}
+
+or
+
+\begin{verbatim}
+        java -jar Dred.jar [--enc=encoding] [--bindings=bindings-url] -w files 
+\end{verbatim}
+
+This starts edit sessions for each of the files. The program exits when
+the last session terminates.
+
+\begin{verbatim}
+        java -jar Dred.jar [--enc=encoding] [--bindings=bindings-url] files  &
+\end{verbatim}
+
+This starts edit sessions for each of the given files, \emph{using the
+user's existing Dred server if one is running}, then exits immediately.
+If no server is running then it starts itself in server mode, puts up an
+(iconified) server control, and starts edit sessions for the filenames.
+Files are usually specified by paths in the local filestore, but can
+also be specifed by URL: see
+\protect\hyperlink{Openingux5cux2520aux5cux2520URL}{Opening a URL} for
+details.
+
+If \texttt{-\/-bindings=...} is specified then the editor's bindings are
+taken from the file specified by the given URL; otherwise the default
+bindings are used. If \texttt{-\/-enc=...} is specified, then the files
+are assumed to use the specified encoding; otherwise UTF8 is assumed.
+
+Bindings files describe
+
+\begin{itemize}
+\tightlist
+\item
+  the connections between keystrokes and editor actions
+\item
+  abbreviations for Unicode symbols and their corresponding shortcut
+  keystrokes
+\item
+  loading and configuration of Dred extensions
+\end{itemize}
+
+(see also \href{Bindings.html}{Specifying Bindings} and
+\href{Underhood.html}{Under the Hood})
+
+The above commands are often embedded in simple shell scripts.
+
+\textbf{Remark (May 2017)}: I have, in recent years, used the following
+script (named \texttt{dred}) to invoke the editor. Using this script the
+first invocation automatically establishes a server.
+
+\begin{verbatim}
+#/bin/sh
+#
+# shell command to invoke dred (as a server if necessary)
+#
+nohup java -jar ~/bin/Dred.jar "$@" > /dev/null 2>&1 &
+\end{verbatim}
+
+\hfill\break
+\protect\hypertarget{MACOS}{}{}
+
+\hypertarget{mac-os-x-usage}{%
+\subsection{Mac OS X Usage}\label{mac-os-x-usage}}
+
+Command-line usage is much the same as Linux/Unix usage (as outlined
+above), except that it makes sense to drive \texttt{dred} with a shell
+script containing the following command -\/- which enables some of the
+OS X specific features of java, and assumes \texttt{Dred.jar} is in
+\texttt{\$HOME/Bin}.
+
+\begin{verbatim}
+exec java    -Xdock:icon="$HOME/Bin/dnought.png" \
+             -Xdock:name="Dred"                  \
+             -Dapple.laf.useScreenMenuBar=true -jar $HOME/Bin/Dred.jar "$@" 
+\end{verbatim}
+
+The \texttt{AppleDred.app} application is available from the Dred
+website and can also be installed into your local \texttt{Applications}
+directory or the system-wide \texttt{/Applications} directory. It is
+registered as handling all files. It's a good idea to pin it to the
+taskbar but it isn't necessary. Launching AppleDred on login can be
+slightly problematic unless you have ensured that it will pick up the
+right shell environment. The most important shell environment variables
+it uses are \texttt{PATH} and (if you use the Latex Tool)
+\texttt{TEXINPUTS}. Launching it for the first time (ie starting it in
+server mode) in a login session from a terminal window will cause it to
+pick these up from the terminal's shell envionment. \textbf{Remark (May
+2017)}: the most recent variants of (Unix) Dred execute all the shell
+commands that it uses in the environment set by
+\texttt{source\ \textasciitilde{}/.dred\_profile} (if such a file
+exists). The one I use looks like this:
+
+\begin{verbatim}
+# Establish the environment for shell-calls from Dred
+# Prefix a path if it isn't already present
+function CONSPATH ()
+{ (printenv PATH | grep -q -F ":${1}
+${1}:") || export PATH=${1}:$PATH
+}
+
+# Append a path if it isn't already present
+function PATHCONS ()
+{ (printenv PATH | grep -q -F ":${1}
+${1}:") || export PATH=$PATH:${1}
+}
+
+PATHCONS           /usr/texbin
+CONSPATH           $HOME/bin
+
+export TEXINPUTS=.:~/Tex//:
+export TEXFONTS=:.:~/Tex//:
+\end{verbatim}
+
+The application file \texttt{AppleDred.app/Contents/Java/AppleDred.jar}
+can be started from the command-line as described elsewhere in the
+documentation. If the application is already running, then it will be
+used to service the command given on the command-line; if it isn't then
+a non-Application server will be started and thenceforth used to service
+command-line commands and subsequent invocations of the application.
+\textbf{The important difference is that a server started as the
+application is a little more careful when \texttt{Apple-Q} is pressed,
+and will not let you lose your work without asking whether this is what
+you mean.}
+
+The following shell script can be used from the command line. It
+facilitates ''equal opportunity'' operation of \texttt{dred} from
+command line and Finder.
+
+\begin{verbatim}
+#!/bin/sh
+# OSX shell command to invoke dred
+#
+DRED=/Applications/AppleDred.app/Contents/Java/AppleDred.jar
+java -jar $DRED --serving || (open -a AppleDred; sleep 2)
+exec java -jar $DRED "$@" 
+\end{verbatim}
+
+There's a bug in the present Mac OS X implementation of scrollbars (in
+all look-and-feel variants) so (for the moment) we replace the active
+scrollbars under Mac OS X with a passive indicator of the position and
+relative size of the current view of the document. This indicator shows
+up as a narrow bluish rectangle in the right margin of the window.
+Vertical and horizontal scrolling can be accomplished with the
+scrollwheel and/or by dragging with button-2 pressed. (Remark (May
+2017): I confess that I'm no longer interested in solvig this problem:
+it hasn't bothered me for a long time).
+
+{[}{]}\{\#Windows (XP) Usage\}
+
+\hypertarget{windows-xp-usage}{%
+\subsection{Windows (XP) Usage}\label{windows-xp-usage}}
+
+\emph{(Warning: written in 2005: now probably obsolete)}\\
+Put the Dred.jar somewhere sensible, and make a shortcut to it whose
+target and start-in fields looks something like this:
+
+\begin{verbatim}
+Target:   C:\WINDOWS\system32\javaw.exe -jar "C:\Documents and Settings\sufrin\Desktop\DRED\Dred.jar" 
+Start in: "C:\Documents and Settings\sufrin\Desktop"
+\end{verbatim}
+
+Doubleclicking this shortcut starts a new Dred in an editing session
+with an anonymous document; dropping a file onto it starts a new Dred in
+an editing session for that file.
+
+You may want to put a \texttt{dred.bindings} file in the installation
+directory once you have found out a bit more about bindings. When you
+have done so, add the following text to the shortcut target, just before
+the -jar switch:
+
+\begin{verbatim}
+-DDREDBINDINGS="C:\Documents and Settings\sufrin\Desktop\DRED\dred.bindings" 
+\end{verbatim}
+
+If you really care about economy, then read \href{Underhood.html}{Under
+the Hood} for details of how Dred can be set up to use a single server.
+It's slightly trickier under Windows XP2, which tries hard to prevent
+"Trojan" ports being opened. The bottom line is that you should choose
+port number (\#\#\#\#) above 8000 that you know won't be used by any
+other server, and change the shortcut to:
+
+\begin{verbatim}
+Target:   C:\WINDOWS\system32\javaw.exe -jar "C:\Documents and Settings\sufrin\Desktop\DRED\Dred.jar" --serve==####
+\end{verbatim}
+
+\protect\hypertarget{PDFSync}{}{}
+
+\hypertarget{pdfsync}{%
+\subsection{PDFSync}\label{pdfsync}}
+
+Dred is compatible with \texttt{pdfsync} (at least on OS/X and Linux).
+On my Mac I use the Skim pdf viewer, and my \texttt{linedisplay} script
+calls the Skim \texttt{displayline} script to position the viewer at the
+location generated from the current text editing position. I have
+configured Skim to invoke the following shell script when the mouse is
+pointed at a position in the viewer.
+
+\begin{verbatim}
+file=$1
+line=$2
+dred --position=$file@$line
+\end{verbatim}
+
+The script opens the named \texttt{\$file} (if there is not already an
+open session for it), and positions it at the specified \texttt{\$line}.
+
+The Latex tool gives the option of using the shell command
+\texttt{linedisplay} automatically whenever the manuscript file the tool
+is managing is latexed.
+
+\begin{verbatim}
+# linedisplay script: called from dred's Latex tool with arguments linenumber pdffile texfile -- synctex is needed.
+# echo linedisplay "$@"
+displayline -b "$@"
+\end{verbatim}
+
+{[}{]}\{\#The Dred Editing Session Window\}
+
+\hypertarget{the-dred-editing-session-window}{%
+\subsection{The Dred Editing Session
+Window}\label{the-dred-editing-session-window}}
+
+In each editing session window you will see the main text editing
+component at the bottom, with three "minitext"-editing components in a
+row above it. The minitexts are labelled ".\ldots" (pronounced
+"Argument"), "Find" and "Repl".
+
+The \emph{Find} and \emph{Replace} minitexts provide arguments for the
+actions of the same name. The little checkboxes next to them indicate
+whether they are interpreted as "regular expression" or "literal".
+
+The \emph{Argument} minitext provides arguments for many of the other
+editing commands, including those on the \emph{File} menu which start
+new editing sessions, allow the document to be saved in a different
+file, and so forth.
+
+Many of the editing commands described below are bound to keys, and can
+also be used on the minitexts.
+
+Dred shows which of its (mini-)text windows has the keyboard focus by
+showing its cursor in red. A text window with a greyed-out cursor
+doesn't have the keyboard focus. Focus usually moves into a text window
+as the mouse-cursor moves into it, but occasionally after popup warnings
+it's necessary to force the issue by clicking in the desired window.
+
+{[}{]}\{\#Editing Model\}
+
+\hypertarget{editing-model}{%
+\subsection{Editing Model}\label{editing-model}}
+
+At any stage, the document in a window (minitext or main) may have a
+\emph{selection} (which is a contiguous region of the document). It is
+bounded at one end by the \emph{document cursor} -\/- which is shown as
+a thin red rectangle -\/- and at the other end by the \emph{mark} -\/-
+which is shown as a thin green rectangle. When the cursor and mark are
+in the same position only the cursor is shown, and the selection (in
+that document) is effectively empty.
+
+The document cursor is moved by the arrow keys. It can be placed
+anywhere in the document by clicking with the left mouse-button. The
+mark can be placed anywhere in the document by clicking with the right
+mouse button.
+
+The selection is always shown on a grey background.
+
+After every editing action the position of the document in the editor
+window is adjusted automatically so that \emph{the document cursor is
+visible.} Between editing commands the position of the document in the
+window can be adjusted manually by the scroll bars, the scrollwheel, or
+by middle-dragging and this can make the document cursor disappear
+temporarily.
+
+There is a \emph{cut-buffer} which holds at most one text. It is
+implemented by the system clipboard, and material placed in the cut
+buffer is also available in the clipboard. Material placed in the system
+clipboard by another application is accessible through the cut buffer.
+
+{[}{]}\{\#Editing Actions\}
+
+\hypertarget{editing-actions}{%
+\subsection{Editing Actions}\label{editing-actions}}
+
+The editing actions described below are a small selection of the actions
+provided by the editor. Brief documentation for \emph{all} the actions,
+and indications of their current binding(s) to keys and/or Menu buttons
+can be seen by pressing the \textbf{Help/Show Bindings} menu item.
+
+(see also \href{Bindings.html}{Further documentation of bindings})
+
+\hypertarget{cut-and-paste}{%
+\subsubsection{Cut and Paste}\label{cut-and-paste}}
+
+The \emph{Cut} (C-x) action removes the selection from the document and
+puts it in the cut-buffer. The \emph{Paste} (C-v) action inserts the
+content of the cut-buffer into the document and re-selects it. The
+\emph{Copy} (C-c) action replaces the cut-buffer with the selection (if
+there is a selection), and the \emph{SwapSel} (C-V) action exchanges the
+selection and the cut-buffer (except that if the selection is null, then
+the cut-buffer doesn't change). The \emph{SwapCursorAndMark} (C-s)
+action does what its name suggests.
+
+\hypertarget{search-and-replace}{%
+\subsubsection{Search and Replace}\label{search-and-replace}}
+
+\hypertarget{search-and-replace-basics}{%
+\paragraph{Search and Replace Basics}\label{search-and-replace-basics}}
+
+The three minitexts at the top of an editing window are called the
+\emph{.\ldots{}} (or \emph{Argument}), the \emph{Find}, and the
+\emph{Replace} texts, respectively.
+
+The \emph{FindDown} (C-f) action selects the next (\emph{FindUp} (C-F)
+previous) instance of the pattern specified by the \emph{Find} minitext.
+
+If the checkbox adjacent to the \emph{Find} minitext is checked then the
+pattern is interpreted as a (Java-style) regular expression, otherwise
+it is interpreted literally.
+
+If the current selection is an instance of the Find text then the
+\emph{ReplaceDown} (C-a) (C-r) action saves the current selection in the
+cut-buffer and replaces it with the (meaning of the) \emph{Repl}
+minitext -\/- leaving the cursor to the right of the mark. The
+\emph{ReplaceUp} (C-A) (C-R) button is analogous and leaves the cursor
+to the left of the mark in the replacement text.
+
+The meaning of the \emph{Repl} minitext is the text itself if the
+checkbox adjacent to it is NOT checked. Otherwise its meaning is the
+text obtained (using standard Java regular-expression substitution
+rules) by substituting each instance of \texttt{\$n} in it by the text
+that matched the \texttt{n}th bracketed expression in the instance of
+the pattern that is being replaced.
+
+The \emph{FindUp} action is usually bound to the SHIFTED key that the
+\emph{FindDown} action is bound to; likewise the \emph{ReplaceUp} action
+is usually bound to the SHIFTED \emph{ReplaceDown} key.
+
+The \emph{FindSelDown} (C-A-f) action makes the current selection the
+\emph{Find} pattern, turns off regular expression interpretation, and
+then acts as the \emph{FindDown} action. Likewise \emph{FindSelUp}
+(C-A-F) makes the current selection the \emph{Find} text, then acts as
+the \emph{FindUp} action.
+
+The \emph{ClearArgument} (C-Ins) action moves the keyboard focus into
+the \emph{Argument} minitext area and erases the text that is there.
+\emph{ClearFind} (Ins) and \emph{ClearRepl} (A-Ins) behave analogously
+in the \emph{Find} and \emph{Repl} minitexts.
+
+\hypertarget{search-and-replace-in-practice}{%
+\paragraph{Search and Replace in
+Practice}\label{search-and-replace-in-practice}}
+
+One way of replacing the next instance of "FOO" with "BAR" is to type
+the keystrokes bound to
+
+\begin{verbatim}
+      ClearFind F O O FindSelDown ClearRepl B A R ReplaceDown
+\end{verbatim}
+
+Replacing the following instance just requires
+
+\begin{verbatim}
+      FindSelDown ReplaceDown
+\end{verbatim}
+
+since the \emph{Find} and \emph{Repl} minitexts are already set to the
+right pattern and replacement.
+
+The \emph{ReplaceAll} action replaces (without any interaction) all
+instances of the \emph{Find} minitext within the current selection with
+the \emph{Repl} minitext, and selects the resulting transformed text.
+The original selection is preserved in the cut buffer, so this action
+can be undone with \emph{SwapSel}.
+
+If you want to "approve" each replacement interactively, then just use
+\emph{FindSelDown} \emph{ReplaceDown} in sequence repeatedly, undoing
+any replacement you don't approve of with \emph{SwapSel}.
+
+\hypertarget{treatment-of-the-selection}{%
+\subsubsection{Treatment of the
+Selection}\label{treatment-of-the-selection}}
+
+Dred offers two modes of treating the selection. Most users will decide
+on one of them and stick to it forever. (I use the second, having grown
+accustomed to it in my homegrown editors for more than thirty years.)
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  \textbf{Typing-cuts-selection:} Typing new material automatically cuts
+  the selection into the cut buffer. This is the behaviour that most
+  people have come to expect of editors.\\
+  In this mode Dred distinguish between three types of selection:
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \emph{definite selections}: which are those made "manually" by the
+    user with the mouse or cursor movement actions.
+  \item
+    \emph{tentative selections}: which are those made automatically by
+    Dred when its automatic bracket-matching is enabled. A tentative
+    selection is shown with a slightly lighter grey background than
+    definite selections have.
+  \item
+    \emph{mixed selections}: which arise when a tentative selection is
+    extended manually. A mixed selection may be shown with a mix of
+    backgrounds, or with the same colour background as definite
+    selections have.
+  \end{itemize}
+
+  \hfill\break
+  Tentative selections are not cut when new characters are typed,
+  whereas mixed and definite selections are automatically cut when
+  characters are typed.
+\item
+  \textbf{Typing-removes-mark:} Typing new characters removes the mark,
+  and thus deselects the \emph{selection}, but does not delete the
+  selected material. In this mode Dred does not distinguish between
+  tentative and definite selections.
+\end{enumerate}
+
+The choice between treatments is made using the
+\textbf{File/Preferences/Typing~Removes~Selection} checkbox. As with all
+other preferences its value is preserved between Dred invocations.
+
+\hypertarget{undoing-and-the-cut-ring}{%
+\subsubsection{Undoing and the Cut
+Ring}\label{undoing-and-the-cut-ring}}
+
+Dred has no \emph{general} mechanism for undoing, but all the commands
+that operate \emph{by inserting, removing, or transforming the
+selection} are individually undoable. (This can feel uncomfortable for
+people who are accustomed to hitting \emph{the} undo key whenever they
+make a mistake or change their minds about something, but one soon
+adapts)
+
+For example: when the selection is non-null
+
+\begin{verbatim}
+        Cut      is undone by Paste 
+                
+        SwapSel  is undone by SwapSel
+\end{verbatim}
+
+and (whether or not the selection is null)
+
+\begin{verbatim}
+        Paste    is undone by Cut 
+\end{verbatim}
+
+Moreover if the selection is an instance of the Find text then
+
+\begin{verbatim}
+        Replace  is undone by SwapSel
+\end{verbatim}
+
+The \emph{Cut Ring} records the last few pieces of material that found
+their way into the cut buffer (the number is adjustable). The cut ring
+can be accessed by opening the \emph{Cut Ring Editor}: this is a
+specialized editor session that normally shows the content of the cut
+ring. This editor session behaves in most respects like an ordinary
+editing session so material can be transferred from it to any other text
+window using \emph{Copy} and \emph{Paste}. (Of course the Cut Ring
+Editor doesn't itself send material to the cut ring!)
+
+\hypertarget{the-position-ring}{%
+\subsubsection{The Position Ring}\label{the-position-ring}}
+
+As an \emph{aide-memoire}, whenever a "big" movement action is executed
+the position at which it was executed is appended to the \emph{cut ring}
+if it isn't already in the ring. The \emph{Prev Position} action moves
+the cursor to the last position in the ring and rotates the ring by one
+step: the \emph{Next Position} action is its inverse. For the moment the
+size of the ring is fixed at 8.
+
+\hypertarget{markers}{%
+\subsubsection{Markers}\label{markers}}
+
+The characters with Unicodes \texttt{fff0} ... \texttt{fffa} (the
+"specials" range) are treated as markers and are shown (in red) as
+single glyphs that resemble \textbf{(1), (2), ... (9), (10)}). They are
+removed from the document as it is saved, but otherwise treated the same
+as ordinary characters. They can be used to mark places in the document
+to which you may wish to return. Don't forget to bind keystrokes to them
+(I use \texttt{ctrl\ 1} ... \texttt{crtrl\ 0}). You'll find that the
+standard extension \texttt{MarkTool} provides a menu which makes working
+with marks fairly easy. One way of loading this extension is to add the
+following bindings to one of your bindings files:
+
+\begin{verbatim}
+           extension path class:/MarkTool/
+           extension load MarkTool                  
+\end{verbatim}
+
+\hypertarget{undoing-small-changes}{%
+\subsubsection{Undoing "Small" Changes}\label{undoing-small-changes}}
+
+Any single character insertion can be undone by the \emph{Delete}
+action.
+
+When there is a nonempty selection in typing-cuts-selection mode, the
+\emph{Delete} action behaves exactly like the \emph{Cut} action, and can
+therefore be undone by the \emph{Paste} action. In all other
+circumstances it removes the character to the left of the cursor from
+the document without affecting the cut buffer. In any case the mark is
+removed, thereby deselecting the selection.
+
+The \emph{Swap2} action swaps the two characters immediately to the left
+of the cursor without affecting the cut buffer. It undoes itself.
+
+{[}{]}\{\#Mouse Actions\}
+
+\hypertarget{mouse-actions}{%
+\subsection{Mouse Actions}\label{mouse-actions}}
+
+\begin{longtable}[]{@{}lll@{}}
+\toprule
+\endhead
+Pressing & Button 1 & Positions the text cursor and the mark. Automatic
+bracket-matching is triggered.\tabularnewline
+Pressing & ctrl Button 1 & Positions the text cursor but not the
+mark.\tabularnewline
+Pressing & Button 3 & Positions the mark but not the text
+cursor.\tabularnewline
+Pressing & ctrl Button 3 & Removes the mark and deselects the
+selection.\tabularnewline
+Dragging & Button 1 & Positions the text cursor, leaving the mark where
+the cursor started.\tabularnewline
+Dragging & Button 3 & Positions the mark, leaving the cursor where it
+is.\tabularnewline
+Double-Clicking & Button 1 & Selects the "word" under the click. The
+cursor moves to the end of the word nearest the click.\tabularnewline
+Triple-Clicking & Button 1 & Selects the line under the click. The
+cursor moves to the end of the line nearest the click.\tabularnewline
+Rotating & Mouse Wheel & Scrolls the view of the document vertically
+without moving the document cursor.\tabularnewline
+Dragging & Button 2 & Scrolls the view of the document verticallywithout
+moving the document cursor.\tabularnewline
+\bottomrule
+\end{longtable}
+
+{[}{]}\{\#Opening and Saving files\}
+
+\hypertarget{opening-and-saving-files}{%
+\subsection{Opening and Saving files}\label{opening-and-saving-files}}
+
+\hypertarget{saving}{%
+\subsubsection{Saving}\label{saving}}
+
+When you have finished editing a file, you can save it using the
+\textbf{File/Save}, or \textbf{File/Save~As} menu entries or the
+corresponding shortcuts. Dred saves a backup copy of the file in a file
+whose path is made by appending a tilde "\texttt{\textasciitilde{}}" to
+the path of the original file. If the "secondary backups" preference is
+enabled, and the single-tilde backup file exists, then a double-tilde
+backup file is written.
+
+Dred is quite cautious about saving a file. If it looks like the file
+has been written during the period that it has been being edited, then
+Dred will warn you and ask you what to do. Likewise, if you
+\textbf{"Save~As"} using the name of an existing file, Dred will ask
+whether you really mean it.
+
+\hypertarget{character-set-encoding}{%
+\paragraph{Character Set Encoding}\label{character-set-encoding}}
+
+A file is usually saved in the character set encoding that it originated
+in. It can be saved in a different encoding by using the
+\textbf{File/Save~As~(Browse)} menu entry and changing the encoding
+using the encoding selector provided in the file browser.
+
+\hypertarget{opening}{%
+\subsubsection{Opening}\label{opening}}
+
+Use the \textbf{File/Edit~.\ldots{}} menu entry with the name of the
+file in the argument minitext, or use the \textbf{File/Edit~(browse)}
+menu entry to start a new editing session. The browser opens in the
+current working directory of the editing session, which is usually that
+from which the session was started.
+
+\hypertarget{filename-completion}{%
+\paragraph{Filename Completion}\label{filename-completion}}
+
+The "filename completion" shortcut (usually TAB) in the argument
+minitext causes the text in that minitext to change to the longest
+common prefix of all the files in the \emph{current scope} that start
+with the existing value of the minitext.
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  If the minitext is empty, then a browser is opened in the current
+  working directory (the directory from which the session was started).
+\item
+  If the minitext looks like an absolute path then the current scope is
+  the parent of that path. For example, the scope of the path
+  \texttt{/b} is \texttt{/}, and the scope of \texttt{/b/} is
+  \texttt{/b/}
+\item
+  If the minitext starts with \texttt{./} then the leading \texttt{./}
+  is replaced by the absolute path of the current working directory of
+  the editing session (which is usually the current working directory
+  directory from which the session was started), and rule 2 is applied.
+\item
+  If the minitext starts with \texttt{../} then the leading \texttt{../}
+  is replaced by the absolute path of the parent of the current working
+  directory of the editing session, and rule 2 is applied.
+\item
+  In all other cases, the minitext is prefixed with \emph{the parent
+  path of the file being edited} in the current session, and rule 2 is
+  applied.
+\end{enumerate}
+
+{[}{]}\{\#Opening a URL\}
+
+\hypertarget{opening-a-url}{%
+\paragraph{Opening a URL}\label{opening-a-url}}
+
+Dred will do its best to read a filedenoted by URL, but it cannot yet
+\emph{save} documents to locations specified by a URL. If you edit a
+URL-specified file, you will need to use \textbf{Save As} to save it
+somewhere else.\\
+Protocols known to work (providing no credentials are required for the
+file) are \texttt{ftp:} and \texttt{http:}\\
+Dred has an additional protocol that gives it access to resources (such
+as documentation and pre-designed bindings files) that come packaged in
+its .jar file. To access such a file one prefixes its name with
+\texttt{dred:}. Specific examples that might be useful are: ``
+
+\begin{verbatim}
+   dred:/dred-bs.bindings
+   dred:/function.bindings
+   dred:/style.bindings
+   dred:/symbols.bindings
+   dred:/ctrl.bindings
+   dred:/Manual.html
+   dred:/Bindings.html
+   dred:/Underhood.html
+   dred:/index.html
+   dred:/MarkTool.java
+\end{verbatim}
+
+\hypertarget{character-set-encoding-1}{%
+\paragraph{Character Set Encoding}\label{character-set-encoding-1}}
+
+A file may be loaded using a specified encoding by using the
+\textbf{File/Edit~(Browse)} menu entry and changing the encoding using
+the encoding selector provided in the file browser.
+\protect\hypertarget{Fonts}{}{}
+
+\hypertarget{fonts}{%
+\subsection{Fonts}\label{fonts}}
+
+Dred usually uses the platform standard font known to Java as
+\texttt{MONOSPACED\ 14}. But on some platforms this may lack glyphs for
+some of the Unicodes that you need to use. So it is possible to set up
+Dred to use a different default font, and it is also possible to change
+the font used in a particular session. (Note added in 2012: since this
+was written platform-standard fonts have dramatically improved their
+Unicode coverage, and I haven't needed to use another for about six
+years).
+
+If the Java system property (or the environment variable)
+\texttt{DREDFONT} is set, then it is interpreted as the specification
+(in the standard Java font specification notation) of a standard Java
+font, unless it takes one of the forms
+
+\begin{verbatim}
+        truetype:url options
+        type1:url    options
+\end{verbatim}
+
+In that case, the \emph{url} (default protocol \texttt{file:}) is
+assumed to denote a (truetype or type1) font description file.
+
+The \emph{options} are either empty, or take one of the forms
+
+\begin{verbatim}
+        @pointSize
+        @pointSize-shape-options
+\end{verbatim}
+
+When no point size is specified, the pointsize is taken to be 14.
+
+The \emph{shape-options} may include up to one of each of the following:
+
+\begin{verbatim}
+        b[old]          # bold
+        i[italic]       # italic
+\end{verbatim}
+
+and up to one of:
+
+\begin{verbatim}
+        m               # the font is deemed to be monospaced (char width is M-width)
+        f               # the font is deemed to be monospaced (char width is M-width)
+        uXXXX           # the font is deemed to be monospaced (char width is unicode XXXX-width)
+\end{verbatim}
+
+The shape options are separated by "-".\\
+Examples of font specifications are
+
+\begin{verbatim}
+        MONOSPACED-14                                             # 
+        Sanserif-bold-14                                          # 
+        truetype:arialuni.ttf@14-b                                # bold italic arial unicode from a local font file
+        truetype:arialuni.ttf@16.3-b-i-m                          # bold italic M-spaced arial unicode from a local font file
+        truetype:file:arialuni.ttf@16.3-b-i-u2167                 # bold italic spaced arial unicode from a local font file
+        type1:/usr/X11R6/lib/X11/fonts/Type1/courb.pfa@12-i       # italic courier from an X11 font file
+\end{verbatim}
+
+The \textbf{View/Monospaced} menu checkbox switches Dred's rendering of
+a proportionally-spaced font to and from a simulation of that used for a
+monospaced font. The radiobuttons below it allow you to select (from a
+small number of models) the character whose width is used to determine
+the monospace pitch. This can be helpful if you want to work on material
+containing glyphs that cannot be found in a monospaced font.
+
+The \textbf{View/Set font to ...} and the \textbf{View/Set default font
+to ...} menu entries change the font used in the current window (or that
+used in the current windopw and all future windows) to the font
+specified in the Argument (...) minitext.
+
+The \textbf{View/Antialising} checkbox controls the degree of effort
+Dred puts into rendering characters. The only time I find antialiased
+rendering a little too slow for comfort (on my 1.8mhz PIV) is when
+rendering certain heavily hinted Type1 fonts of the kind that come with
+Acrobat Reader. Truetype fonts render more than fast enough for my
+taste.
+
+\protect\hypertarget{Preferences}{}{}
+
+\hypertarget{persistent-preferences}{%
+\subsection{Persistent Preferences}\label{persistent-preferences}}
+
+The \textbf{File/Preferences} submenu displays many of Dred's
+preferences that persist between Dred invocations. Amongst these are
+
+Typing removes selection (or not)
+
+Tooltips enabled
+
+Secondary backups (saving generates a secondary backup if a primary
+backup exists)
+
+Flat Look and Feel (if the slightly lurid Java standard turns you off)
+
+Save Preferences on Exit (if you want preference settings to be
+persistent)
+
+The bracket-matching settings on the \textbf{Edit} menu, and the
+\textbf{Antialiasing} setting on the \textbf{View} menu are also
+persistent.
+
+\protect\hypertarget{Etc}{}{}
+
+\hypertarget{etc}{%
+\subsection{Etc}\label{etc}}
+
+\hypertarget{automatic-bracket-matching}{%
+\paragraph{Automatic bracket
+matching}\label{automatic-bracket-matching}}
+
+When automatic bracket matching is enabled (I usually enable it), it is
+triggered when the cursor is moved (by the mouse) to the left of a left
+bracket, (respectively moved to the right of a right bracket, or when
+the last character of a right bracket is typed). The mark is then moved
+to the right of the corresponding right bracket (respectively to the
+left of the corresponding left bracket). Dred's interpretation of
+'corresponding' respects nesting of the triggering bracket, but ignores
+others. The built-in correspondences are as follows.
+
+\begin{verbatim}
+        (               )
+        {               }
+        [               ]
+        <.*>            </.*>
+        \begin{.*}      \end{.*}
+\end{verbatim}
+
+At present there is no necessary link between the text matching ".*"
+that appears in an opening LaTeX or XML bracket and that which appears
+in the corresponding closing bracket.
+
+The above behavioural ''specification'' is ambiguous, for it says
+nothing about what would happen if the cursor were placed just after the
+closing \texttt{\textless{}h2\textgreater{}} in a text such as
+
+\begin{verbatim}
+<a name="Etc"><h2>Etc</h2></a>
+\end{verbatim}
+
+In fact the \texttt{h2}-tagged text will be chosen.
+
+\hypertarget{interrupting-long-running-tasks}{%
+\paragraph{Interrupting long-running
+tasks}\label{interrupting-long-running-tasks}}
+
+The \emph{KillProcess} action, invoked by pressing the little red button
+at the bottom right of the frame, will abort a long-running search or
+external process. If you're editing an enormous file and have
+bracket-matching enabled, then a search for a matching opening or
+closing bracket might take a very long time. The stop button's
+background turns red during a search, but not during execution of an
+external process.
+
+\hypertarget{unicode}{%
+\paragraph{Unicode}\label{unicode}}
+
+A good starting point for matters Unicode is Markus Kuhn's
+\href{http://www.cl.cam.ac.uk/~mgk25/unicode.html}{UTF-8 and Unicode FAQ
+for Unix/Linux}
+
+A Truetype font that implements a very large proprtion of the Unicode
+set is Microsoft's Arial Unicode. Microsoft no longer distribute this
+font, but Googling \texttt{arialuni.ttf} is sure to help you find it.
+Although it may cost you nothing, this font is not free.\ldots{} It also
+occupies about 24mb, and \emph{has fewer mathematical symbols then many
+of the standard Java fonts}.
+
+\hypertarget{what-needs-rewriting}{%
+\paragraph{What needs rewriting?}\label{what-needs-rewriting}}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  The core document representation is very robust and efficient, but at
+  the cost of making some kinds of search slower than they might be, and
+  making multiline searches impossible. One day .\ldots{}
+\item
+  I lost patience with Java/Swing's keyboard focus machinery: my
+  replacement uses brute force.
+\end{enumerate}
+
+\hypertarget{what-needs-more-documenation}{%
+\paragraph{What needs more
+Documenation?}\label{what-needs-more-documenation}}
+
+You name it! The Extension API is completely undocumented at present.
+Only by reading the source code and the JavaDoc can you .\ldots.
+
+{[}{]}\{\#Brief History\}
+
+\hypertarget{brief-history}{%
+\subsection{Brief History}\label{brief-history}}
+
+Dred was written in Java 1.5 during between early February and mid-April
+2005 because, having given up trying to maintain a decade-old editor I'd
+written in Python+Tk, I needed a run-anywhere lightweight and reliable
+editor that I could use to edit UTF8-encoded Jape theories. I had tried
+a number of public domain editors written in Java, but found that they
+made editing mathematical texts quite tedious, had very long startup
+times, or were insufficiently customizeable for me.
+
+I've been using Dred (on various x86 Linux distros, Solaris, OS/X
+(Tiger, Snow Leopard, Lion), and Windows) for all my editing since
+mid-May (2005), and have found it completely reliable.
+
+It runs on the (Sun/Oracle) Java 1.5 and later JVMs on all variants of
+Linux, Windows, and Solaris on which they can be installed.
+
+Remark (May 2017): I recently implemented \texttt{pdfsync}
+compatibility, and did some maintenance enabling the editor to run on
+OS/X with Java 1.{[}78{]}, and to use recent variants of
+\texttt{subversion}. In doing so I corrected a couple of long-unnnoticed
+bugs.
+
+\begin{verbatim}
+Bernard Sufrin
+$Revision$
+$Date$
+$PrevRevision: 225 $
+$PrevDate: 2012-06-21 17:31:54 +0100 (Thu, 21 Jun 2012) $
+$PrevRevision: 194 $
+$PrevDate: 2007-07-05 18:10:51 +0100 (Thu, 05 Jul 2007) $
+\end{verbatim}
+
+\end{document}

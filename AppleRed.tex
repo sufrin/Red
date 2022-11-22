@@ -1,0 +1,779 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+%
+\documentclass[
+]{article}
+\usepackage{lmodern}
+\usepackage{amssymb,amsmath}
+\usepackage{ifxetex,ifluatex}
+\ifnum 0\ifxetex 1\fi\ifluatex 1\fi=0 % if pdftex
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math}
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\IfFileExists{bookmark.sty}{\usepackage{bookmark}}{\usepackage{hyperref}}
+\hypersetup{
+  pdftitle={AppleRed},
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+\urlstyle{same} % disable monospaced font for URLs
+\usepackage{longtable,booktabs}
+% Correct order of tables after \paragraph or \subparagraph
+\usepackage{etoolbox}
+\makeatletter
+\patchcmd\longtable{\par}{\if@noskipsec\mbox{}\fi\par}{}{}
+\makeatother
+% Allow footnotes in longtable head/foot
+\IfFileExists{footnotehyper.sty}{\usepackage{footnotehyper}}{\usepackage{footnote}}
+\makesavenoteenv{longtable}
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+\ifluatex
+  \usepackage{selnolig}  % disable illegal ligatures
+\fi
+
+\title{AppleRed}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\hypertarget{applered-version-1.01}{%
+\section{AppleRed (Version 1.01)}\label{applered-version-1.01}}
+
+\begin{verbatim}
+    Bernard Sufrin
+    University of Oxford
+    November 14, 2022
+\end{verbatim}
+
+\hypertarget{introduction}{%
+\subsection{Introduction}\label{introduction}}
+
+\texttt{Red} (also known as \texttt{AppleRed}) is no-frills
+\texttt{UNICODE}-capable \emph{modeless} (and \emph{colourless}) text
+editor with a simple implementation that can be customized using the
+\texttt{redscript} language, and can be straightforwardly extended using
+\texttt{scala}. It has no pretensions to being an all-encompassing
+workplace, and unlike many IDE and modern editors does not confuse its
+user by spontaneously trying to be helpful: everything it does it does
+in response to user input from mouse, pad, or keyboard.
+
+Its \texttt{undo}/\texttt{redo} facility is conventional, but in
+addition to this it has a \emph{cut ring} that retains the last 240 or
+so \emph{recently deleted} blocks of contiguous text. This feature is
+orthogonal to \texttt{undo}/\texttt{redo} and makes it straightforward
+to re-insert material that has -- perhaps inadvertently -- been deleted
+from any editing session running in the same editor server. The cut ring
+interface is similar to an editing session interface, so material can be
+transferred from it by copy/paste to any application (including
+\texttt{Red}) that has an interface to the system clipboard.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+I have used \texttt{Red} mainly for preparing \texttt{(xe-)latex} and
+\texttt{markdown} manuscripts, as well as for preparing programs that
+don't warrant the burden of getting to grips with an IDE.
+
+Its support for \texttt{latex} manuscripts includes the straightforward
+manipulation of nested blocks delimited by
+\texttt{\textbackslash{}begin\{...\}} and
+\texttt{\textbackslash{}end\{...\}}.
+
+Its support for \texttt{xml} includes the straightforward manipulation
+of nested blocks delimited by
+\texttt{\textless{}id\ ...\ \textgreater{}} and
+\texttt{\textless{}/id\textgreater{}}, as well as
+\texttt{\textless{}id\ ...\ /\textgreater{}} constructs.
+
+In both cases, when \texttt{Red/Select} is enabled, clicking at the left
+of the opening of a block, or at the right of the closing of a block
+will cause that entire block (including nested sub-blocks) to be
+selected (``tentatively'').
+
+In addition, clicking at the right of any closing bracket will cause all
+text between that bracket and the corresponding opening bracket to be
+selected. Dually, clicking at the left of any opening bracket will cause
+all text between that bracket and the corresponding closing bracket to
+be selected (``tentatively''). The built-in corresponding pairs are:
+``\texttt{\{\}}'', ``\texttt{()}'', ``\texttt{{[}{]}}'', as well as most
+of the unicode bracketing pairs. Additional pairs can be added
+straightforwardly.
+
+\hypertarget{tex-pandoc}{%
+\subsubsection{\texorpdfstring{\texttt{Tex},
+\texttt{Pandoc}}{Tex, Pandoc}}\label{tex-pandoc}}
+
+The \textbf{\texttt{Tex}} button on the menu bar generates \texttt{pdf}
+from the (default tex) source manuscript -- usually, but not
+necessarily, the manuscript being edited -- using a script
+\texttt{redpdf} that is expected to be somewhere on the user's
+\texttt{PATH}. The \texttt{redpdf} I use assumes that the manuscript is
+in latex format (\texttt{xelatex} format if its first line is the
+comment \texttt{\%xelatex}), and invokes \texttt{pdflatex} (or
+\texttt{xelatex}) with appropriate parameters before invoking the
+platform \texttt{pdf} viewer (\texttt{Skim} on \texttt{OS/X},
+\texttt{evince} on \texttt{Linux}).
+
+The \textbf{\texttt{Pandoc}} button on the menu bar translates the
+manuscript being edited into \texttt{.pdf} form using the script
+\texttt{redpandoc}.
+
+The script I use assumes that the manuscript is in
+\texttt{markdown+tex\_math\_dollars+pandoc\_title\_block} format; and
+uses \texttt{xelatex} as its final \texttt{-\/-pdf-engine}; so you can
+use a wide variety of Unicode symbols directly in the manuscript. For
+example:
+
+\begin{verbatim}
+    $$e^{iπ}+1=0$$
+\end{verbatim}
+
+yields: {\emph{e}\textsuperscript{\emph{iπ}} + 1 = 0}
+
+The \texttt{pandoc\_title\_block} used for \emph{the present} markdown
+file \texttt{AppleRed.md} ensures that fonts are used that implement all
+relevant unicode glyphs:
+
+\begin{verbatim}
+    ---
+    title: AppleRed
+    fontfamily: DejaVu Sans
+    mainfont: DejaVuSerif.ttf
+    sansfont: DejaVuSans.ttf
+    monofont: DejaVuSansMono.ttf 
+    mathfont: DejaVuSans.ttf
+    header-includes:
+      - '`\usepackage{unicode-math}`{=xelatex}'
+    ---
+\end{verbatim}
+
+It's possible, but pretty pointless, to revert to straight
+\texttt{pdflatex}: you just deny yourself the use of a fuller range of
+Unicode characters in your manuscript.
+
+My \texttt{redpandoc} script will simultaneously generate an
+\texttt{.html} version of the output if a file \texttt{PANDOC-HTML} is
+present in the source folder; and will generate pdf \emph{via} the html
+file (rather than directly) if a file \texttt{PANDOC-PDF-VIA-HTML} is
+present.
+
+\hypertarget{synctex-features}{%
+\subsubsection{\texorpdfstring{\texttt{SyncTex}
+features}{SyncTex features}}\label{synctex-features}}
+
+The \texttt{redpdf} script invoked by the \texttt{Tex} button uses
+\texttt{synctex} features to collaborate with the platform viewer
+(\texttt{Skim} on \texttt{OS/X}, \texttt{evince} on \texttt{Linux}).
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\item
+  The current editing position in the manuscript being edited is shown
+  as the viewer opens (or reopens) the newly-generated \texttt{pdf} file
+  after the \texttt{Tex} button is pressed.
+\item
+  The current position in the editing session can be changed from the
+  viewer by the appropriate gesture (From \texttt{Skim} this is
+  \texttt{Shift-Cmd-click} on one of the pdf lines).
+\end{enumerate}
+
+There are similarly-functioning scripts available for \texttt{Linux}.
+
+\hypertarget{installation}{%
+\subsection{Installation}\label{installation}}
+
+The \texttt{AppleRed.app} directory can be installed either on
+\texttt{OS/X} or on \texttt{Linux} by copying it to
+\texttt{\textasciitilde{}/Applications}. Before use it is essential to
+copy the three Profiles files to your \texttt{\$(HOME)} and adjust them
+to your own requirements.
+
+The profiles are nearly identical -- the important things to change are
+the PATHs exported from \texttt{.AppleRed-application.profile}; the
+other profiles are (but needn't be) essentially the same. The following
+command will do the copy.
+
+\begin{verbatim}
+cp -pr $(find ~/Applications/AppleRed.app -name ".AppleRed*.profile") ~
+\end{verbatim}
+
+The following commands will run from anywhere:
+
+\texttt{\$(find\ \textasciitilde{}/Applications/AppleRed.app\ -name\ red)}
+\emph{paths}
+
+\texttt{\$(find\ \textasciitilde{}/Applications/AppleRed.app\ -name\ cred)}
+\emph{paths}
+
+The former starts an editing server (if it hasn't already started) to
+starting editing sessions for the documents denoted in the filestore by
+\emph{paths}. The server runs until the last of its editing sessions is
+closed; but keeps running in this case if it was started with an empty
+\emph{paths}.
+
+The latter starts its editing sessions independently of any server. It
+terminates when its last editing session is closed.
+
+The \texttt{red}, and \texttt{cred} scripts function on both operating
+systems, independently of whether the \texttt{AppleRed} app has been
+used. On \texttt{OS/X} the app acts as a drop-target, or as an open-with
+subject. When invoked, it starts a editing server (if necessary), then
+passes its arguments to it, then (finally) terminates. Think of it as a
+``start button'' for the server and don't expect it to hang around
+between ``starts''. Drop the \texttt{AppleRed.app} icon onto the
+\texttt{OS/X} dock if you want to make it easily available.
+
+\hypertarget{editing-sessions}{%
+\subsection{Editing Sessions}\label{editing-sessions}}
+
+In each editing session window you will see the main text editing
+component at the bottom, with three minitext-editing components in a row
+above it. The minitexts have buttons to their left labelled \textbf{(A)}
+(\emph{Argument}), \textbf{(F)} (\emph{Find}) and \textbf{(R)}
+(\emph{Replace}). Pressing one of these buttons clears the adjacent
+minitext.
+
+The \emph{Argument} minitext provides arguments for many of the other
+editing actions, including those on the \emph{File} menu which start new
+editing sessions, allow the document to be saved in a different file,
+and so forth.
+
+The \emph{Find} and \emph{Replace} minitexts provide arguments for the
+actions of the same name. The checkbox next to \emph{Find} indicates
+whether its content will be interpreted as a regular expression or as a
+literal pattern. The same checkbox indicates whether the \emph{Replace}
+content will be treated as a substitution for a matching regular
+expression or as a literal pattern.
+
+Many of the editing actions described below are bound to keystrokes, and
+can also be used on the minitexts.
+
+Red shows which of its (mini-)text windows has the keyboard focus by
+showing its cursor in red. A text window with a greyed-out cursor
+doesn't have the keyboard focus. Focus usually moves into a text window
+as the mouse-cursor moves into it, but occasionally after popup warnings
+it's necessary to force the issue by clicking in the desired window.
+
+\hypertarget{the-editing-model}{%
+\subsection{The Editing Model}\label{the-editing-model}}
+
+At any stage, the document in a window (minitext or main) may have a
+\emph{selection} -- which is a contiguous region of the document. The
+selection is bounded at one end by the \emph{document cursor} -- which
+is shown as a thin red rectangle -- and at the other end by the
+\emph{mark} -- which is shown as a (thinner) blue rectangle. When the
+cursor and mark are in the same position only the cursor is shown, and
+the selection (in that document) is effectively empty.
+
+The document cursor can be moved in small increments by the arrow keys,
+or can be placed anywhere in the document by clicking with the left
+mouse-button. The mark can be placed anywhere in the document by
+clicking with the right mouse button.
+
+The text of a selection is always shown on a coloured background: grey
+if the selection was \emph{definite} and pink if the selection was
+\emph{tentative}. (See \textbf{Treatment of the Selection} for further
+detail).
+
+After every editing action the position of the document in the editor
+window is adjusted automatically so that \emph{the document cursor is
+visible.} Between editing actions the position of the document in the
+window can be adjusted manually by the scrollwheel, This can make the
+document cursor ``disappear'' temporarily.
+
+``Dragging'' the mouse with left button pressed causes a selection to be
+started (and then extended as the mouse is dragged). If the mouse is
+dragged outside the window, then the position of the document is
+adjusted so that it remains visible.
+
+There is a \emph{cut-ring} which holds the last several texts copied
+(\texttt{C-C}) or deleted from the document. The most recent such text
+is also placed on the operating system's clipboard and the most recent
+material placed in the system clipboard by Red or any other application
+is accessible and can be \emph{paste}d into the document or
+\emph{swap}ped with the current selection by invoking the the
+\emph{Paste} (\emph{Swap}) actions. These are usually bound to the keys
+\texttt{C-V}, and \texttt{C-B}. The \emph{cut} action deletes the entire
+selection; it is usually bound to the key \texttt{C-X}. When two ore
+more adjacent parts of the document are deleted (or cut) in successive
+actions they are treated as if they had been cut at the same time.
+
+\hypertarget{editing-commands}{%
+\subsection{Editing Commands}\label{editing-commands}}
+
+A comprehensive set of editing actions are built-in, and bound to a
+standard set of keys or menu entries. Some actions are available on more
+than one key or menu entry. The actions described below are a selection
+of those provided.
+
+The editor can be customised using the \texttt{redscript} language that
+supports the definition of new actions as well as changes of binding of
+actions to keys. The language will be described in a separate section.
+
+Neither AppleRed nor I distinguish between the control-shift and (OS/X)
+command-shift keys: they appear as \texttt{C-} below. This is entirely
+to preserve my sanity, because I use both Linux and OS/X. Although it
+reduces the absolute number of keys it is possible to bind to separate
+actions, there are still enough for any (sane) user -- especially one
+prepared to use the mouse to navigate or hit a menu button occasionally.
+
+\hypertarget{undo-and-redo}{%
+\subsubsection{Undo and Redo}\label{undo-and-redo}}
+
+As editing actions happen their effects are pushed onto the \emph{done
+stack}.
+
+\emph{Undo} (\texttt{C-z}) undoes the topmost effect on the \emph{done
+stack} and pushes it onto the \emph{undone stack}.
+
+\emph{Redo} (\texttt{C-Z}) re-does the topmost effect on the
+\emph{undone stack}, -- pops it from that stack.
+
+\emph{Redo} can also be invoked from the redo button at the right end of
+the menu bar: it is labelled \emph{n}\texttt{\textgreater{}}, where
+\emph{n} is the depth of the \emph{undone stack}. \emph{Undo} can also
+be invoked from the redo button to the left of the redo button: it is
+labelled \emph{n}\texttt{\textless{}}, where \emph{n} is the depth of
+the \emph{done stack}. Consecutive character insertions on the same line
+(between other actions) ``bunched'', so that their effect can be undone
+all at once. Consecutive cuts or other deletions are also bunched.
+
+When editing actions other than \emph{Undo} or \emph{Redo} happen, the
+entire \emph{redo stack} is emptied.
+
+\hypertarget{cut-and-paste}{%
+\subsubsection{Cut and Paste}\label{cut-and-paste}}
+
+\emph{Cut} (\texttt{C-x}, or \texttt{F1}) removes the selection from the
+document puts it in the cut-buffer, and adds it to the cut-ring.
+
+\emph{Paste} (\texttt{C-v}, or \texttt{F2}) inserts the content of the
+cut-buffer into the document and re-selects it.
+
+\emph{Copy} (\texttt{C-c}, or \texttt{F3}) replaces the cut-buffer with
+the selection (if there is a selection).
+
+\emph{SwapSel} (\texttt{C-b}, or \texttt{F4}) exchanges the selection
+and the cut-buffer (except that if the selection is null, then the
+cut-buffer doesn't change). The replaced text is added to the cut ring
+as if it had been deleted.
+
+\emph{SwapCursorAndMark} (\texttt{F5}) does what its name suggests.
+
+\hypertarget{find-and-replace-principles}{%
+\subsubsection{Find and Replace
+(Principles)}\label{find-and-replace-principles}}
+
+In what follows:
+
+\begin{itemize}
+\item
+  \emph{following} means ``at a position to the right of or below the
+  \emph{editing cursor}.''
+\item
+  \emph{preceeding} means ``at a position to the left of or above the
+  \emph{editing cursor}.''
+\item
+  \textbf{(F)} means ``the pattern specified by the \emph{Find}
+  minitext.''
+\item
+  \textbf{(R)} means ``the replacement specified by the \emph{Replace}
+  minitext.''
+\end{itemize}
+
+If the checkbox adjacent to the \emph{Find} minitext is checked then the
+find text is interpreted as a (Java-style) regular expression. Otherwise
+it is interpreted literally.
+
+When the find text is interpreted as a regular expression, the
+replacement text is interpreted as the text obtained (using standard
+Java regular-expression substitution rules) by substituting each
+instance of \texttt{\$n} in it by the text that matches the \texttt{n}th
+bracketed expression in the instance of the pattern that is being
+replaced. Otherwise it is interpreted literally.
+
+\begin{itemize}
+\item
+  \emph{FindDown} (\texttt{C-f}, or \texttt{Numpad-0}) selects the
+  nearest \emph{following} instance of \textbf{(F)}
+\item
+  \emph{FindUp} \texttt{(C-F)}, or \texttt{Shift-Numpad-0}) selects the
+  nearest \emph{preceeding} instance of \textbf{(F)}
+\item
+  \emph{FindSelDown} (\texttt{C-Alt-f}, or \texttt{Alt-Numpad-0}) makes
+  the current selection the \emph{Find} pattern, turns off regular
+  expression interpretation, and then acts as \emph{FindDown}.
+\item
+  \emph{FindSelUp} (\texttt{C-Alt-F}, or \texttt{Shift-Alt-Numpad-0})
+  makes the current selection the \emph{Find} pattern, then acts as
+  \emph{FindUp}.
+\item
+  \emph{ClearFind} (\texttt{C-Numpad-0}, or \texttt{Button(F)}) clears
+  the find minitext, and moves the editing cursor to that text.
+\item
+  \emph{ClearRepl} (\texttt{C-Numpad-.}, or \texttt{Button(R)}) clears
+  the replace minitext, and moves the editing cursor to that text.
+\item
+  \emph{ClearArg} (\texttt{C-Numpad-Enter}, or \texttt{Button(A)})
+  clears the argument minitext, and moves the editing cursor to that
+  text.
+\end{itemize}
+
+If the current selection is an instance of \textbf{(F)} then:
+
+\begin{itemize}
+\item
+  \emph{ReplaceDown} \texttt{(C-r)}, \texttt{Numpad-.} saves the current
+  selection in the cut-buffer and replaces it with the \textbf{(R)}
+  selecting the replacement text and leaving the cursor to the right of
+  the mark.
+\item
+  \emph{ReplaceUp} \texttt{(C-R)}, \texttt{Shift-Numpad-.} saves the
+  current selection in the cut-buffer and replaces it with the
+  \textbf{(R)} selecting the replacement text and leaving the cursor to
+  the left of the mark.
+\end{itemize}
+
+\hypertarget{find-and-replace-technique}{%
+\subsubsection{Find and Replace
+(Technique)}\label{find-and-replace-technique}}
+
+Many editors provide a multiplicity of modes for finding and replacing,
+and some include the possibility of ``approving'' replacements. In what
+follows we explain our simpler approach.
+
+A way of replacing the next instance of \texttt{"FOO"} with
+\texttt{"BAR"} without using the mouse to move between texts is to type:
+
+\begin{verbatim}
+    C-Numpad-0 F O O Numpad-0 C-Numpad-. B A R Numpad-.
+\end{verbatim}
+
+Replacing the following instance just requires
+
+\begin{verbatim}
+    C-Numpad-0 Numpad-.
+\end{verbatim}
+
+or
+
+\begin{verbatim}
+    C-f C-r
+\end{verbatim}
+
+Since the \emph{Find} and \emph{Repl} minitexts are already set to the
+right pattern and replacement. Obviously subsequent instances can be
+found/replaced with the same keystrokes.
+
+\begin{itemize}
+\item
+  \emph{ReplaceAll} (\texttt{(F)-\textgreater{}(R)} on the edit menu)
+  replaces (without any interaction) all instances of the \emph{Find}
+  minitext in the current selection with the \emph{Repl} minitext, and
+  selects the resulting transformed text.
+
+  The original selection is preserved in the cut buffer (and therefore
+  in the cut ring), so this action can be undone immediately with
+  \emph{SwapSel} if you are immediately overcome with remorse
+  afterwards, and by browsing in the cut ring if the remorse takes
+  longer to arrive.
+
+  If you want to ``approve'' each replacement interactively, then just
+  use \emph{FindDown} \emph{ReplaceDown} in sequence repeatedly, undoing
+  any replacement you don't approve of with \emph{SwapSel} (or
+  \emph{Undo}).
+\end{itemize}
+
+To find/replace earlier instances just type the same actions with the
+shift key pressed.
+
+\hypertarget{indentation}{%
+\subsection{Indentation}\label{indentation}}
+
+\textbf{Indenting one or more lines when there is a nonempty selection:}
+
+\begin{itemize}
+\item
+  \emph{Indent selection} (\texttt{Tab}) indents the selected lines by 1
+  space. If invoked with the \textbf{alt}-shift pressed, then the
+  selected lines are indented by prefixing them with the \textbf{(A)}
+  text, and then re-selected.
+\item
+  \emph{Undent selection} (\texttt{Shift-Tab}) (when there is a nonempty
+  selection) reduces the indentation of the selected lines by 1 space
+  where possible. If invoked with the \textbf{alt}-shift pressed, then
+  the selected lines are ``undented'' by the (literal) \textbf{(A)} text
+  where possible, and then re-selected.
+\end{itemize}
+
+The indent and undent selection actions effectively \emph{cut} the
+selection and replace it with the indented (undented) text.
+
+\emph{When there is no selection} \texttt{Tab} inserts enough spaces to
+move the cursor so that it is a multiple of 8 characters from the left
+margin.
+
+When \texttt{Red/Autoindent} is enabled, it is assumed that the
+indentation of the text following a newline is to be the same as the
+indentation of the current line. This is achieved by inserting spaces
+after \texttt{Enter} is typed, and removing spaces to the right of the
+cursor if necessary.
+
+\hypertarget{treatment-of-the-selection}{%
+\subsection{Treatment of the
+Selection}\label{treatment-of-the-selection}}
+
+Red offers two modes of treating the selection. Most users will decide
+on one of them and stick to it forever. In what follows, a ``tentative''
+selection means one made by auto-selecting material between matching
+brackets.
+
+Having grown accustomed to the second mode in my homegrown editors for
+more than thirty years I was reluctant to adopt the first: but after
+implementing the differential treatment of ``tentative'' and
+``definite'' selections I changed my mind.
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\item
+  \textbf{Typing-cuts-selection:} Typing new material automatically cuts
+  a ``definite'' selection into the cut buffer (and adds it to the cut
+  ring). This is (almost) the behaviour that most people have come to
+  expect of editors; except that it does not cut ``tentative''
+  selections.
+\item
+  \textbf{Typing-removes-mark:} Typing new characters removes the mark,
+  and thus deselects the \emph{selection}, but does not delete the
+  selected material. In this mode Red does not distinguish between
+  ``tentative'' and ``definite'' selections.
+\end{enumerate}
+
+The choice of modes is made using the \textbf{Red/Typeover} checkbox. As
+with most other preferences its value is preserved between \texttt{Red}
+invocations.
+
+Tentative selections are made when a closing bracket (of some kind) is
+typed, or when the mouse is clicked just to the left of an opening
+bracket or to the right of a closing bracket. In both cases the scope of
+the selection is the well-nested bracketed text (if there is one)
+between the opening and closing bracket. By well-nested we mean
+well-nested with respect to the opening (closing) bracket of a
+bracketing pair.
+
+\texttt{Red} builds-in most unicode bracketing pairs in addition to the
+obvious ``\{\}'', ``()'', ``{[}{]}'' and can be easily adapted to add
+more pairs specified by regular expressions; such as those that match
+the built-in (Latex and HTML blocks)
+
+\begin{verbatim}
+    \begin{...}    \end{...}
+    <id ... >      </id>       
+\end{verbatim}
+
+(See also \textbf{Introduction})
+
+These behaviours are enabled by the \textbf{Red/Select/(\ldots@)\}} and
+\textbf{Red/Select/\{\ldots\}} checkboxes respectively: their values are
+preserved between \texttt{Red} invocations.
+
+\hypertarget{abbreviations}{%
+\subsubsection{Abbreviations}\label{abbreviations}}
+
+Red can be configured with \emph{abbreviations} for texts that contain
+unicode symbols that may not appear directly on the keyboard.
+
+One form of abbreviation is built-in, namely
+\texttt{\textbackslash{}u}\emph{xxxx}, where each of the four \emph{x}
+is a hex digit. It abbreviates the Unicode glyph with that code.
+
+The action \emph{Abbrev} (\texttt{ESC}) finds the longest abbreviation
+that appears just before the cursor, and replaces it with the text it
+abbreviates.
+
+The action \emph{Unabbrev} (\texttt{Alt-Shift-ESC}) replaces the
+character immediately to the left of the cursor with its unicode
+encoding, in the form \texttt{\textbackslash{}u}\emph{xxxx}.
+
+\hypertarget{examples-of-abbreviations}{%
+\paragraph{Examples of abbreviations:}\label{examples-of-abbreviations}}
+
+Here, for example, are extracts from the (extensive) bindings file
+\texttt{symbols.redscript} delivered with Red. Notice that both unicode
+glyphs and their
+\texttt{\textbackslash{}u\textasciigrave{}\textasciigrave{}XXXX} codes
+can be used in abbreviations and their substitutions.
+
+\begin{verbatim}
+abbrev "lnot"       "\u00AC"    # ¬
+abbrev  "/\u2203"   "∄"
+abbrev "land"       "\u2227"    # ∧
+abbrev "/\\"        "\u2227" 
+abbrev "=>"         "⇒" 
+abbrev "<=>"        "⇔" 
+abbrev "lor"        "∨"         # ∨
+abbrev "\\/"        "\u2228"
+abbrev "cap"        "\u2229" 
+abbrev "cup"        "\u222a"  
+abbrev "euro"       "€"  
+abbrev "pound"      "\u20a4"
+\end{verbatim}
+
+Words and phrases can also be abbreviated
+
+\begin{verbatim}
+abbrev "lb"         "pound"
+abbrev "lbs"        "pounds and pounds"
+\end{verbatim}
+
+Further details of binding configurations will (eventually) be found in
+an appendix.
+
+\hypertarget{key-assignment-policy}{%
+\subparagraph{Key Assignment Policy:}\label{key-assignment-policy}}
+
+It makes sense for \emph{FindUp} to be bound to the shifted key that
+\emph{FindDown} is bound to; and for \emph{ReplaceUp} to be bound to the
+shifted \emph{ReplaceDown} key, and that is what we have done.
+
+\hypertarget{appendix-bindings-and-abbreviations}{%
+\subsection{APPENDIX: Bindings and
+Abbreviations}\label{appendix-bindings-and-abbreviations}}
+
+\hypertarget{redscript}{%
+\subsubsection{RedScript}\label{redscript}}
+
+As the editor is started it reads the file
+\texttt{\textasciitilde{}/.red/bindings.redscript}: the role of the
+script in this file is to provide information needed by each editing
+session. There is a good deal of room for customization here, but the
+distributed version of the script provides a decent minimum collection
+of features that permit some choices to be made by the user.
+
+\hypertarget{appendix-history-of-applered}{%
+\subsection{\texorpdfstring{APPENDIX: History of
+\texttt{AppleRed}}{APPENDIX: History of AppleRed}}\label{appendix-history-of-applered}}
+
+\hypertarget{red-starts-life-as-a-toy}{%
+\paragraph{Red starts life as a toy:}\label{red-starts-life-as-a-toy}}
+
+\textbf{Red} started life as a program to use as an exemplar for
+teaching first-year Oxford undergraduates a short course in
+object-orient programming using \textbf{\texttt{scala}}. It was to be
+the basis of a number of practical exercises.
+
+Its editing model was identical to that used in the \textbf{dred} editor
+I had built from scratch in \textbf{\texttt{java}} in the early 2000's
+and had been using ever since. \textbf{Dred} had developed from a
+sequence of editors, all using the same \emph{modeless} editing model
+derived from an abstract formal specification I had published in the
+late 1970's.
+
+\hypertarget{red-becomes-my-editor-of-choice}{%
+\paragraph{Red becomes my editor of
+choice:}\label{red-becomes-my-editor-of-choice}}
+
+It wasn't long before I decided that it would be a good idea to make
+\textbf{Red} more than a toy; and soon after I started its development
+(during the first pandemic lockdown period) it became my editor of
+choice. Shortly afterwards I found it straightforward to make it
+integrable with \texttt{OS/X} as an app, as well as runnable as an
+ordinary \texttt{JVM}-compatible program on \texttt{OS/X},
+\texttt{Linux}, and \texttt{Windows}.
+
+My intention was to remove some of its more advanced features for use in
+the course, and this is what I did: the result was a simpler editor,
+\textbf{jed}, published for my students as the course started in Trinity
+term in the spring of 2022. For reasons of pedagogy that editor
+incorporated \texttt{undo/redo}.
+
+\hypertarget{red-inherits-undoredo-from-jed}{%
+\paragraph{\texorpdfstring{Red inherits \texttt{undo/redo} from
+Jed:}{Red inherits undo/redo from Jed:}}\label{red-inherits-undoredo-from-jed}}
+
+The \texttt{undo}/\texttt{redo} feature of \textbf{jed} had not been
+implemented in the original \textbf{Red}, because the latter's cut-ring
+feature met all my reasonable needs. But as soon as the course was over
+(early summer 2022) I started to enhance the original \textbf{Red} with
+\texttt{undo}/\texttt{redo}.
+
+\hypertarget{apple-changes-its-security-model}{%
+\paragraph{Apple changes its security
+model:}\label{apple-changes-its-security-model}}
+
+The next spasm of \textbf{Red}'s development was occasioned by a change
+in the \texttt{OS/X} security model for apps. To paraphrase my obituary
+for the unitary \texttt{AppleRed\ app} that provided editing sessions
+(on OS/X and Linux) through an embedded server as well as providing the
+more usual \emph{drag-drop}, and \emph{open-with} functionality:
+
+\begin{longtable}[]{@{}l@{}}
+\toprule
+\endhead
+``On \texttt{Catalina} (versions above 10.14) and its successors
+the\tabularnewline
+situation is complicated by (welcome, but ferocious)
+Apple\tabularnewline
+security measures that \emph{forbid} the reception of messages
+(of\tabularnewline
+any kind) by uncertified apps. At the time of writing I see
+no\tabularnewline
+reasonable way round these measures (and, believe me, I
+have\tabularnewline
+looked) that can be taken without paying the \textbf{Apple
+Ransom},\tabularnewline
+which imposes both a financial and an intellectual burden.
+I\tabularnewline
+have therefore decided to distribute the program as a
+simple\tabularnewline
+\texttt{OS/X\ app} that invokes a helper program to provide
+editing\tabularnewline
+session functionality.''\tabularnewline
+\bottomrule
+\end{longtable}
+
+But by dint of the simple but legitimate technique (outlined in the
+obituary, and explained in the source code) I nevertheless managed to
+deliver all functionality of an OS/X app on OS/X.
+
+Note that there had never been an analogous problem caused by security
+measures on Linux.
+
+\hypertarget{customization-gives-rise-to-redscript}{%
+\paragraph{Customization gives rise to
+RedScript:}\label{customization-gives-rise-to-redscript}}
+
+A much more recent development was a dramatic increase in the
+sophistication of the notation used for customising the editor.
+\texttt{RedScript} is a straightforward language, reminiscent of
+\texttt{scheme}, that ``collaborates'' with the editor code to provide
+the editing context: the content of menus, and the bindings of keys to
+actions. Its facilities are still evolving as its potential is explored.
+
+\end{document}
