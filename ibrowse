@@ -1,1 +1,0 @@
-scala -cp scala-library.jar:scala-swing.jar:regexkit.jar:./out/production/Jed Red.RedBrowse "$@"
