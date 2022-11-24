@@ -1,80 +1,34 @@
+%xelatex
 % Options for packages loaded elsewhere
 \PassOptionsToPackage{unicode}{hyperref}
 \PassOptionsToPackage{hyphens}{url}
 %
-\documentclass[
-]{article}
-\usepackage{lmodern}
+\documentclass[12pt,a4paper]{article}
+\usepackage{hyperref}
+%\usepackage{lmodern}
 \usepackage{amssymb,amsmath}
-\usepackage{ifxetex,ifluatex}
-\ifnum 0\ifxetex 1\fi\ifluatex 1\fi=0 % if pdftex
-  \usepackage[T1]{fontenc}
-  \usepackage[utf8]{inputenc}
-  \usepackage{textcomp} % provide euro and other symbols
-\else % if luatex or xetex
-  \usepackage{unicode-math}
-  \defaultfontfeatures{Scale=MatchLowercase}
-  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
-\fi
-% Use upquote if available, for straight quotes in verbatim environments
-\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
-\IfFileExists{microtype.sty}{% use microtype if available
-  \usepackage[]{microtype}
-  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
-}{}
-\makeatletter
-\@ifundefined{KOMAClassName}{% if non-KOMA class
-  \IfFileExists{parskip.sty}{%
-    \usepackage{parskip}
-  }{% else
-    \setlength{\parindent}{0pt}
-    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
-}{% if KOMA class
-  \KOMAoptions{parskip=half}}
-\makeatother
-\usepackage{xcolor}
-\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
-\IfFileExists{bookmark.sty}{\usepackage{bookmark}}{\usepackage{hyperref}}
-\hypersetup{
-  pdftitle={AppleRed},
-  hidelinks,
-  pdfcreator={LaTeX via pandoc}}
-\urlstyle{same} % disable monospaced font for URLs
+\usepackage{unicode-math}
 \usepackage{longtable,booktabs}
-% Correct order of tables after \paragraph or \subparagraph
-\usepackage{etoolbox}
-\makeatletter
-\patchcmd\longtable{\par}{\if@noskipsec\mbox{}\fi\par}{}{}
-\makeatother
-% Allow footnotes in longtable head/foot
-\IfFileExists{footnotehyper.sty}{\usepackage{footnotehyper}}{\usepackage{footnote}}
-\makesavenoteenv{longtable}
-\setlength{\emergencystretch}{3em} % prevent overfull lines
-\providecommand{\tightlist}{%
-  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
-\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
-\ifluatex
-  \usepackage{selnolig}  % disable illegal ligatures
-\fi
-
-\title{AppleRed}
-\author{}
-\date{}
+\defaultfontfeatures{Scale=MatchLowercase}
+\defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\setmonofont[]{DejaVuSansMono.ttf}
+\setmathfont[]{DejaVuSans.ttf}
+%
+%
+\parindent=0pt\parskip=\medskipamount
+%
+%
+\title{AppleRed (Version 1.01)}
+\author{Bernard Sufrin}
+\date{November 24th 2022}
 
 \begin{document}
 \maketitle
 
-\hypertarget{applered-version-1.01}{%
-\section{AppleRed (Version 1.01)}\label{applered-version-1.01}}
+\hypertarget{applered}{\section{AppleRed}\label{applered}}
 
-\begin{verbatim}
-    Bernard Sufrin
-    University of Oxford
-    November 14, 2022
-\end{verbatim}
 
-\hypertarget{introduction}{%
-\subsection{Introduction}\label{introduction}}
+\hypertarget{introduction}{\subsection{Introduction}\label{introduction}}
 
 \texttt{Red} (also known as \texttt{AppleRed}) is no-frills
 \texttt{UNICODE}-capable \emph{modeless} (and \emph{colourless}) text
@@ -95,7 +49,6 @@ interface is similar to an editing session interface, so material can be
 transferred from it by copy/paste to any application (including
 \texttt{Red}) that has an interface to the system clipboard.
 
-\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
 
 I have used \texttt{Red} mainly for preparing \texttt{(xe-)latex} and
 \texttt{markdown} manuscripts, as well as for preparing programs that
@@ -141,25 +94,53 @@ comment \texttt{\%xelatex}), and invokes \texttt{pdflatex} (or
 platform \texttt{pdf} viewer (\texttt{Skim} on \texttt{OS/X},
 \texttt{evince} on \texttt{Linux}).
 
-The \textbf{\texttt{Pandoc}} button on the menu bar translates the
-manuscript being edited into \texttt{.pdf} form using the script
-\texttt{redpandoc}.
+A little care has to be taken to ensure that the fonts used in production
+of the pdf file include gyphs corresponding to all the Unicode
+characters appearing in the manuscript. The present xelatex manuscript
+uses the following font setup:
 
-The script I use assumes that the manuscript is in
-\texttt{markdown+tex\_math\_dollars+pandoc\_title\_block} format; and
-uses \texttt{xelatex} as its final \texttt{-\/-pdf-engine}; so you can
+\begin{verbatim}
+\usepackage{amssymb,amsmath}
+\usepackage{unicode-math}
+\usepackage{longtable,booktabs}
+\defaultfontfeatures{Scale=MatchLowercase}
+\defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\setmonofont[]{DejaVuSansMono.ttf}
+\setmathfont[]{DejaVuSans.ttf}
+\end{verbatim}
+
+The \textbf{\texttt{Pandoc}} button on the menu bar translates the
+manuscript being edited into \texttt{.pdf} form using the (easily
+changeable) script \texttt{redpandoc}.  My personal variant of the
+script assumes that the manuscript is in the format:
+
+\begin{verbatim}
+        markdown+tex_math_dollars+pandoc_title_block
+\end{verbatim}
+
+It uses \texttt{xelatex} as its final \texttt{-\/-pdf-engine}; so you can
 use a wide variety of Unicode symbols directly in the manuscript. For
 example:
 
 \begin{verbatim}
-    $$e^{iπ}+1=0$$
+        $$e^{iπ}+1=0$$
 \end{verbatim}
 
-yields: {\emph{e}\textsuperscript{\emph{iπ}} + 1 = 0}
+yields: \[e^{iπ}+1=0\]
 
-The \texttt{pandoc\_title\_block} used for \emph{the present} markdown
-file \texttt{AppleRed.md} ensures that fonts are used that implement all
-relevant unicode glyphs:
+It's possible, but pretty pointless, to revert to straight
+\texttt{pdflatex} as the pdf engine: you just deny yourself the use
+of a fuller range of Unicode characters in your markdown manuscript.
+
+My \texttt{redpandoc} script will simultaneously generate an
+\texttt{.html} version of the output if a file \texttt{PANDOC-HTML} is
+present in the source folder; and will generate pdf \emph{via} the html
+file (rather than directly) if a file \texttt{PANDOC-PDF-VIA-HTML} is
+present.
+
+To set up the same fonts as used in the present xelatex manuscript
+one would use a title block like this at the head of the markdown
+manuscript.
 
 \begin{verbatim}
     ---
@@ -173,16 +154,6 @@ relevant unicode glyphs:
       - '`\usepackage{unicode-math}`{=xelatex}'
     ---
 \end{verbatim}
-
-It's possible, but pretty pointless, to revert to straight
-\texttt{pdflatex}: you just deny yourself the use of a fuller range of
-Unicode characters in your manuscript.
-
-My \texttt{redpandoc} script will simultaneously generate an
-\texttt{.html} version of the output if a file \texttt{PANDOC-HTML} is
-present in the source folder; and will generate pdf \emph{via} the html
-file (rather than directly) if a file \texttt{PANDOC-PDF-VIA-HTML} is
-present.
 
 \hypertarget{synctex-features}{%
 \subsubsection{\texorpdfstring{\texttt{SyncTex}
@@ -204,51 +175,64 @@ The \texttt{redpdf} script invoked by the \texttt{Tex} button uses
   \texttt{Shift-Cmd-click} on one of the pdf lines).
 \end{enumerate}
 
-There are similarly-functioning scripts available for \texttt{Linux}.
-
 \hypertarget{installation}{%
 \subsection{Installation}\label{installation}}
 
 The \texttt{AppleRed.app} directory can be installed either on
-\texttt{OS/X} or on \texttt{Linux} by copying it to
-\texttt{\textasciitilde{}/Applications}. Before use it is essential to
-copy the three Profiles files to your \texttt{\$(HOME)} and adjust them
-to your own requirements.
+\texttt{OS/X} or on \texttt{Linux} by copying it to your local
+applications folder: \texttt{\textasciitilde{}/Applications}.\footnote{On
+OS/X you could also copy it to the system applications folder.}
+Before use it is essential to copy the profile files \verb/.AppleRed*.profile/
+from
+\begin{verbatim}
+        AppleRed.app/Contents/Resources/Profiles/
+\end{verbatim}
+to your \texttt{\$(HOME)} and, if necessary, adjust them to your
+own requirements.
 
 The profiles are nearly identical -- the important things to change are
 the PATHs exported from \texttt{.AppleRed-application.profile}; the
 other profiles are (but needn't be) essentially the same. The following
-command will do the copy.
+command will do the copy:
 
 \begin{verbatim}
 cp -pr $(find ~/Applications/AppleRed.app -name ".AppleRed*.profile") ~
 \end{verbatim}
 
-The following commands will run from anywhere:
+At this point it is appropriate   to copy the \texttt{red} and \texttt{cred} scripts, and
+their friends to a folder somewhere on your shell; or to make symbolic links to them
+from such a folder. These scripts will be found in the folder:\footnote{A set of scripts
+is provided that function equally well on Linux and OS/X.}
+\begin{verbatim}
+        AppleRed.app/Contents//Resources/Shellscripts
+\end{verbatim}
 
-\texttt{\$(find\ \textasciitilde{}/Applications/AppleRed.app\ -name\ red)}
-\emph{paths}
+\subsection{Invocation}\label{invocation}
+\subsubsection{Scripts}\label{scripts}
 
-\texttt{\$(find\ \textasciitilde{}/Applications/AppleRed.app\ -name\ cred)}
-\emph{paths}
-
-The former starts an editing server (if it hasn't already started) to
-starting editing sessions for the documents denoted in the filestore by
-\emph{paths}. The server runs until the last of its editing sessions is
-closed; but keeps running in this case if it was started with an empty
-\emph{paths}.
+The \texttt{red} \emph{paths}, and \texttt{cred} \emph{paths}
+commands work on both operating systems, independently of whether
+the \texttt{AppleRed} app has been started. The former starts the
+editing server (if it hasn't already been started) which then starts
+editing sessions for the documents denoted in the filestore by the
+\emph{paths}. The server runs until the last of its editing sessions
+is closed; but keeps running in this case if it was started with
+an empty \emph{paths}.
 
 The latter starts its editing sessions independently of any server. It
 terminates when its last editing session is closed.
 
-The \texttt{red}, and \texttt{cred} scripts function on both operating
-systems, independently of whether the \texttt{AppleRed} app has been
-used. On \texttt{OS/X} the app acts as a drop-target, or as an open-with
+\subsubsection{The AppleRed app}\label{theappleredapp}
+On \texttt{OS/X} the app acts as a drop-target, or as an ``open-with''
 subject. When invoked, it starts a editing server (if necessary), then
-passes its arguments to it, then (finally) terminates. Think of it as a
+passes its argument to it, then (finally) terminates. Think of it as a
 ``start button'' for the server and don't expect it to hang around
 between ``starts''. Drop the \texttt{AppleRed.app} icon onto the
 \texttt{OS/X} dock if you want to make it easily available.
+
+There are many ways of emulating this sort of functionality on
+Linux: almost as many as there are Linux distributions. Find a
+geek to tell you how on yours: I made it happen on my own Ubuntu 22.04.
 
 \hypertarget{editing-sessions}{%
 \subsection{Editing Sessions}\label{editing-sessions}}
