@@ -2,7 +2,8 @@ package Red
 
 import Commands.{Command, StateChange}
 import Red.FilterUtilities.inputStreamOf
-import RedScript.Language.{RuntimeError, SExps, Str, Variable}
+import RedScript.Language.{SExps, Str, Variable}
+import sufrin.regex.Regex
 
 import java.nio.file.Path
 import scala.sys.process.{Process, ProcessLogger}
@@ -409,13 +410,45 @@ object EditSessionCommands extends Logging.Loggable {
         def undo(): Unit = {
           session.selection = oldSelection; session.cursor = oldCursor
         }
-
         def redo(): Unit = session.selectParagraph()
-
         override val kind: String = "->"
       })
     }
   }
+
+  def latexTag(tag: String): SessionCommand = new Filter {
+    protected override val kind:     String  = "Style"
+    protected override val adjustNL: Boolean = false
+    protected override def transform(input: String, cwd: Path): Option[String] = {
+      Some(s"\\${tag}{${input}}")
+    }
+  }
+
+  val whiteSpace = Regex("[ \\n]")
+
+  def styleAs(tag: String): SessionCommand =
+        latexTag(tag).guarded(_.hasDefiniteSelection)  |||
+        latexTag(tag).guarded(_.atRightOf(whiteSpace)) |||
+        selectForStyling &&& latexTag(tag)
+
+  val selectForStyling: SessionCommand = new SessionCommand {
+    val leftBoundary  : Regex   = Regex("""\W\w""")
+    val rightBoundary : Regex   = Regex("""\w\W""")
+    def DO(session: EditSession): StateChangeOption = {
+      val oldCursor = session.cursor
+      val oldSelection = session.selection
+      session.selectChunkMatching(oldCursor, leftBoundary, rightBoundary, 1, 1)
+      Some(new StateChange {
+        def undo(): Unit = {
+          session.selection = oldSelection; session.cursor = oldCursor
+        }
+        def redo(): Unit = session.selectParagraph()
+        override val kind: String = "Style"
+      })
+    }
+  }
+
+
 
   def setCursor(row: Int, col: Int): SessionCommand = new SessionCommand {
     def DO(session: EditSession): StateChangeOption = {

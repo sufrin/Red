@@ -61,8 +61,9 @@ class EditSession(val document: DocumentInterface, private var _path: String)
     _selection = newSelection
   }
 
-  def hasNoSelection: Boolean = _selection eq NoSelection
-  def hasSelection: Boolean   = ! hasNoSelection && selectionText()!=""
+  def hasNoSelection: Boolean         = _selection eq NoSelection
+  def hasSelection: Boolean           = ! hasNoSelection && selectionText()!=""
+  def hasDefiniteSelection: Boolean   = ! hasNoSelection && ! selection.tentative
 
   def selectionText(): String =
     document.getString(_selection.left, _selection.right)
@@ -528,6 +529,10 @@ class EditSession(val document: DocumentInterface, private var _path: String)
   }
 
   def selectParagraph(): Unit = selectChunkMatching(cursor, Boundaries.leftPara, Boundaries.rightPara, 1, 1)
+
+  def atRightOf(left: Regex): Boolean = left.suffixes(document.characters, 0, cursor).nonEmpty
+
+  def atLeftOf(right: Regex): Boolean = right.prefixes(document.characters, cursor, document.characters.length).nonEmpty
 
   def selectChunkMatching(startingCursor: Int, left: Regex, right: Regex, adjl: Int, adjr: Int): Unit =
     left.findSuffix(document.characters, 0, startingCursor) match {

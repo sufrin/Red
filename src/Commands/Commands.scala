@@ -53,6 +53,7 @@ package Commands
     def |||(that: Command[T]): Command[T] = Command.orElse(this, that)
     def >>>(that: Command[T]): Command[T] = Command.andThenSilently(this, that)
     def when(condition: T => Boolean): Command[T] = Command.when(condition, this)
+    def guarded(condition: T => Boolean): Command[T] = Command.guarded(condition, this)
   }
 
   /**     === StateChange: the big ideas
