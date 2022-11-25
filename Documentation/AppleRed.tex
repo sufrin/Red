@@ -3,9 +3,11 @@
 \PassOptionsToPackage{unicode}{hyperref}
 \PassOptionsToPackage{hyphens}{url}
 %
-\documentclass[12pt,a4paper]{article}
+\documentclass[11pt,a4paper]{article}
+\usepackage{alltt}
+\usepackage{pdffig}
 \usepackage{hyperref}
-%\usepackage{lmodern}
+\usepackage{lmodern}
 \usepackage{amssymb,amsmath}
 \usepackage{unicode-math}
 \usepackage{longtable,booktabs}
@@ -16,6 +18,24 @@
 %
 %
 \parindent=0pt\parskip=\medskipamount
+\newcommand{\Screen}[2][height=4in]{
+ \begin{center}
+  \pdffig[#1]{pdf/#2}
+   \end{center}}
+
+\newcommand{\ScreenFig}[2]{
+\begin{figure}[tb]
+\Screen[width=4.0in]{#2}
+\caption{#1}\label{#2}
+\end{figure}
+}
+
+\newcommand{\ScreenFigHere}[2]{
+\begin{figure}[h]
+\Screen[width=3.5in]{#2}
+\caption{#1}\label{#2}
+\end{figure}
+}
 %
 %
 \title{AppleRed (Version 1.01)}
@@ -39,6 +59,9 @@ workplace, and unlike many IDE and modern editors does not confuse its
 user by spontaneously trying to be helpful: everything it does it does
 in response to user input from mouse, pad, or keyboard.
 
+\ScreenFigHere{A Session Window}{Screen1}
+\ScreenFigHere{Session Window with tentative selection}{Screen2}
+
 Its \texttt{undo}/\texttt{redo} facility is conventional, but in
 addition to this it has a \emph{cut ring} that retains the last 240 or
 so \emph{recently deleted} blocks of contiguous text. This feature is
@@ -49,10 +72,10 @@ interface is similar to an editing session interface, so material can be
 transferred from it by copy/paste to any application (including
 \texttt{Red}) that has an interface to the system clipboard.
 
-
 I have used \texttt{Red} mainly for preparing \texttt{(xe-)latex} and
 \texttt{markdown} manuscripts, as well as for preparing programs that
 don't warrant the burden of getting to grips with an IDE.
+
 
 Its support for \texttt{latex} manuscripts includes the straightforward
 manipulation of nested blocks delimited by
@@ -79,25 +102,29 @@ be selected (``tentatively''). The built-in corresponding pairs are:
 of the unicode bracketing pairs. Additional pairs can be added
 straightforwardly.
 
+
+
 \hypertarget{tex-pandoc}{%
 \subsubsection{\texorpdfstring{\texttt{Tex},
 \texttt{Pandoc}}{Tex, Pandoc}}\label{tex-pandoc}}
 
-The \textbf{\texttt{Tex}} button on the menu bar generates \texttt{pdf}
+The \textbf{\texttt{Tex}} button on the menu bar\footnote{The
+configuration provided puts this button on the menu bar when a
+\texttt{.tex} document is being edited.} generates \texttt{pdf}
 from the (default tex) source manuscript -- usually, but not
 necessarily, the manuscript being edited -- using a script
 \texttt{redpdf} that is expected to be somewhere on the user's
-\texttt{PATH}. The \texttt{redpdf} I use assumes that the manuscript is
-in latex format (\texttt{xelatex} format if its first line is the
-comment \texttt{\%xelatex}), and invokes \texttt{pdflatex} (or
+\texttt{PATH}. The \texttt{redpdf} I use assumes that the manuscript
+is in latex format (\texttt{xelatex} format if its first line is
+the comment \texttt{\%xelatex}), and invokes \texttt{pdflatex} (or
 \texttt{xelatex}) with appropriate parameters before invoking the
 platform \texttt{pdf} viewer (\texttt{Skim} on \texttt{OS/X},
 \texttt{evince} on \texttt{Linux}).
 
-A little care has to be taken to ensure that the fonts used in production
-of the pdf file include gyphs corresponding to all the Unicode
-characters appearing in the manuscript. The present xelatex manuscript
-uses the following font setup:
+A little care has to be taken to ensure that the fonts used in
+production of the pdf file include gyphs corresponding to all the
+Unicode characters appearing in the manuscript. The present xelatex
+manuscript uses the following font setup:
 
 \begin{verbatim}
 \usepackage{amssymb,amsmath}
@@ -109,10 +136,11 @@ uses the following font setup:
 \setmathfont[]{DejaVuSans.ttf}
 \end{verbatim}
 
-The \textbf{\texttt{Pandoc}} button on the menu bar translates the
-manuscript being edited into \texttt{.pdf} form using the (easily
-changeable) script \texttt{redpandoc}.  My personal variant of the
-script assumes that the manuscript is in the format:
+The \textbf{\texttt{Pandoc}} button on the menu bar\footnote{When
+a \texttt{.md} document is being edited.} translates the manuscript
+being edited into \texttt{.pdf} form using the (easily changeable)
+script \texttt{redpandoc}.  My personal variant of the script assumes
+that the manuscript is in the format:
 
 \begin{verbatim}
         markdown+tex_math_dollars+pandoc_title_block
@@ -237,12 +265,16 @@ geek to tell you how on yours: I made it happen on my own Ubuntu 22.04.
 \hypertarget{editing-sessions}{%
 \subsection{Editing Sessions}\label{editing-sessions}}
 
-In each editing session window you will see the main text editing
-component at the bottom, with three minitext-editing components in a row
-above it. The minitexts have buttons to their left labelled \textbf{(A)}
+In each session window you will see the main text editing
+component in the middle, with three minitext-editing components in a row
+above it, and a session status component at the bottom. Figure \ref{Screen1}
+is an example; it also shows the position of the editing cursor.
+
+The minitexts have buttons to their left labelled \textbf{(A)}
 (\emph{Argument}), \textbf{(F)} (\emph{Find}) and \textbf{(R)}
 (\emph{Replace}). Pressing one of these buttons clears the adjacent
 minitext.
+
 
 The \emph{Argument} minitext provides arguments for many of the other
 editing actions, including those on the \emph{File} menu which start new
@@ -265,8 +297,9 @@ doesn't have the keyboard focus. Focus usually moves into a text window
 as the mouse-cursor moves into it, but occasionally after popup warnings
 it's necessary to force the issue by clicking in the desired window.
 
-\hypertarget{the-editing-model}{%
-\subsection{The Editing Model}\label{the-editing-model}}
+\hypertarget{editingmodel}{\subsection{Editing Model}\label{theediting-model}}
+
+
 
 At any stage, the document in a window (minitext or main) may have a
 \emph{selection} -- which is a contiguous region of the document. The
@@ -276,15 +309,20 @@ is shown as a thin red rectangle -- and at the other end by the
 cursor and mark are in the same position only the cursor is shown, and
 the selection (in that document) is effectively empty.
 
+The text of a selection is always shown on a coloured background: grey
+if the selection was \emph{definite} and pink if the selection was
+\emph{tentative}. Figure \ref{Screen2} shows a session
+window with a tentative selection.\footnote{It is likely that
+this selection was made when the cursor was moved
+to the right of the rightmost curly bracket on
+line 275.} See \textsf{Treatment of the Selection} for further
+detail.
+
 The document cursor can be moved in small increments by the arrow keys,
 or can be placed anywhere in the document by clicking with the left
 mouse-button. The mark can be placed anywhere in the document by
 clicking with the right mouse button.
 
-The text of a selection is always shown on a coloured background: grey
-if the selection was \emph{definite} and pink if the selection was
-\emph{tentative}. (See \textbf{Treatment of the Selection} for further
-detail).
 
 After every editing action the position of the document in the editor
 window is adjusted automatically so that \emph{the document cursor is
@@ -309,15 +347,14 @@ selection; it is usually bound to the key \texttt{C-X}. When two ore
 more adjacent parts of the document are deleted (or cut) in successive
 actions they are treated as if they had been cut at the same time.
 
-\hypertarget{editing-commands}{%
-\subsection{Editing Commands}\label{editing-commands}}
+\hypertarget{editing-commands}{\subsection{Editing Commands}\label{editing-commands}}
 
-A comprehensive set of editing actions are built-in, and bound to a
-standard set of keys or menu entries. Some actions are available on more
-than one key or menu entry. The actions described below are a selection
-of those provided.
+A comprehensive set of editing actions are built-in, and bound to
+a standard set of keys or menu entries by default. Some actions are
+available on more than one key or menu entry. The actions described
+below are a selection of those provided.
 
-The editor can be customised using the \texttt{redscript} language that
+The editor can be customised using the \texttt{redscript} language. This
 supports the definition of new actions as well as changes of binding of
 actions to keys. The language will be described in a separate section.
 
@@ -332,25 +369,32 @@ prepared to use the mouse to navigate or hit a menu button occasionally.
 \subsubsection{Undo and Redo}\label{undo-and-redo}}
 
 As editing actions happen their effects are pushed onto the \emph{done
-stack}.
+stack} for that session.
 
 \emph{Undo} (\texttt{C-z}) undoes the topmost effect on the \emph{done
 stack} and pushes it onto the \emph{undone stack}.
 
 \emph{Redo} (\texttt{C-Z}) re-does the topmost effect on the
-\emph{undone stack}, -- pops it from that stack.
+\emph{undone stack}; and pops it from that stack.
 
-\emph{Redo} can also be invoked from the redo button at the right end of
-the menu bar: it is labelled \emph{n}\texttt{\textgreater{}}, where
-\emph{n} is the depth of the \emph{undone stack}. \emph{Undo} can also
-be invoked from the redo button to the left of the redo button: it is
-labelled \emph{n}\texttt{\textless{}}, where \emph{n} is the depth of
-the \emph{done stack}. Consecutive character insertions on the same line
-(between other actions) ``bunched'', so that their effect can be undone
-all at once. Consecutive cuts or other deletions are also bunched.
+\emph{Redo} can also be invoked from the redo button at the right
+end of the menu bar: it is labelled \emph{n}\texttt{\textgreater{}},
+where \emph{n} is the depth of the \emph{undone stack}. \emph{Undo}
+can also be invoked from the redo button to the left of the redo
+button: it is labelled \emph{n}\texttt{\textless{}}, where \emph{n}
+is the depth of the \emph{done stack}. Consecutive character
+insertions on the same line (between other actions) ``bunched'',
+so that their effect can be undone all at once. Consecutive cuts
+or other deletions are also bunched.
 
-When editing actions other than \emph{Undo} or \emph{Redo} happen, the
-entire \emph{redo stack} is emptied.
+When editing actions other than \emph{Undo} or \emph{Redo} happen,
+the entire \emph{redo stack} is emptied.\footnote{There is in
+principle no bound on the depth of the \emph{done stack} (I have
+seen it deeper than \texttt{4k}. The bunching of insertions and
+deletions make this feasible; but it is inadvisable to try to
+\emph{Undo} too far.}
+
+
 
 \hypertarget{cut-and-paste}{%
 \subsubsection{Cut and Paste}\label{cut-and-paste}}
@@ -445,6 +489,9 @@ If the current selection is an instance of \textbf{(F)} then:
   the left of the mark.
 \end{itemize}
 
+By convention the ``upward'' variant of an action is bound to the
+shifted key that its ``downward'' variant is bound to.
+
 \hypertarget{find-and-replace-technique}{%
 \subsubsection{Find and Replace
 (Technique)}\label{find-and-replace-technique}}
@@ -454,7 +501,8 @@ and some include the possibility of ``approving'' replacements. In what
 follows we explain our simpler approach.
 
 A way of replacing the next instance of \texttt{"FOO"} with
-\texttt{"BAR"} without using the mouse to move between texts is to type:
+\texttt{"BAR"}, starting from scratch, without using the mouse to
+move between texts is to type:
 
 \begin{verbatim}
     C-Numpad-0 F O O Numpad-0 C-Numpad-. B A R Numpad-.
@@ -472,9 +520,11 @@ or
     C-f C-r
 \end{verbatim}
 
-Since the \emph{Find} and \emph{Repl} minitexts are already set to the
-right pattern and replacement. Obviously subsequent instances can be
-found/replaced with the same keystrokes.
+Since the \emph{Find} and \emph{Repl} minitexts are already set to
+the right pattern and replacement. Obviously subsequent instances
+can be found/replaced with the same keystrokes; and the same technique
+can be used ``upwards'', by using \emph{FindUp} and \emph{ReplaceUp}
+(the same keys pressed, but shifted).
 
 \begin{itemize}
 \item
@@ -498,10 +548,25 @@ found/replaced with the same keystrokes.
 To find/replace earlier instances just type the same actions with the
 shift key pressed.
 
-\hypertarget{indentation}{%
-\subsection{Indentation}\label{indentation}}
 
-\textbf{Indenting one or more lines when there is a nonempty selection:}
+
+
+
+
+\hypertarget{indentation}{%
+\subsubsection{Indentation and the \texttt{Tab} key}\label{indentation}}
+
+When there is no selection \texttt{Tab} inserts enough spaces to
+move the cursor so that it is a multiple of 8 characters from the left
+margin.
+
+When \texttt{Red/Autoindent} is enabled, it is assumed that the
+indentation of the text following a newline is to be the same as the
+indentation of the current line. This is achieved by inserting spaces
+after \texttt{Enter} is typed, and removing spaces to the right of the
+cursor if necessary.
+
+When there is a nonempty selection:
 
 \begin{itemize}
 \item
@@ -518,17 +583,11 @@ shift key pressed.
 \end{itemize}
 
 The indent and undent selection actions effectively \emph{cut} the
-selection and replace it with the indented (undented) text.
+selection and replace it with the indented (undented) text. A
+consecutive sequence of \emph{Indent} or \emph{Undent} actions
+is undone by \emph{Undo}.
 
-\emph{When there is no selection} \texttt{Tab} inserts enough spaces to
-move the cursor so that it is a multiple of 8 characters from the left
-margin.
 
-When \texttt{Red/Autoindent} is enabled, it is assumed that the
-indentation of the text following a newline is to be the same as the
-indentation of the current line. This is achieved by inserting spaces
-after \texttt{Enter} is typed, and removing spaces to the right of the
-cursor if necessary.
 
 \hypertarget{treatment-of-the-selection}{%
 \subsection{Treatment of the
@@ -574,21 +633,20 @@ bracketing pair.
 \texttt{Red} builds-in most unicode bracketing pairs in addition to the
 obvious ``\{\}'', ``()'', ``{[}{]}'' and can be easily adapted to add
 more pairs specified by regular expressions; such as those that match
-the built-in (Latex and HTML blocks)
+the built-in Latex and HTML blocks.
 
-\begin{verbatim}
-    \begin{...}    \end{...}
-    <id ... >      </id>       
-\end{verbatim}
+Any \verb/\begin{/$kind_b$\verb/}/ is considered to match
+any \verb/\end{/$kind_e$\verb/}/
+no matter whether $kind_b$ and $kind_e$ are the same. Likewise
+any \verb/</$kind_b$\verb/ ...>/ and \verb/</$kind_e$\verb|/>|.
 
-(See also \textbf{Introduction})
-
-These behaviours are enabled by the \textbf{Red/Select/(\ldots@)\}} and
-\textbf{Red/Select/\{\ldots\}} checkboxes respectively: their values are
-preserved between \texttt{Red} invocations.
+Tentative selection behaviours are enabled or disabled by the
+\texttt{Red/Select/(\ldots@)\}} and
+\texttt{Red/Select/\{\ldots\}} menu entries respectively: their values are
+indicated on the menu entries and preserved between \texttt{Red} invocations.
 
 \hypertarget{abbreviations}{%
-\subsubsection{Abbreviations}\label{abbreviations}}
+\subsection{Abbreviations}\label{abbreviations}}
 
 Red can be configured with \emph{abbreviations} for texts that contain
 unicode symbols that may not appear directly on the keyboard.
@@ -606,13 +664,13 @@ character immediately to the left of the cursor with its unicode
 encoding, in the form \texttt{\textbackslash{}u}\emph{xxxx}.
 
 \hypertarget{examples-of-abbreviations}{%
-\paragraph{Examples of abbreviations:}\label{examples-of-abbreviations}}
+\subsubsection{Examples}\label{examples-of-abbreviations}}
 
-Here, for example, are extracts from the (extensive) bindings file
-\texttt{symbols.redscript} delivered with Red. Notice that both unicode
-glyphs and their
-\texttt{\textbackslash{}u\textasciigrave{}\textasciigrave{}XXXX} codes
-can be used in abbreviations and their substitutions.
+Here are extracts from the (extensive) bindings file
+\texttt{symbols.redscript} delivered with Red. Notice that both
+unicode glyphs and their numbered Unicode representations in the
+form \texttt{\textbackslash{}uXXXX} can be used in abbreviations
+and their substitutions.
 
 \begin{verbatim}
 abbrev "lnot"       "\u00AC"    # ¬
@@ -639,19 +697,17 @@ abbrev "lbs"        "pounds and pounds"
 Further details of binding configurations will (eventually) be found in
 an appendix.
 
-\hypertarget{key-assignment-policy}{%
-\subparagraph{Key Assignment Policy:}\label{key-assignment-policy}}
-
-It makes sense for \emph{FindUp} to be bound to the shifted key that
-\emph{FindDown} is bound to; and for \emph{ReplaceUp} to be bound to the
-shifted \emph{ReplaceDown} key, and that is what we have done.
-
+%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\appendix
 \hypertarget{appendix-bindings-and-abbreviations}{%
-\subsection{APPENDIX: Bindings and
+\section{APPENDIX: Bindings and
 Abbreviations}\label{appendix-bindings-and-abbreviations}}
 
 \hypertarget{redscript}{%
-\subsubsection{RedScript}\label{redscript}}
+\subsection{RedScript}\label{redscript}}
 
 As the editor is started it reads the file
 \texttt{\textasciitilde{}/.red/bindings.redscript}: the role of the
@@ -661,7 +717,7 @@ distributed version of the script provides a decent minimum collection
 of features that permit some choices to be made by the user.
 
 \hypertarget{appendix-history-of-applered}{%
-\subsection{\texorpdfstring{APPENDIX: History of
+\section{\texorpdfstring{APPENDIX: History of
 \texttt{AppleRed}}{APPENDIX: History of AppleRed}}\label{appendix-history-of-applered}}
 
 \hypertarget{red-starts-life-as-a-toy}{%
