@@ -1,4 +1,4 @@
-#
+#   
 #   Latex snippet declarations: 19/11/2022
 #
 latex:snippet Letter “%xelatex
@@ -9,7 +9,7 @@ latex:snippet Letter “%xelatex
     This is the body
 \Ps{ps paragraph}
 \PostSig{post signature para}
-\Cc{carrbon1, carbon2, ...}
+\Cc{carbon1, carbon2, ...}
 \Sign[yours sincerely]{Bernard Sufrin}
 ”
 

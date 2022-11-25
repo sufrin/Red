@@ -103,6 +103,7 @@ object Personalised extends Logging.Loggable {
     var insertionSelects:  Boolean = true
   }
 
+  // TODO: move the trie and keymaps into the edit sessions
 
   object Bindings {
     val feedback: Notifier[String] = new Notifier[String]("Personalised Feedback")
