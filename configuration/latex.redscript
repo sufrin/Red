@@ -1,7 +1,7 @@
 #   
 #   Latex snippet declarations: 19/11/2022
 #
-latex:snippet Letter “%xelatex
+LATEX:snippet Letter “%xelatex
 \documentclass[12pt,lab|wor|home|magd,bernard|sufrin]{letter} %
 \To{lines\\of\\mailing address}
 \Dear[Dear]{Victim}
@@ -13,7 +13,7 @@ latex:snippet Letter “%xelatex
 \Sign[yours sincerely]{Bernard Sufrin}
 ”
 
-latex:snippet Article “%xelatex
+LATEX:snippet Article “%xelatex
 \documentclass[11pt,a4paper]{article}
 %%%%%%%%%%%%%%%%%%%%%
 \usepackage[]{}

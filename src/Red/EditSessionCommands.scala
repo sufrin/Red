@@ -98,6 +98,36 @@ object EditSessionCommands extends Logging.Loggable {
     }
   }
 
+  def removeCommonPrefix: SessionCommand = new Filter {
+    override def adjustNL: Boolean = true
+    protected override def transform(input: String, cwd: Path): Option[String] = {
+      val lines = input.split('\n')
+      var prefixLength = 0
+      var undentBy, undent = ""
+      var going = true
+      if (lines.length>1) {
+        val candidates = lines.filter(_.nonEmpty)
+        val max        = candidates.map(_.length).min
+        while (going && prefixLength < max) {
+          going = candidates.forall(_.startsWith(undent))
+          if (going) {
+            prefixLength += 1
+            undentBy = undent
+            undent = candidates(0).substring(0, prefixLength)
+          }
+        }
+        // !going || prefixLength=max
+      }
+      if (logging) fine(s"undenting by: $undentBy")
+      val result= new StringBuilder()
+      for { line <- lines } {
+        result.addAll(if (line.startsWith(undentBy)) line.substring(undentBy.length) else line)
+        result.addOne('\n')
+      }
+      Some(result.toString())
+    }
+  }
+
   val autoIndentSelection: SessionCommand =
       Command.guarded( _.hasSelection, indentSelection )
 

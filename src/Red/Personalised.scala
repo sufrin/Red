@@ -472,7 +472,7 @@ object Personalised extends Logging.Loggable {
       def evalCommandNamed(specs: List[SExp]) : Const =
         { val List(Str(name)) = specs
           CommandsDict(name) match {
-            case None          => warn(s"(command $name) is not known"); Nothing
+            case None          => throw RuntimeError(s"UI:commandNamed: $name is not an AppleRed core command")
             case Some(command) => EditSessionCommand(name, command)
           }
         }

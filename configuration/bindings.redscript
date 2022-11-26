@@ -80,39 +80,62 @@ constant shell:Commands (list "wc" "ls -lt" "date" "printenv")
   )
 )
 
-# Latex snippets are on the \begin{...}/Tex menu 
-(def (UI:latex:Snippets path) latex:Snippets)
+# Latex snippets are placed on the \begin{...}/Tex menu
+#
+#
+(def (UI:latex:Snippets path) LATEX:Snippets)
 
-variable  latex:Snippets ()
+variable  LATEX:Snippets ()
 
-(constant latex:snippet
-  (form (env tag text)
-        (:= latex:Snippets (:: (tag . text) latex:Snippets))
-        ()))
-
-# bind a keystroke to a (Tex) styling action
-(def (TEXSTYLE: key cmd) 
-     (log key cmd)
-     (UI:keys ( key . (command cmd) ) ))
+# Add a snippet declaration with LATEX:snippet "name" “long string”
+(defForm (LATEX:snippet env tag text)
+         (:= LATEX:Snippets (:: (tag . text) LATEX:Snippets))
+         ())
+        
+# bind a keystroke to a styling action
+(def (STYLE: key before after) 
+     #(log key before after)
+     (UI:keys ( key . (UI:styleAs before after) )))
 
 (def (LOADTEX:)
      # Main keyboard
-     (TEXSTYLE: "SLASH(C)"           "styleAsItalic")     
-     (TEXSTYLE: "SLASH(SC)"          "styleAsSlant")
-     (TEXSTYLE: "BACKSLASH(SC)"      "styleAsEmph")
-     (TEXSTYLE: "BACKSLASH(C)"       "styleAsBold")
+     (STYLE: "SLASH(C)"            “\textit{” “}”)    
+     (STYLE: "SLASH(SC)"           “\textsl{” “}”)
+     (STYLE: "BACKSLASH(SC)"       “\emph{”   “}”)
+     (STYLE: "BACKSLASH(C)"        “\textbf{” “}”)
+     (STYLE: "4(C)"                “$”        “$”)
+     (STYLE: "BACKQUOTE(C)"        “\texttt{” “}”)
      # Numeric keyboard
-     (TEXSTYLE: "Numpad*@Numpad"     "styleAsBold")
-     (TEXSTYLE: "Numpad*(S)@Numpad"  "styleAsEmph")
-     (TEXSTYLE: "Numpad/@Numpad"     "styleAsItalic")
-     (TEXSTYLE: "Numpad/(S)@Numpad"  "styleAsSlant")                    
+     (STYLE: "Numpad*@Numpad"      “\textbf{” “}”)
+     (STYLE: "Numpad*(S)@Numpad"   “\emph{”   “}”)
+     (STYLE: "Numpad/@Numpad"      “\textit{” “}”)
+     (STYLE: "Numpad/(S)@Numpad"   “\textsl{” “}”)                    
      
-     (abbrev  "f"                "\\footnote{}")
-     (abbrev  "s"                "\\section{}")
-     (abbrev  "ss"               "\\subsection{}")
-     (abbrev  "sss"              "\\subsubsection{}"))
+     (UI:abbrev  "\\f"                "\\footnote{}")
+     (UI:abbrev  "\\s"                "\\section{}")
+     (UI:abbrev  "\\ss"               "\\subsection{}")
+     (UI:abbrev  "\\sss"              "\\subsubsection{}")
+)
 
-
+##  (def (LOADMD:)
+##       # Main keyboard
+##       (STYLE: "SLASH(C)"            “_” “_”)     
+##       (STYLE: "SLASH(SC)"           “\textsl{” “}”)
+##       (STYLE: "BACKSLASH(SC)"       “\emph{” “}”)
+##       (STYLE: "BACKSLASH(C)"        “\textbf{” “}”)
+##       (STYLE: "4(C)"                “$” “$”)
+##       (STYLE: "BACKQUOTE(C)"        “`” “`”)
+##       # Numeric keyboard
+##       (STYLE: "Numpad*@Numpad"      “**” “**”)
+##       (STYLE: "Numpad*(S)@Numpad"   “\emph{” “}”)
+##       (STYLE: "Numpad/@Numpad"      “\textit{” “}”)
+##       (STYLE: "Numpad/(S)@Numpad"   “\textsl{” “}”)                    
+##       
+##       (UI:abbrev  "\\f"                "\\footnote{}")
+##       (UI:abbrev  "\\s"                "\\section{}")
+##       (UI:abbrev  "\\ss"               "\\subsection{}")
+##       (UI:abbrev  "\\sss"              "\\subsubsection{}")
+##  )
 
 
 #
@@ -145,6 +168,19 @@ variable  latex:Snippets ()
 #
 #
 #############################################################################
+
+#############################################################################
+#
+# indents, etc on the keypad
+#
+(UI:keys ("LEFT(SC)"  . (UI:commandNamed "removeCommonPrefix")))
+(UI:keys ("LEFT(C)"   . (UI:commandNamed "undentSelection")))
+(UI:keys ("RIGHT(C)"  . (UI:commandNamed "indentSelection")))
+#
+#
+#
+#############################################################################
+
 
 #############################################################################
 #

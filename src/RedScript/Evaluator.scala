@@ -250,7 +250,7 @@ class Evaluator {
     case List(expr) => expr
     case exprs => SExps(syntaxEnv("seq").get :: exprs)
   }
-  
+
 
   /** Lazy conjunction of `test` applied to the value of each argument */
   def forall(name: String)(test: SExp => Boolean): SExp =

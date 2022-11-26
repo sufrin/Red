@@ -4,7 +4,7 @@
 #
 [def (BindMathematicalKeys)
    
-  (altclear) 
+  (UI:altclear) 
 
   # Bind alt and alt-shift variants of some regular keys
   (ALTS: "," "←" "≤")
@@ -17,8 +17,8 @@
   (ALT:  "E" "∃")
   (ALT:  "Z" "↯")
 
+  # Bind ALT variants of some function keys
   (UI:keys
-    # Bind ALT variants of some function keys
     ("LEFT(SA)"   . (insert "⇐"))
     ("RIGHT(SA)"  . (insert "⇒"))
     ("LEFT(A)"    . (insert "←"))
@@ -36,176 +36,175 @@
 
 
 #
-#       Common symbol abbreviations
+#       Common Unicode symbol abbreviations
 #
-abbrev  "exists"           "\u2203"  
-abbrev  "notexists"        "\u2204"  
-abbrev  "in"               "\u2208" 
-abbrev  "notin"            "\u2209"
-abbrev  "~\u2203"          "\u2204"
-abbrev  "leq"              "\u2264"
-abbrev  "geq"              "\u2265"
-abbrev  "<-"               "\u2190"
-abbrev  "ua"               "\u2191"
-abbrev  "->"               "\u2192"
-abbrev  "da"               "\u2193"
-abbrev  "<->"              "\u2194"
+UI:abbrev  "exists"           "\u2203"  
+UI:abbrev  "notexists"        "\u2204"  
+UI:abbrev  "in"               "\u2208" 
+UI:abbrev  "notin"            "\u2209"
+UI:abbrev  "~\u2203"          "\u2204"
+UI:abbrev  "leq"              "\u2264"
+UI:abbrev  "geq"              "\u2265"
+UI:abbrev  "<-"               "\u2190"
+UI:abbrev  "ua"               "\u2191"
+UI:abbrev  "->"               "\u2192"
+UI:abbrev  "da"               "\u2193"
+UI:abbrev  "<->"              "\u2194"
+
 # Quotation marks
-abbrev  "``"               "\u201c" # “
-abbrev  "''"               "\u201d" # ”
-abbrev  "`"                "\u2018" # ‘  
-abbrev  "'"                "\u2019" # ’  
+UI:abbrev  "``"               "\u201c" # “
+UI:abbrev  "''"               "\u201d" # ”
+UI:abbrev  "`"                "\u2018" # ‘  
+UI:abbrev  "'"                "\u2019" # ’  
+   
+UI:abbrev  "+>"       "\u219b"    
+UI:abbrev  "->>"      "\u21a0"          # ↠
+UI:abbrev  ">->"      "\u21a3"          # ↣
+UI:abbrev  "to"       "\u21a6"          # ↦
+UI:abbrev  "|->"      "\u21a6"          # ↦
+    
+UI:abbrev  "zz"       "\u21af"          # ↯ 
+    
+UI:abbrev  "<="       "\u21D0"          # ⇐
+UI:abbrev  "Ua"       "\u21D1"          # ⇑
+UI:abbrev  "=>"       "\u21D2"          # ⇒
+UI:abbrev  "Da"       "\u21D3"          # ⇓
+UI:abbrev  "<->"      "\u2194"          # ↔
+UI:abbrev  "iff"      "\u2194"          # ↔
+UI:abbrev  "Iff"      "\u21D4"          # ⇔
+UI:abbrev  "<=>"      "\u21D4"          # ⇔
 
+UI:abbrev  "<<="      "\u2286"          # ⊆
+UI:abbrev  "=>>"      "\u2287"          # ⊇
+UI:abbrev  "sub"      "\u2286"          # ⊆
+UI:abbrev  "sup"      "\u2287"          # ⊇
+    
+UI:abbrev  "<=="      "\u21DA"          # ⇚
+UI:abbrev  "==>"      "\u21DB"          # ⇛
+UI:abbrev  "<~~"      "\u21DC"          # ⇜
+UI:abbrev  "~~>"      "\u21DD"          # ⇝
+    
+UI:abbrev  "lwa"      "\u21E6"          # ⇦ 
+UI:abbrev  "uwa"      "\u21E7"          # ⇧ 
+UI:abbrev  "rwa"      "\u21E8"          # ⇨ 
+UI:abbrev  "dwa"      "\u21E9"          # ⇩ 
+    
+UI:abbrev  "[]"       "\u220E"          # ∎  
+UI:abbrev  "compose"  "\u2218"          # ∘ 
+UI:abbrev  "dot"      "\u2219"          # ∙
+UI:abbrev  "tick"     "\u221a"          # √ 
+UI:abbrev  "||"       "\u2225"          # ∥ 
 
+UI:abbrev  "euro"     "\u20ac"          # €
+UI:abbrev  "pound"    "\u20a4"          # ₤           
     
-abbrev  "+>"       "\u219b"    
-abbrev  "->>"      "\u21a0"          # ↠
-abbrev  ">->"      "\u21a3"          # ↣
-abbrev  "to"       "\u21a6"          # ↦
-abbrev  "|->"      "\u21a6"          # ↦
+UI:abbrev  "lnot"     "\u00AC"          # ¬
+UI:abbrev  "land"     "\u2227"          # ∧
+UI:abbrev  "/\\"      "\u2227"          # ∧
+UI:abbrev  "lor"      "\u2228"          # ∨
+UI:abbrev  "\\/"      "\u2228"
+UI:abbrev  "cap"      "\u2229"          # ∩
+UI:abbrev  "cup"      "\u222a"          # ∪         
     
-abbrev  "zz"       "\u21af"          # ↯ 
+UI:abbrev  "so"       "\u2234"          # ∴ 
+UI:abbrev  "cos"      "\u2235"          # ∵ 
     
-abbrev  "<="       "\u21D0"          # ⇐
-abbrev  "Ua"       "\u21D1"          # ⇑
-abbrev  "=>"       "\u21D2"          # ⇒
-abbrev  "Da"       "\u21D3"          # ⇓
-abbrev  "<->"      "\u2194"          # ↔
-abbrev  "iff"      "\u2194"          # ↔
-abbrev  "Iff"      "\u21D4"          # ⇔
-abbrev  "<=>"      "\u21D4"          # ⇔
+UI:abbrev  ":="       "\u2254"          # ≔
+UI:abbrev  "Defs"     "\u225c"          # ≜
+    
+UI:abbrev  "defs"     "\u2258"          # ≘ 
+UI:abbrev  "equiv"    "\u2261"          # ≡ 
+UI:abbrev  "xo"       "\u2297"          # ⊗
+UI:abbrev  "ox"       "\u2297"          # ⊗
+UI:abbrev  "o+"       "\u2295"          # ⊕
+UI:abbrev  "+o"       "\u2295"          # ⊕
+UI:abbrev  "|-"       "\u22a2"          # ⊢
+UI:abbrev  "true"     "\u22a4"          # ⊤
+UI:abbrev  "false"    "\u22a5"          # ⊥
+UI:abbrev  "top"      "\u22a4"          # ⊤
+UI:abbrev  "bot"      "\u22a5"          # ⊥
+UI:abbrev  "|="       "\u22a7"          # ⊧
+    
+UI:abbrev  "alpha"    "\u03B1"
+UI:abbrev  "beta"     "\u03B2" 
+UI:abbrev  "gamma"    "\u03B3"
+UI:abbrev  "delta"    "\u03B4"
+UI:abbrev  "epsilon"  "\u03B5"
+UI:abbrev  "zeta"     "\u03B6"
+UI:abbrev  "eta"      "\u03B7"
+UI:abbrev  "theta"    "\u03B8"
+UI:abbrev  "iota"     "\u03B9"
+UI:abbrev  "kappa"    "\u03BA"
+UI:abbrev  "lambda"   "\u03BB"
+UI:abbrev  "mu"       "\u03BC"          # μ
+UI:abbrev  "nu"       "\u03BD"
+UI:abbrev  "xi"       "\u03BE"          # ξ
+UI:abbrev  "omicron"  "\u03BF"
+UI:abbrev  "pi"       "\u03C0"
+UI:abbrev  "rho"      "\u03C1"
+UI:abbrev  "finalsigma" "\u03C2"        # ς
+UI:abbrev  "sigma"    "\u03C3"
+UI:abbrev  "tau"      "\u03C4"
+UI:abbrev  "upsilon"  "\u03C5"          # υ
+UI:abbrev  "xphi"     "\u03C6"          # φ
+UI:abbrev  "phi"      "\u03D5"          # ϕ
+UI:abbrev  "chi"      "\u03C7"          # χ
+UI:abbrev  "psi"      "\u03C8"          # ψ
+UI:abbrev  "omega"    "\u03C9"
+    
+UI:abbrev  "Alpha"    "\u0391"
+UI:abbrev  "Beta"     "\u0392"
+UI:abbrev  "Gamma"    "\u0393"
+UI:abbrev  "Delta"    "\u0394"
+UI:abbrev  "Epsilon"  "\u0395"
+UI:abbrev  "Zeta"     "\u0396"
+UI:abbrev  "Eta"      "\u0397"
+UI:abbrev  "Theta"    "\u0398"
+UI:abbrev  "Iota"     "\u0399"
+UI:abbrev  "Kappa"    "\u039A"
+UI:abbrev  "Lambda"   "\u039B"
+UI:abbrev  "Mu"       "\u039C"
+UI:abbrev  "Nu"       "\u039D"
+UI:abbrev  "Xi"       "\u039E"
+UI:abbrev  "Omicron"  "\u039F"
+UI:abbrev  "Pi"       "\u03A0"
+UI:abbrev  "Rho"      "\u03A1"
+UI:abbrev  "Finalsigma" "\u03A2"
+UI:abbrev  "Sigma"    "\u03A3"
+UI:abbrev  "Tau"      "\u03A4"
+UI:abbrev  "Upsilon"  "\u03A5"
+UI:abbrev  "Phi"      "\u03A6"
+UI:abbrev  "Chi"      "\u03A7"
+UI:abbrev  "Psi"      "\u03A8"
+UI:abbrev  "Omega"    "\u03A9"
 
-abbrev  "<<="      "\u2286"          # ⊆
-abbrev  "=>>"      "\u2287"          # ⊇
-abbrev  "sub"      "\u2286"          # ⊆
-abbrev  "sup"      "\u2287"          # ⊇
-    
-abbrev  "<=="      "\u21DA"          # ⇚
-abbrev  "==>"      "\u21DB"          # ⇛
-abbrev  "<~~"      "\u21DC"          # ⇜
-abbrev  "~~>"      "\u21DD"          # ⇝
-    
-abbrev  "lwa"      "\u21E6"          # ⇦ 
-abbrev  "uwa"      "\u21E7"          # ⇧ 
-abbrev  "rwa"      "\u21E8"          # ⇨ 
-abbrev  "dwa"      "\u21E9"          # ⇩ 
-    
-abbrev  "[]"       "\u220E"          # ∎  
-abbrev  "compose"  "\u2218"          # ∘ 
-abbrev  "dot"      "\u2219"          # ∙
-abbrev  "tick"     "\u221a"          # √ 
-abbrev  "||"       "\u2225"          # ∥ 
+UI:abbrev  "_n"       "\u207F" # 
+UI:abbrev  "_0"       "\u2080" # ₀ FOO₀
+UI:abbrev  "_1"       "\u2081" # ₁
+UI:abbrev  "_2"       "\u2082" # ₂
+UI:abbrev  "_3"       "\u2083" # ₃ 
+UI:abbrev  "_4"       "\u2084" # ₄
+UI:abbrev  "_5"       "\u2085" # ₅
+UI:abbrev  "_6"       "\u2086" # ₆
+UI:abbrev  "_7"       "\u2087" # ₇
+UI:abbrev  "_8"       "\u2088" # ₈
+UI:abbrev  "_9"       "\u2089" # ₉
+UI:abbrev  "_+"       "\u208A" # ₊ foo₊
+UI:abbrev  "_-"       "\u208B" # ₋
+UI:abbrev  "_="       "\u208C" # ₌
+UI:abbrev  "_("       "\u208D" # ₍
+UI:abbrev  "_)"       "\u208E" # ₎
 
-abbrev  "euro"     "\u20ac"          # €
-abbrev  "pound"    "\u20a4"          # ₤           
-    
-abbrev  "lnot"     "\u00AC"          # ¬
-abbrev  "land"     "\u2227"          # ∧
-abbrev  "/\\"      "\u2227"          # ∧
-abbrev  "lor"      "\u2228"          # ∨
-abbrev  "\\/"      "\u2228"
-abbrev  "cap"      "\u2229"          # ∩
-abbrev  "cup"      "\u222a"          # ∪         
-    
-abbrev  "so"       "\u2234"          # ∴ 
-abbrev  "cos"      "\u2235"          # ∵ 
-    
-abbrev  ":="       "\u2254"          # ≔
-abbrev  "Defs"     "\u225c"          # ≜
-    
-abbrev  "defs"     "\u2258"          # ≘ 
-abbrev  "equiv"    "\u2261"          # ≡ 
-abbrev  "xo"       "\u2297"          # ⊗
-abbrev  "ox"       "\u2297"          # ⊗
-abbrev  "o+"       "\u2295"          # ⊕
-abbrev  "+o"       "\u2295"          # ⊕
-abbrev  "|-"       "\u22a2"          # ⊢
-abbrev  "true"     "\u22a4"          # ⊤
-abbrev  "false"    "\u22a5"          # ⊥
-abbrev  "top"      "\u22a4"          # ⊤
-abbrev  "bot"      "\u22a5"          # ⊥
-abbrev  "|="       "\u22a7"          # ⊧
-    
-abbrev  "alpha"    "\u03B1"
-abbrev  "beta"     "\u03B2" 
-abbrev  "gamma"    "\u03B3"
-abbrev  "delta"    "\u03B4"
-abbrev  "epsilon"  "\u03B5"
-abbrev  "zeta"     "\u03B6"
-abbrev  "eta"      "\u03B7"
-abbrev  "theta"    "\u03B8"
-abbrev  "iota"     "\u03B9"
-abbrev  "kappa"    "\u03BA"
-abbrev  "lambda"   "\u03BB"
-abbrev  "mu"       "\u03BC"          # μ
-abbrev  "nu"       "\u03BD"
-abbrev  "xi"       "\u03BE"          # ξ
-abbrev  "omicron"  "\u03BF"
-abbrev  "pi"       "\u03C0"
-abbrev  "rho"      "\u03C1"
-abbrev  "finalsigma" "\u03C2"        # ς
-abbrev  "sigma"    "\u03C3"
-abbrev  "tau"      "\u03C4"
-abbrev  "upsilon"  "\u03C5"          # υ
-abbrev  "xphi"     "\u03C6"          # φ
-abbrev  "phi"      "\u03D5"          # ϕ
-abbrev  "chi"      "\u03C7"          # χ
-abbrev  "psi"      "\u03C8"          # ψ
-abbrev  "omega"    "\u03C9"
-    
-abbrev  "Alpha"    "\u0391"
-abbrev  "Beta"     "\u0392"
-abbrev  "Gamma"    "\u0393"
-abbrev  "Delta"    "\u0394"
-abbrev  "Epsilon"  "\u0395"
-abbrev  "Zeta"     "\u0396"
-abbrev  "Eta"      "\u0397"
-abbrev  "Theta"    "\u0398"
-abbrev  "Iota"     "\u0399"
-abbrev  "Kappa"    "\u039A"
-abbrev  "Lambda"   "\u039B"
-abbrev  "Mu"       "\u039C"
-abbrev  "Nu"       "\u039D"
-abbrev  "Xi"       "\u039E"
-abbrev  "Omicron"  "\u039F"
-abbrev  "Pi"       "\u03A0"
-abbrev  "Rho"      "\u03A1"
-abbrev  "Finalsigma" "\u03A2"
-abbrev  "Sigma"    "\u03A3"
-abbrev  "Tau"      "\u03A4"
-abbrev  "Upsilon"  "\u03A5"
-abbrev  "Phi"      "\u03A6"
-abbrev  "Chi"      "\u03A7"
-abbrev  "Psi"      "\u03A8"
-abbrev  "Omega"    "\u03A9"
+UI:abbrev  "(c)"       "\u00a9" # ©
+UI:abbrev  "><"        "\u00d7" # ×
+UI:abbrev  "O/"        "\u00D8" # Ø
+UI:abbrev  "<<"        "\u00AB" # «
+UI:abbrev  ">>"        "\u00BB" # »
 
-abbrev  "_n"       "\u207F" # 
-abbrev  "_0"       "\u2080" # ₀ FOO₀
-abbrev  "_1"       "\u2081" # ₁
-abbrev  "_2"       "\u2082" # ₂
-abbrev  "_3"       "\u2083" # ₃ 
-abbrev  "_4"       "\u2084" # ₄
-abbrev  "_5"       "\u2085" # ₅
-abbrev  "_6"       "\u2086" # ₆
-abbrev  "_7"       "\u2087" # ₇
-abbrev  "_8"       "\u2088" # ₈
-abbrev  "_9"       "\u2089" # ₉
-abbrev  "_+"       "\u208A" # ₊ foo₊
-abbrev  "_-"       "\u208B" # ₋
-abbrev  "_="       "\u208C" # ₌
-abbrev  "_("       "\u208D" # ₍
-abbrev  "_)"       "\u208E" # ₎
-
-abbrev  "(c)"       "\u00a9" # ©
-abbrev  "><"        "\u00d7" # ×
-abbrev  "O/"        "\u00D8" # Ø
-abbrev  "<<"        "\u00AB" # «
-abbrev  ">>"        "\u00BB" # »
-
-abbrev  "So"        "\u2042" # ⁂
-abbrev  "--"        "\u2014" # — (wide minus)
-abbrev  "[["        "\u27e6" # ⟦ 
-abbrev  "]]"        "\u27e7" # ⟧
+UI:abbrev  "So"        "\u2042" # ⁂
+UI:abbrev  "--"        "\u2014" # — (wide minus)
+UI:abbrev  "[["        "\u27e6" # ⟦ 
+UI:abbrev  "]]"        "\u27e7" # ⟧
 
 
 ############################################
@@ -214,31 +213,31 @@ abbrev  "]]"        "\u27e7" # ⟧
 # right now...
 #
 ## RTL
-## abbrev alef     "\u05D0" #
-## abbrev beth     "\u05D1" #
-## abbrev gimel    "\u05D2"
-## abbrev dalet    "\u05D3"
-## abbrev he       "\u05D4"
-## abbrev vav      "\u05D5"
-## abbrev vov      "\u05D5"
-## abbrev zayin    "\u05D6"  # ז
-## abbrev het      "\u05D7"
-## abbrev tet      "\u05D8"
-## abbrev yod      "\u05D9"
-## abbrev finalkaf "\u05DA"  # ך 
-## abbrev kaf      "\u05DB"  # כ 
-## abbrev lamed    "\u05DC"  # ל 
-## abbrev mem      "\u05DE"
-## abbrev finalnun "\u05DF"
-## abbrev nun      "\u05E0"
-## abbrev samekh   "\u05E1"
-## abbrev ayin     "\u05E2"
-## abbrev finalpe  "\u05E3"
-## abbrev pe       "\u05E4"
-## abbrev finaltsadi "\u05E5"
-## abbrev tsadi    "\u05E6"
-## abbrev qof      "\u05E7"
-## abbrev resh     "\u05E8"
-## abbrev shin     "\u05E9"
-## abbrev tav      "\u05EA"
+## UI:abbrev alef     "\u05D0" #
+## UI:abbrev beth     "\u05D1" #
+## UI:abbrev gimel    "\u05D2"
+## UI:abbrev dalet    "\u05D3"
+## UI:abbrev he       "\u05D4"
+## UI:abbrev vav      "\u05D5"
+## UI:abbrev vov      "\u05D5"
+## UI:abbrev zayin    "\u05D6"  # ז
+## UI:abbrev het      "\u05D7"
+## UI:abbrev tet      "\u05D8"
+## UI:abbrev yod      "\u05D9"
+## UI:abbrev finalkaf "\u05DA"  # ך 
+## UI:abbrev kaf      "\u05DB"  # כ 
+## UI:abbrev lamed    "\u05DC"  # ל 
+## UI:abbrev mem      "\u05DE"
+## UI:abbrev finalnun "\u05DF"
+## UI:abbrev nun      "\u05E0"
+## UI:abbrev samekh   "\u05E1"
+## UI:abbrev ayin     "\u05E2"
+## UI:abbrev finalpe  "\u05E3"
+## UI:abbrev pe       "\u05E4"
+## UI:abbrev finaltsadi "\u05E5"
+## UI:abbrev tsadi    "\u05E6"
+## UI:abbrev qof      "\u05E7"
+## UI:abbrev resh     "\u05E8"
+## UI:abbrev shin     "\u05E9"
+## UI:abbrev tav      "\u05EA"
 ############################################
