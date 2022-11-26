@@ -150,11 +150,11 @@ class Evaluator {
 
   def evDef(env: Env, form: SExp): SExp = {
     form match {
-      //   def (f . arg) body
+      //   def (f . arg) body // arg bound to the list of actual parameters
       case SExps(Pair(Variable(name),  (allArg: Variable))  :: body) =>
            global.define(name, ExprAll(env, allArg, mkSequential(body)) )
            Nothing
-      //   def (f a b c) body
+      //   def (f arg1 arg2 ...) body // arg1 arg2 ... bound to the actual parameters
       case SExps(SExps(Variable(name) :: pattern) :: body) if isPattern(pattern) =>
            global.define(name, Expr(env, SExps(pattern), mkSequential(body)))
            Nothing
@@ -164,11 +164,11 @@ class Evaluator {
 
   def evDefForm(env: Env, form: SExp): SExp = {
     form match {
-      //   def (f arg) body
+      //   defForm (f env arg1 ...) body    // env bound to the calling environment, arg1 arg2 ... bound to the actual parameters
+      //   defForm (f (env.arg) body        // env bound to the calling environment, arg bound to the list of actual parameters
       case SExps(SExps(Variable(name) :: (pattern@Pair(_: Variable, _: Variable)) :: Nil) :: body) =>
         global.define(name, FExprAll(env, pattern, mkSequential(body)) )
         Nothing
-      //   def (f a b c) body
       case SExps(SExps(Variable(name) :: pattern) :: body) if isPattern(pattern) =>
         global.define(name, FExpr(env, SExps(pattern), mkSequential(body)))
         Nothing
@@ -200,25 +200,25 @@ class Evaluator {
    */
   def evFun(env: Env, form: SExp): SExp = {
     form match {
-      // fun var body -- binds all params to the variable
+      // fun arg body -- binds list of actual params to arg
       case SExps((all: Variable) :: body) => ExprAll(env, all, mkSequential(body))
-      // fun (a b c) body -- binds params to the right number of args
+      // fun (arg1 arg2 ...) body -- binds actual params to arg1 arg2 ....
       case SExps(pattern :: body) if isPattern(pattern) => Expr(env, pattern, mkSequential(body))
       // incorrect
-      case SExps(pattern :: body) if !isPattern(pattern) => throw SyntaxError(s"Malformed parameter(s): ${pattern.position}")
+      case SExps(pattern :: body) if !isPattern(pattern) => throw SyntaxError(s"Malformed fun parameter(s): ${pattern.position}")
       case _ => throw SyntaxError(s"Malformed function expression: $form")
     }
   }
 
   /** Evaluate a by-syntax function expression (to a closure)
-   *
+   *  (see also defForm)
    *  TODO: check redefinability of parameter names
    */
   def evForm(env: Env, form: SExp): SExp = {
     form match {
-      // form (env . args) body
+      // form (env . args) body         // env bound to calling environment, args bound to list of actual parameters
       case SExps((pattern: Pair) :: body)  => FExprAll(env, pattern, mkSequential(body))
-      // form (a b c) body
+      // form (env arg1 arg2 ...) body  // env bound to calling environment, arg1 arg2 ... bound to actual parameters
       case SExps(pattern :: body) if isPattern(pattern) => FExpr(env, pattern, mkSequential(body))
       // form all body
       case SExps(pattern :: body) if !isPattern(pattern) => throw SyntaxError(s"Malformed parameter(s): ${pattern.position}")
@@ -241,23 +241,16 @@ class Evaluator {
     atom
   }
 
-  /**  Workhorse to implement the transformations (for N>1):
-   *
-   *   {{{
-   *   (expr params e1 e2 eN) => (expr params (seq e1 e2 eN))
-   *   }}}
-   *   and
-   *
-   *   {{{
-   *   (def (f params) e1 e2 eN) => (def  f(params) (seq e1 e2 eN))
-   *   }}}
+  /**  Workhorse to implement the transformation (for `N>1`)
+   *   of a sequence of expressions of length `N`` to a single
+   *   `(seq ...)` expression. Used to systematically transform
+   *   the `body` part of a function expression or definition.
    */
   def mkSequential(exprs: List[SExp]): SExp = exprs match {
     case List(expr) => expr
     case exprs => SExps(syntaxEnv("seq").get :: exprs)
   }
-
-
+  
 
   /** Lazy conjunction of `test` applied to the value of each argument */
   def forall(name: String)(test: SExp => Boolean): SExp =

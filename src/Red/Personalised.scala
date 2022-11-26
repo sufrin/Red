@@ -469,7 +469,7 @@ object Personalised extends Logging.Loggable {
         Nothing
       }
 
-      def evalCommand(specs: List[SExp]) : Const =
+      def evalCommandNamed(specs: List[SExp]) : Const =
         { val List(Str(name)) = specs
           CommandsDict(name) match {
             case None          => warn(s"(command $name) is not known"); Nothing
@@ -482,7 +482,7 @@ object Personalised extends Logging.Loggable {
         EditSessionCommand("insert", EditSessionCommands.insertCommand(chars))
       }
 
-      def evalAndThen(specs: List[SExp]) : Const = {
+      def evalCmdSeq(specs: List[SExp]) : Const = {
         val command = specs.foldLeft(EditSessionCommand("", EditSessionCommands.doNothing)){
           case (EditSessionCommand(n1, c1), EditSessionCommand(n2, c2)) => EditSessionCommand(s"$n1; $n2", c1 &&& c2)
         }
@@ -497,29 +497,38 @@ object Personalised extends Logging.Loggable {
       val bindingPrimitives: List[(String, Const)] = List(
         "abbrev"      -> Subr("abbrev",      {  case List(Str(abbr), Str(text)) => mapTo(abbr, text); Nothing }),
         "diacritical" -> Subr("diacritical", doDia(_)),
-        "altclear"    -> Subr("altclear",    {  Nil => AltKeyboard.clear(); Nothing }),
+        "altclear"    -> Subr("UI:altclear", {  Nil => AltKeyboard.clear(); Nothing }),
         "include"     -> Subr("include",     doInclude(_)),
         // "module"     -> Subr("module",     doModule(_)), // TODO: (module name "path") defines a module environment from the file. module.name is a composite variable name
         "popup"       -> Subr("popup",       doPopup(_)),
-        "UI:keys"     -> Subr("UI:keys",     declKeys(_)),
-        "command"     -> Subr("command",     evalCommand(_)),
+        "command"     -> Subr("command",     evalCommandNamed(_)),
         "insert"      -> Subr("insert",      evalInsert(_)),
-        "andThen"     -> Subr("andThen",     evalAndThen(_)),
-        "inputToString" -> Subr("inputToString", { case List(UserInput(in)) => Str(in.toInput) }),
-        "UI:font"         -> Subr("UI:font",        { case List(Str(name)) => FontExpr(name, Utils.mkFont(name))}),
+        "andThen"     -> Subr("andThen",     evalCmdSeq(_)),
+        "inputToString"   -> Subr("inputToString", { case List(UserInput(in)) => Str(in.toInput) }),
+        "readEval"        -> Subr  ("readEval", {
+          case Str(text) :: Bool(show) :: rest =>
+            output.clear()
+            readEvalPrint(text, show, false)
+            val result = output.toString()
+            output.clear()
+            Str(result)
+        }),
+        "UI:popup"         -> Subr("popup",           doPopup(_)),
+        "UI:commandNamed"  -> Subr("commandNamed",    evalCommandNamed(_)),
+        "UI:styleAs"       -> Subr("UI:styleAs",      { case List(b, a) => EditSessionCommand("styleAs", EditSessionCommands.styleAs(b.toPlainString, a.toPlainString ) )}),
+        "UI:insert"        -> Subr("insert",          evalInsert(_)),
+        "CMD:seq"          -> Subr("CMD:seq",         evalCmdSeq(_)),
+        "UI:inputToString" -> Subr("UI:inputToString", { case List(UserInput(in)) => Str(in.toInput) }),
+        "UI:keys"          -> Subr("UI:keys",         declKeys(_)),
+        "UI:abbrev"       -> Subr("UI:abbrev",        {  case List(Str(abbr), Str(text)) => mapTo(abbr, text); Nothing }),
+        "UI:diacritical"  -> Subr("UI:diacritical",   doDia(_)),
+        "UI:altclear"     -> Subr("UI:altclear",      {  Nil => AltKeyboard.clear(); Nothing }),
+        "UI:font"         -> Subr("UI:font",          { case List(Str(name)) => FontExpr(name, Utils.mkFont(name))}),
         "UI:minimalconfiguration" -> Str(minimalConfiguration),
         "UI:useFont"      -> FSubr("useFont",    useFont),
         "UI:cutringBound" -> Subr("UI:cutringBound", { case List(Num(bound)) => CutRing.bound = bound.toInt; Nothing; case Nil => Num(CutRing.bound)}),
         "PROFILE:select"  -> FSubr("PROFILE:select", declSelect),
         "PROFILE:bool"    -> FSubr("PROFILE:bool",   declBool),
-        "readEval"        -> Subr  ("readEval", {
-              case Str(text) :: Bool(show) :: rest =>
-                   output.clear()
-                   readEvalPrint(text, show, false)
-                   val result = output.toString()
-                   output.clear()
-                   Str(result)
-        }),
         "RED:session" -> Subr("RED:session", {
           case List(Str(path)) =>
               Sessions.findRed(path) match {

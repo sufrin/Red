@@ -416,20 +416,20 @@ object EditSessionCommands extends Logging.Loggable {
     }
   }
 
-  def latexTag(tag: String): SessionCommand = new Filter {
+  def embedSelection(before: String, after: String): SessionCommand = new Filter {
     protected override val kind:     String  = "Style"
     protected override val adjustNL: Boolean = false
     protected override def transform(input: String, cwd: Path): Option[String] = {
-      Some(s"\\${tag}{${input}}")
+      Some(s"$before${input}$after")
     }
   }
 
   val whiteSpace = Regex("[ \\n]")
 
-  def styleAs(tag: String): SessionCommand =
-        latexTag(tag).guarded(_.hasDefiniteSelection)  |||
-        latexTag(tag).guarded(_.atRightOf(whiteSpace)) |||
-        selectForStyling &&& latexTag(tag)
+  def styleAs(before: String, after: String): SessionCommand =
+        embedSelection(before, after).guarded(_.hasDefiniteSelection)  |||
+        embedSelection(before, after).guarded(_.atRightOf(whiteSpace)) |||
+        selectForStyling &&& embedSelection(before, after)
 
   val selectForStyling: SessionCommand = new SessionCommand {
     val leftBoundary  : Regex   = Regex("""\W\w""")
