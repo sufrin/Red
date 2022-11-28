@@ -305,11 +305,71 @@ class Evaluator {
 
   var position: SourcePosition = SourcePosition("",0,0)
 
-  case class REGEX(regex: sufrin.regex.Regex) extends Const {
-    override def toString: String = s"(re:regex \"${regex.toString()}\")"
+  /** Experimental object-centred calls  */
+  object RegexMethods {
+    val lookup: collection.immutable.HashMap[String, SExp] = collection.immutable.HashMap[String, SExp](
+      "match" -> Subr("re:match", {
+        case List(REGEX(regex), Str(text)) =>
+          regex.matches(text, 0, text.length) match {
+            case None => nil
+            case Some(theMatch) => REGMATCH(theMatch)
+          }
+        case other => throw RuntimeError(s"re:match: REGEX -> nil | REGMATCH")
+      }),
+      "find" -> Subr("re:find", {
+        case List(REGEX(regex), Str(text)) =>
+          regex.findPrefix(text, 0, text.length) match {
+            case None => nil
+            case Some(theMatch) => REGMATCH(theMatch)
+          }
+        case List(REGEX(regex), Str(text), Num(from)) =>
+          regex.findPrefix(text, from.toInt, text.length) match {
+            case None => nil
+            case Some(theMatch) => REGMATCH(theMatch)
+          }
+        case List(REGEX(regex), Str(text), Num(from), Num(to)) =>
+          regex.findPrefix(text, from.toInt, to.toInt, text.length) match {
+            case None => nil
+            case Some(theMatch) => REGMATCH(theMatch)
+          }
+        case other => throw RuntimeError(s"re:find: REGEX STRING Num? Num? -> nil | REGMATCH")
+      })
+    )
+
+    def apply(name: String): SExp = lookup.getOrElse(name, Nothing)
   }
-  case class REGMATCH(regmatch: sufrin.regex.Regex.StringMatch) extends Const {
+
+  object RegMatchMethods {
+    val lookup: collection.immutable.HashMap[String, SExp] = collection.immutable.HashMap[String, SExp](
+      "span" -> Subr("re:span", {
+        case List(REGMATCH(theMatch)) => SExps(List(Num(theMatch.start), Num(theMatch.end)))
+        case other => throw RuntimeError(s"re:span: REGMATCH->[Num,Num]")
+      }),
+      "subst" -> Subr("re:subst", {
+        case List(REGMATCH(theMatch), Str(theTemplate)) => Str(theMatch.substitute(theTemplate))
+        case other => throw RuntimeError(s"re:subst: REGMATCH STRING -> STRING")
+      }),
+      "group" -> Subr("re:group", {
+        case List(REGMATCH(theMatch), Num(i)) => Str(theMatch.group(i.toInt))
+        case other => throw RuntimeError(s"re:group: REGMATCH Num -> STRING")
+      }),
+      "groups" -> Subr("re:groups", {
+        case List(REGMATCH(theMatch)) => SExps(theMatch.groups.map(Str(_)).toList)
+        case other => throw RuntimeError(s"re:groups: REGMATCH -> [STRING]")
+      })
+    )
+
+    def apply(name: String): SExp = lookup.getOrElse(name, Nothing)
+  }
+
+  case class REGEX(regex: sufrin.regex.Regex) extends Obj {
+    override def toString: String = s"(re:regex \"${regex.toString()}\")"
+    def method(name: String): SExp = RegexMethods(name)
+  }
+
+  case class REGMATCH(regmatch: sufrin.regex.Regex.StringMatch) extends Obj {
     override def toString: String = s"$regmatch"
+    def method(name: String): SExp = RegMatchMethods(name)
   }
 
   /**
@@ -361,7 +421,6 @@ class Evaluator {
     "?"         -> Subr  ("?",        { case args => args.foreach{ case k => normalFeedback(k.toPlainString); normalFeedback(" ") }; args.last }),
     "toString*" -> Subr  ("toString*", evPlainString),
     "quote"     -> FSubr ("quote",    { case (env, form) => form }),
-    "list"      -> Subr  ("list",     { args => SExps(args)}),
     "isAtom"    -> forall("isAtom")   { case Quote(Variable(_)) => true; case _ => false },
     "isSymb"    -> forall("isSymb")   { case Quote(v@Variable(_)) => v.symbolic; case _ => false },
     "isVar"     -> forall("isVar")    { case Quote(v@Variable(_)) => !v.symbolic; case _ => false },
@@ -391,61 +450,24 @@ class Evaluator {
     "ENV"       -> Subr("ENV",   evalENV),
     "PROP"      -> Subr("PROP",  evalPROP),
     "SOURCE"    -> PositionSubr("SOURCE",  { case List(s: Str) => s }), // special case
-    "string:range" -> Subr("string:range", {
-      case List(Str(text), Num(from), Num(to)) => Str(text.subSequence(from.toInt, to.toInt).toString)
-    }),
-    "list:range" -> Subr("list:range", {
-      case List(SExps(elts), Num(from), Num(to)) => SExps(elts.drop(from.toInt).take((to-from).toInt))
-    }),
-    "list:nth" -> Subr("list:nth", {
-      case List(SExps(elts), Num(n)) => elts(n.toInt)
-    }),
-    // Regex material
+
+    // String methods as functions
+    "str:cat"      -> StrMethods("cat"),
+    "string:range" -> StrMethods("range"),
+    // List methods as functions
+    "list"       -> Subr  ("list", { args => SExps(args)}),
+    "list:range" -> ListMethods("range"),
+    "list:nth"   -> ListMethods("nth"),
+    // Regex methods as functions
     "re:regex" -> Subr("re:regex", {
       case List(Str(source)) => REGEX(sufrin.regex.Regex(source))
     }),
-    "re:match" -> Subr("re:match", {
-      case List(REGEX(regex), Str(text)) =>
-        regex.matches(text, 0, text.length) match {
-          case None => nil
-          case Some(theMatch) => REGMATCH(theMatch)
-        }
-      case other => throw RuntimeError(s"re:match: REGEX -> nil | REGMATCH")
-    }),
-    "re:span" -> Subr("re:span", {
-      case List(REGMATCH(theMatch)) => SExps(List(Num(theMatch.start), Num(theMatch.end)))
-      case other => throw RuntimeError(s"re:span: REGMATCH->[Num,Num]")
-    }),
-    "re:subst" -> Subr("re:subst", {
-      case List(REGMATCH(theMatch), Str(theTemplate)) => Str(theMatch.substitute(theTemplate))
-      case other => throw RuntimeError(s"re:subst: REGMATCH STRING -> STRING")
-    }),
-    "re:group" -> Subr("re:group", {
-      case List(REGMATCH(theMatch), Num(i)) => Str(theMatch.group(i.toInt))
-      case other => throw RuntimeError(s"re:group: REGMATCH Num -> STRING")
-    }),
-    "re:groups" -> Subr("re:groups", {
-      case List(REGMATCH(theMatch)) => SExps(theMatch.groups.map(Str(_)).toList)
-      case other => throw RuntimeError(s"re:groups: REGMATCH -> [STRING]")
-    }),
-    "re:find" -> Subr("re:find", {
-      case List(REGEX(regex), Str(text)) =>
-        regex.findPrefix(text, 0, text.length) match {
-          case None => nil
-          case Some(theMatch) =>  REGMATCH(theMatch)
-        }
-      case List(REGEX(regex), Str(text), Num(from)) =>
-        regex.findPrefix(text, from.toInt, text.length) match {
-          case None => nil
-          case Some(theMatch) =>  REGMATCH(theMatch)
-        }
-      case List(REGEX(regex), Str(text), Num(from), Num(to)) =>
-        regex.findPrefix(text, from.toInt, to.toInt, text.length) match {
-          case None => nil
-          case Some(theMatch) =>  REGMATCH(theMatch)
-        }
-      case other => throw RuntimeError(s"re:find: REGEX STRING Num? Num? -> nil | REGMATCH")
-    })
+    "re:match" -> RegexMethods("match"),
+    "re:span"  -> RegMatchMethods("span"),
+    "re:subst" -> RegMatchMethods("subst"),
+    "re:group" -> RegMatchMethods("group"),
+    "re:groups" -> RegMatchMethods("groups"),
+    "re:find" -> RegexMethods("find")
   )
 
   val globals: List[(String, SExp)] = List (

@@ -101,20 +101,95 @@ object Language {
         }
     }
 
-
+    /**
+     *  Evaluate an expression of the form `(operator arg0 arg1 ... argn)` in the environment
+     *  `env0`.
+     *
+     *  First the `operator` is evaluated in `env0`, then:
+     *
+     *  === Functions as operators ===
+     *  If the operator's value is strict and functional, ie
+     *  {{{ Expr(env1, argnames, body), ExprAll(env1, argname, body), Subr(body) }}}
+     *  then the arguments are all evaluated (in `env0`), and
+     *  conveyed to the (body of the) operator appropriately
+     *  before it is evaluated:
+     *
+     *      1. In the case of `Expr` and `ExprAll` in an environment formed by extending `env1`
+     *      by bindings of argument names to arguments.
+     *
+     *      2. In the case of `Subr` by passing
+     *      it the list of evaluated arguments.
+     *
+     *  If the operator's value is non-strict and functional, ie
+     *  {{{ FExpr, FExprAll, FSubr }}}
+     *  then the arguments are left unevaluated, and
+     *  conveyed, together with `env0`, to the (body of the)
+     *  operator appropriately before it is evaluated
+     *
+     *       1. In the case of `FExpr` and `FExprAll` in an environment formed by extending `env0`
+     *       by bindings of argument names to unevaluated arguments.
+     *
+     *       2. In the case of `FSubr(scala)` by passing
+     *      `env0` and the list of unevaluated arguments to the
+     *      scala method.
+     *
+     *  === Objects as operators ===
+     *  If the operator's value is an `Obj` and there is more than one
+     *  argument, then `arg0` is taken to be the name of a
+     *  method, whose value is to be provided by the object (for the moment, the
+     *  method's value must be a `Subr`). The method name is looked up in
+     *  the object, and the expression is evaluated as:
+     *  {{{
+     *    (method obj arg1 ... argN)
+     *  }}}
+     *  where `method` is the object's value for `arg0`.
+     *
+     *  Many  (but not necessarily all) types arrange for their methods to be published
+     *  as global constants.
+     *
+     *  For example, strings are also objects, and the (global)
+     *  method `string:cat` is the `cat` method for strings,
+     *  and `string:range` is their `range` method.
+     *  So if `s` is a string, then
+     *  {{{
+     *    (s cat arg1 arg2 ...) = (string:cat arg1 arg2 ...)
+     *    (s range from to)     = (string:range from to)
+     *  }}}
+     *
+     *  Our intention here is to provide a (limited) form of polymorphism, and to
+     *  make it straightforward to add complex built-in types.
+     *
+     *  TODO: explore the idea of user-defined functions as methods.
+     *        Declarations of the form `implement (type . name) function)`
+     *        For example `(implement (List . rev) (fun (l) ...))`
+     */
     def eval(env0: Env): SExp =
       if (elements.isEmpty) nil else {
           val operator = elements.head.opVal(env0)
+          val operands = elements.tail
           val result =
             operator match {
+              case obj: Obj if operands.nonEmpty =>
+                   obj.method(operands.head.toPlainString) match {
+                     case Subr(_, scala) =>
+                       withErrorHandling {
+                         val args = obj::operands.tail.map(_.eval(env0))
+                         scala(args)
+                       }
+                     case Language.Nothing  => throw RuntimeError(s"No such method: $obj.${operands(0)}")
+                     case other    => throw RuntimeError(s"Method: $obj.${operands(0)} is a non-subr ($other)")
+
+                   }
+
               case PositionSubr(_, scala) =>
                 withErrorHandling {
-                  val args = elements.tail.map(_.eval(env0))
+                  val args = operands.map(_.eval(env0))
                   scala(Str(position.toString) :: args)
                 }
+
               case Subr(_, scala) =>
                 withErrorHandling {
-                  val args = elements.tail.map(_.eval(env0))
+                  val args = operands.map(_.eval(env0))
                   scala(args)
                 }
 
@@ -126,27 +201,24 @@ object Language {
 
               case Expr(env1, params, body) =>
                 withErrorHandling {
-                  val args = elements.tail.map(_.eval(env0))
+                  val args = operands.map(_.eval(env0))
                   body.eval(env1.extend(params, args))
                 }
 
               case ExprAll(env1, variable, body) =>
                 withErrorHandling {
-                  val args = elements.tail.map(_.eval(env0))
+                  val args = operands.map(_.eval(env0))
                   body.eval(env1.extend(variable, args))
                 }
 
-
               case FExpr(env1, params, body) =>
                 withErrorHandling {
-                  val args = elements.tail
-                  body.eval(env1.extend(params, EnvExpr(env0)::args))
+                  body.eval(env1.extend(params, EnvExpr(env0)::operands))
                 }
 
               case FExprAll(env1, Pair(envArg: Variable, argsArg: Variable), body) =>
                 withErrorHandling {
-                  val args = elements.tail
-                  body.eval(env1.extend(SExps(List(envArg, argsArg)), List(EnvExpr(env0), SExps(args))))
+                  body.eval(env1.extend(SExps(List(envArg, argsArg)), List(EnvExpr(env0), SExps(operands))))
                 }
 
               case other =>
@@ -163,6 +235,11 @@ object Language {
    */
   trait Const extends SExp {
     def eval(env: Env): Const = this
+  }
+
+  trait Obj extends Const {
+    /** Returns (usually) a subr */
+    def method(name: String): SExp
   }
 
   case class Pair(l: SExp, r: SExp) extends SExp {
@@ -191,9 +268,44 @@ object Language {
     override def toString = value.toString
   }
 
-  case class Str(value: String) extends Const {
+
+  /** List methods */
+  object ListMethods {
+    val lookup: collection.immutable.HashMap[String, SExp] = collection.immutable.HashMap[String, SExp](
+      "range" -> Subr("list:range", {
+        case List(SExps(elts), Num(from), Num(to)) => SExps(elts.drop(from.toInt).take((to - from).toInt))
+      }),
+      "nth" -> Subr("list:nth", {
+        case List(SExps(elts), Num(n)) => elts(n.toInt)
+      })
+    )
+    def apply(name: String): SExp = lookup.getOrElse(name, Nothing)
+  }
+
+  /** String built-ins */
+  object StrMethods {
+    val cat = Subr("string:cat", {
+      case values =>
+        val res = new StringBuilder
+        for { v <- values } res.append(v.toPlainString)
+        Str(res.toString())
+    })
+
+    val range = Subr("string:range", {
+      case List(Str(text), Num(from), Num(to)) => Str(text.subSequence(from.toInt, to.toInt).toString)
+    })
+
+    def apply(name: String): SExp = name match {
+      case "cat"   => cat
+      case "range" => range
+      case _       => Nothing
+    }
+
+  }
+  case class Str(value: String) extends Obj {
     override def toString = s"\"$value\""
     override def toPlainString = value
+    def method(name: String): SExp = StrMethods(name)
   }
 
   case class Expr(env: Env, pattern: SExp, body: SExp) extends Const {
