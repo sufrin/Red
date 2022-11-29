@@ -103,14 +103,15 @@ object Personalised extends Logging.Loggable {
     var insertionSelects:  Boolean = true
   }
 
-  // TODO: move the trie and keymaps into the edit sessions
-
-  object Bindings {
+  object Bindings extends EventMap {
     val feedback: Notifier[String] = new Notifier[String]("Personalised Feedback")
 
     val profileChanged: Notifier[String] = Features.profileChanged
 
+    def apply(input: UserInput): SExp = meaning.getOrElse(input, Nothing)
     private val trie = PrefixMap[String]()
+    val meaning: collection.mutable.HashMap[UserInput, SExp] = new collection.mutable.HashMap[UserInput, SExp]
+
     /** Modification time of the last root bindings file */
     var lastImportTime: Long = 0
 
@@ -151,7 +152,7 @@ object Personalised extends Logging.Loggable {
       override def normalFeedback(s: String): Unit   = output.append(s)
       override def normalFeedbackLn(s: String): Unit = { output.append(s); output.append('\n') }
 
-      def reset(): Unit = { global.clear(); character.clear(); instruction.clear() }
+      def reset(): Unit = { global.clear(); meaning.clear() }
 
       val paths = new collection.mutable.Stack[Path]
 
@@ -445,9 +446,6 @@ object Personalised extends Logging.Loggable {
         Nothing
       }
 
-      val instruction: collection.mutable.HashMap[Instruction, SExp] = new collection.mutable.HashMap[Instruction, SExp]
-      val character: collection.mutable.HashMap[Character, SExp] = new collection.mutable.HashMap[Character, SExp]
-
       /** The RedScript representation of an `EditSessionCommand` */
       case class EditSessionCommand(name: String, command: EditSessionCommands.SessionCommand) extends Const {
          override def toString: String = name
@@ -459,13 +457,13 @@ object Personalised extends Logging.Loggable {
           case ch@Character(char, _, mods)    =>
             // key declarations take precedence over the AltKeyboard map
             if (ch.mods.hasAlt) AltKeyboard.mapTo(char.toUpper, char, mods.hasShift)
-            character.addOne((ch, effect))
+            meaning.addOne((ch, effect))
           case inst: Instruction  =>
-            instruction.addOne((inst, effect))
+            meaning.addOne((inst, effect))
           case other =>
             profileWarning(s"Declaring key $other")
         }
-        if (logging) fine(s"CH: $character\nINST: $instruction")
+        if (logging) fine(s"meaning: $meaning")
         Nothing
       }
 
@@ -492,6 +490,8 @@ object Personalised extends Logging.Loggable {
       case class SESSION(theSession: Session) extends Const {
         override def toString: String = theSession.toString
       }
+
+
 
       import Language._
       val bindingPrimitives: List[(String, Const)] = List(

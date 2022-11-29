@@ -56,8 +56,12 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
     } { body }
   }
 
+  /** Default event Map is the one defined by `Personalised.Bindings`
+   */
+  private var theEventMap = Personalised.Bindings
+
   /** The source of handlers for user input events. */
-  protected val handlers = new EditSessionHandlers(UI_DO)
+  protected val handlers = new EditSessionHandlers(EditSessionContext(UI_DO, theSession, theEventMap))
 
   /**
    * Show a popup window, entitled `from`, with a warning message in it.

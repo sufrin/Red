@@ -1,7 +1,6 @@
 package Red
 
 import Red.EditSessionCommands.{SessionCommand, StateChangeOption}
-import Red.InputPanel.{finer, logging}
 import Red.UserInputHandlers._
 
 import scala.swing._
@@ -68,7 +67,7 @@ class TextLine(cols: Int, toolTip: String = "") extends BoxPanel(Orientation.Hor
 
   def DO(command: Commands.Command[EditSession]): Unit = { command.DO(session); session.notifyHandlers() }
 
-  protected val handler = new EditSessionHandlers(DO)
+  protected val handler = new EditSessionHandlers(EditSessionContext(DO, session, Personalised.Bindings))
 
   protected val lfHandler: UserInputHandler = {
     case Character('\n', _, _) => DO(insertLF)
@@ -83,9 +82,10 @@ class TextLine(cols: Int, toolTip: String = "") extends BoxPanel(Orientation.Hor
     view.viewLineNumbers(0)
     view.keystrokeInput.handleWith {
         firstHandler                  orElse
-        lfHandler                     orElse
-        handler.singleLineKeyboard    orElse
         handler.mouse                 orElse
+        lfHandler                     orElse
+        handler.singleLineRedScriptInputHandler orElse
+        handler.singleLineKeyboard    orElse
         lastHandler
     }
   }
