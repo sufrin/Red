@@ -1,5 +1,6 @@
 package Red
 
+import Red.Personalised.Bindings.RedScriptEvaluator.EVENTMAP
 import RedScript.Language._
 import RedScript._
 import Useful.PrefixMap
@@ -77,6 +78,17 @@ object Personalised extends Logging.Loggable {
     }
   }
 
+  /** Keyboard mappings for editing the document at `path` */
+  def theEventMap(path: String): EventMap = {
+    Bindings.importBindings()
+    applyScript("UI:eventMap", path) match {
+      case EVENTMAP(theMap) => theMap
+      case other            =>
+        if (other!=nil) profileWarning(s"UI:eventMap: path -> EventMap: $other\n(Using global event map instead)")
+        Bindings.eventMap
+    }
+  }
+
 
   def clearBindings(): Unit = {
     Bindings.clearMapping()
@@ -103,15 +115,14 @@ object Personalised extends Logging.Loggable {
     var insertionSelects:  Boolean = true
   }
 
-  object Bindings extends EventMap {
+  object Bindings {
     val feedback: Notifier[String] = new Notifier[String]("Personalised Feedback")
 
     val profileChanged: Notifier[String] = Features.profileChanged
 
-    def apply(input: UserInput): SExp = meaning.getOrElse(input, Nothing)
-    private val trie = PrefixMap[String]()
-    val meaning: collection.mutable.HashMap[UserInput, SExp] = new collection.mutable.HashMap[UserInput, SExp]
+    val eventMap: EventMap = EventMap()
 
+    private val trie = PrefixMap[String]()
     /** Modification time of the last root bindings file */
     var lastImportTime: Long = 0
 
@@ -139,12 +150,12 @@ object Personalised extends Logging.Loggable {
 
     object RedScriptEvaluator extends Evaluator {
 
-      case class UserInput(input: Red.UserInput) extends Const
+      case class USERINPUT(input: UserInput) extends Const
       case class SessionCommand(command: EditSessionCommands.SessionCommand) extends Const
-
       case class FontExpr(name: String, font: Font) extends Const {
         override def toString: String = s"(font \"$name\")"
       }
+      case class EVENTMAP(eventMap: EventMap) extends Const
 
       val output = new StringBuilder()
 
@@ -152,7 +163,7 @@ object Personalised extends Logging.Loggable {
       override def normalFeedback(s: String): Unit   = output.append(s)
       override def normalFeedbackLn(s: String): Unit = { output.append(s); output.append('\n') }
 
-      def reset(): Unit = { global.clear(); meaning.clear() }
+      def reset(): Unit = { global.clear(); eventMap.clear() }
 
       val paths = new collection.mutable.Stack[Path]
 
@@ -325,6 +336,8 @@ object Personalised extends Logging.Loggable {
                               |         ()
                               |         (seq (popup "Undefined Keystroke: " (inputToString key))
                               |              ())))
+                              |
+                              |(def (UI:eventMap path) ())
                               |#
                               |#
                               |#############################################################################
@@ -451,21 +464,28 @@ object Personalised extends Logging.Loggable {
          override def toString: String = name
       }
 
-      def declKeys(specs: List[SExp]) : Const = {
+      /**
+       * augment `eventMap` (in-place) by the given `(spec, effect)` pairs, or by
+       * the maplets from
+       */
+      def declKeys(eventMap: EventMap)(specs: List[SExp]) : Const = {
         if (logging) info(s"Keys Declared: $specs")
-        for { Pair(Str(spec), effect) <- specs } Red.UserInput(spec) match  {
-          case ch@Character(char, _, mods)    =>
-            // key declarations take precedence over the AltKeyboard map
-            if (ch.mods.hasAlt) AltKeyboard.mapTo(char.toUpper, char, mods.hasShift)
-            meaning.addOne((ch, effect))
-          case inst: Instruction  =>
-            meaning.addOne((inst, effect))
-          case other =>
-            profileWarning(s"Declaring key $other")
-        }
-        if (logging) fine(s"meaning: $meaning")
-        Nothing
+        for { value <- specs } value match {
+          case Pair(Str(spec), effect) =>  UserInput(spec) match  {
+                case ch@Character(char, _, mods)    =>
+                  // key declarations take precedence over the AltKeyboard map
+                  if (ch.mods.hasAlt) AltKeyboard.mapTo(char.toUpper, char, mods.hasShift)
+                  eventMap.mapTo(ch, effect)
+                case inst: Instruction  =>
+                  eventMap.mapTo(inst, effect)
+                case other =>
+                  profileWarning(s"Declaring key $other")
+              }
+          case EVENTMAP(includeMap) =>
+               eventMap.includesMap(includeMap)
       }
+      Nothing
+    }
 
       def evalCommandNamed(specs: List[SExp]) : Const =
         { val List(Str(name)) = specs
@@ -504,7 +524,6 @@ object Personalised extends Logging.Loggable {
         "command"     -> Subr("command",     evalCommandNamed(_)),
         "insert"      -> Subr("insert",      evalInsert(_)),
         "andThen"     -> Subr("andThen",     evalCmdSeq(_)),
-        "inputToString"   -> Subr("inputToString", { case List(UserInput(in)) => Str(in.toInput) }),
         "readEval"        -> Subr  ("readEval", {
           case Str(text) :: Bool(show) :: rest =>
             output.clear()
@@ -513,23 +532,30 @@ object Personalised extends Logging.Loggable {
             output.clear()
             Str(result)
         }),
-        "UI:popup"         -> Subr("popup",           doPopup(_)),
-        "UI:commandNamed"  -> Subr("commandNamed",    evalCommandNamed(_)),
-        "UI:styleAs"       -> Subr("UI:styleAs",      { case List(b, a) => EditSessionCommand("styleAs", EditSessionCommands.styleAs(b.toPlainString, a.toPlainString ) )}),
-        "UI:insert"        -> Subr("insert",          evalInsert(_)),
-        "CMD:seq"          -> Subr("CMD:seq",         evalCmdSeq(_)),
-        "UI:inputToString" -> Subr("UI:inputToString", { case List(UserInput(in)) => Str(in.toInput) }),
-        "UI:keys"          -> Subr("UI:keys",         declKeys(_)),
-        "UI:abbrev"       -> Subr("UI:abbrev",        {  case List(Str(abbr), Str(text)) => mapTo(abbr, text); Nothing }),
-        "UI:diacritical"  -> Subr("UI:diacritical",   doDia(_)),
-        "UI:altclear"     -> Subr("UI:altclear",      {  Nil => AltKeyboard.clear(); Nothing }),
-        "UI:font"         -> Subr("UI:font",          { case List(Str(name)) => FontExpr(name, Utils.mkFont(name))}),
+        "UI:popup"          -> Subr("popup",           doPopup(_)),
+        "UI:commandNamed"   -> Subr("commandNamed",    evalCommandNamed(_)),
+        "UI:styleAs"        -> Subr("UI:styleAs",      { case List(b, a) => EditSessionCommand("styleAs", EditSessionCommands.styleAs(b.toPlainString, a.toPlainString ) )}),
+        "UI:insert"         -> Subr("insert",          evalInsert(_)),
+        "CMD:seq"           -> Subr("CMD:seq",         evalCmdSeq(_)),
+        "UI:inputToString"  -> Subr("UI:inputToString", { case List(USERINPUT(in)) => Str(in.toInput) }),
+        "UI:defaultEventMap"  -> EVENTMAP(Bindings.eventMap),
+        "UI:keys"           -> Subr("UI:keys",         declKeys(eventMap)(_)),
+        "UI:newEventMap"    -> Subr("UI:EventMap", {
+          case specs =>
+            val map = EventMap()
+            declKeys(map)(specs)
+            EVENTMAP(map)
+        }),
+        "UI:abbrev"         -> Subr("UI:abbrev",        {  case List(Str(abbr), Str(text)) => mapTo(abbr, text); Nothing }),
+        "UI:diacritical"    -> Subr("UI:diacritical",   doDia(_)),
+        "UI:altclear"       -> Subr("UI:altclear",      {  Nil => AltKeyboard.clear(); Nothing }),
+        "UI:font"           -> Subr("UI:font",          { case List(Str(name)) => FontExpr(name, Utils.mkFont(name))}),
         "UI:minimalconfiguration" -> Str(minimalConfiguration),
-        "UI:useFont"      -> FSubr("useFont",    useFont),
-        "UI:cutringBound" -> Subr("UI:cutringBound", { case List(Num(bound)) => CutRing.bound = bound.toInt; Nothing; case Nil => Num(CutRing.bound)}),
-        "PROFILE:select"  -> FSubr("PROFILE:select", declSelect),
-        "PROFILE:bool"    -> FSubr("PROFILE:bool",   declBool),
-        "RED:session" -> Subr("RED:session", {
+        "UI:useFont"        -> FSubr("useFont",    useFont),
+        "UI:cutringBound"   -> Subr("UI:cutringBound", { case List(Num(bound)) => CutRing.bound = bound.toInt; Nothing; case Nil => Num(CutRing.bound)}),
+        "PROFILE:select"      -> FSubr("PROFILE:select", declSelect),
+        "PROFILE:bool"        -> FSubr("PROFILE:bool",   declBool),
+        "RED:session"         -> Subr("RED:session", {
           case List(Str(path)) =>
               Sessions.findRed(path) match {
                 case None => nil

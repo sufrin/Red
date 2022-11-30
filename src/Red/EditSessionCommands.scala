@@ -193,7 +193,7 @@ object EditSessionCommands extends Logging.Loggable {
   def unhandledInput(key: UserInput): SessionCommand = new SessionCommand  {
     val evaluator = Personalised.Bindings.RedScriptEvaluator
     val global    = evaluator.global
-    val theKey    = Personalised.Bindings.RedScriptEvaluator.UserInput(key)
+    val theKey    = Personalised.Bindings.RedScriptEvaluator.USERINPUT(key)
 
     override def DO(target: EditSession): Option[StateChange] = {
       evaluator.run(SExps(List(Variable("UI:unhandledInput"), theKey))) match {

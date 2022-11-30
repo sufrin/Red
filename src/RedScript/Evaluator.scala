@@ -428,6 +428,13 @@ class Evaluator {
     "isList"    -> forall("isList")   { case SExps(_)=>true;  case _ => false },
     "isString"  -> forall("isString") { case Str(_)=>true;    case _ => false },
     "isNothing" -> forall("isNothing"){ case Nothing => true; case _ => false },
+    "isDefined" -> FSubr("isDefined", {
+      case (env, SExps(exps)) =>
+        Bool(exps.forall {
+          case Variable(name) => env(name).nonEmpty
+          case _ : Const => true
+        })
+    }),
     "toString"  -> Subr("toString",   { case List(sexp) => Str(sexp.toString);  case other => throw RuntimeError(s"malformed toString: $other") }),
     "toNum"     -> Subr("toNum",      { case List(a: Hex) => Num(a.value); case List(n) => n}),
     "toHex"     -> Subr("toHex",      { case List(a: Hex) => a; case List(n: Num) => new Hex(n.value)}),

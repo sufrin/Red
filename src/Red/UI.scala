@@ -58,7 +58,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
 
   /** Default event Map is the one defined by `Personalised.Bindings`
    */
-  private var theEventMap = Personalised.Bindings
+  private var theEventMap = Personalised.theEventMap(theSession.path)
 
   /** The source of handlers for user input events. */
   protected val handlers = new EditSessionHandlers(EditSessionContext(UI_DO, theSession, theEventMap))
@@ -285,6 +285,8 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
 
   private val argLine: TextLine = new TextLine(25) {
     focusable = true
+    override protected def eventMap: EventMap = Personalised.theEventMap(theSession.path)
+
     override def firstHandler: UserInputHandler = {
       case Instruction(Key.G, _, mods) if mods.hasControl =>
         val loc = argLine.text.strip()
@@ -309,6 +311,8 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
 
   private val findLine: TextLine = new TextLine(25) {
     focusable = true
+    override protected def eventMap: EventMap = Personalised.theEventMap(theSession.path)
+
     override def firstHandler: UserInputHandler = findreplHandler
     /** hand back focus to the main text */
     override def mouseExited(): Unit = theView.requestFocusInWindow()
@@ -316,6 +320,8 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
 
   private val replLine: TextLine = new TextLine(25) {
     focusable = true
+    override protected def eventMap: EventMap = Personalised.theEventMap(theSession.path)
+
     override def firstHandler: UserInputHandler = findreplHandler
     /** hand back focus to the main text */
     override def mouseExited(): Unit = theView.requestFocusInWindow()

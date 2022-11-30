@@ -67,7 +67,9 @@ class TextLine(cols: Int, toolTip: String = "") extends BoxPanel(Orientation.Hor
 
   def DO(command: Commands.Command[EditSession]): Unit = { command.DO(session); session.notifyHandlers() }
 
-  protected val handler = new EditSessionHandlers(EditSessionContext(DO, session, Personalised.Bindings))
+  protected def eventMap: EventMap = Personalised.Bindings.eventMap
+
+  protected val handler = new EditSessionHandlers(EditSessionContext(DO, session, eventMap))
 
   protected val lfHandler: UserInputHandler = {
     case Character('\n', _, _) => DO(insertLF)
