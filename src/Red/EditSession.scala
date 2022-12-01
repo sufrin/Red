@@ -1,6 +1,8 @@
 package Red
 
+import sufrin.regex.Brackets.Specification
 import sufrin.regex.Regex
+import sufrin.regex.syntax.{Alt, Literal, Tree}
 
 import java.nio.file.Path
 
@@ -384,7 +386,8 @@ class EditSession(val document: DocumentInterface, private var _path: String)
 
   /**
    *  Definitions related to bracket-matching. This will eventually be generalized and
-   *  become configurable by end users.
+   *  become configurable by end users. But there are some corner cases, leading to
+   *  ambiguities. These made it necessary to manage xml/latex blocks by using special cases.
    */
   object Bracketing {
     import sufrin.regex.Brackets
@@ -402,30 +405,51 @@ class EditSession(val document: DocumentInterface, private var _path: String)
     val xmlsingle   = Brackets("""<([A-Za-z0-9:]+)(\s+([A-Za-z0-9:]+\s*=\s*"[^"]*"))*""", """/>""")
     val xmlcomment  = Brackets("""<!--""", """-->""")
 
-    val others = List (
-      "«"    -> "»",
-      "⁅"    -> "⁆",
-      "/\\*" -> "\\*/",
-      "``"   -> "''",  // For ascii latex double brackets
-      // Matched pairs (they happen to be adjacently unicoded)
-      "\u2018"    -> "\u2019",
-      "\u201c"    -> "\u201d",
-      "\u2039"    -> "\u203a",
-      "\u201c"    -> "\u201d",
-      "⟦" -> "⟧", // '\u27e7'
-      "⟨" -> "⟩", // '\u27e9'
-      "⟪" -> "⟫", // '\u27eb'
-      "⟬" -> "⟭", // '\u27ed'
-      "⟮" -> "⟯", // '\u27ef'
-      "⸨" -> "⸩" // '\u2e29'
-    )
-    val lefts, rights = collection.mutable.HashMap[Char,Brackets.Specification]()
+    val xmlSpecs       = List[Specification](xmlblock, xmlsingle, xmlcomment)
+    val compositeSpecs = List[Specification](begin, brace, par, bra, slashpar, slashbra, slashbrace)++xmlSpecs
+    val compositeBras: List[Tree[Char]] = compositeSpecs.map(_.bra.tree)
+    val compositeKets: List[Tree[Char]] = compositeSpecs.map(_.ket.tree)
+    //  characters treated specially by `selectMatchingUp`
+    val compositeKetSpecials: List[Tree[Char]] = "}])".toList.map(Literal(_)) ++ xmlSpecs.map(_.ket.tree)
+
+
+    val lefts, rights: collection.mutable.HashMap[Char,Brackets.Specification] = collection.mutable.HashMap[Char,Brackets.Specification]()
     locally {
-      for { (l, r) <- others } {
+      val simplePairs = List (
+        "«"    -> "»",
+        "⁅"    -> "⁆",
+        "/\\*" -> "\\*/",
+        "``"   -> "''",  // For ascii latex double brackets
+        // Matched pairs (they happen to be adjacently unicoded)
+        "\u2018"    -> "\u2019",
+        "\u201c"    -> "\u201d",
+        "\u2039"    -> "\u203a",
+        "\u201c"    -> "\u201d",
+        "⟦" -> "⟧", // '\u27e7'
+        "⟨" -> "⟩", // '\u27e9'
+        "⟪" -> "⟫", // '\u27eb'
+        "⟬" -> "⟭", // '\u27ed'
+        "⟮" -> "⟯", // '\u27ef'
+        "⸨" -> "⸩" // '\u2e29'
+      )
+      for { (l, r) <- simplePairs } {
         val spec = Brackets(l, r)
         lefts.addOne((l.head, spec))
         rights.addOne((r.last, spec))
       }
+    }
+
+    val anyBra = {
+      val trees: Seq[Tree[Char]] = compositeBras ++ lefts.values.map(_.bra.tree)
+      val tree: Tree[Char] = trees . reduce (Alt(_,_))
+      new Regex(tree, false, false)
+    }
+
+    val anyKet = {
+      val trees: Seq[Tree[Char]] =  compositeKetSpecials ++ rights.values.map(_.ket.tree)
+      val tree: Tree[Char] = trees . reduce (Alt(_,_))
+      val res = new Regex(tree, false, false)
+      res
     }
 
     /**
@@ -474,8 +498,8 @@ class EditSession(val document: DocumentInterface, private var _path: String)
   def selectMatchingUp(): Boolean   = {
     import Bracketing._
     if (cursor==0) false else {
-      // Some sets of brackets share suffixes: we resolve the ambiguity with a sledgehammer: scanning sequentially
-      // TODO: (maybe) use a Branched regex to scan concurrently: needs some preprocessing
+      // A few kets share suffixes: we resolve the ambiguity with a sledgehammer (attempting the upwards matches sequentially)
+      // (See also  `compositeKetSpecials`)
       document.character(cursor-1) match {
         case '}' => tryMatchUp(begin)      || tryMatchUp(slashbrace) || tryMatchUp(brace)     // not particularly inefficient (see tryMatchUp)
         case '>' => tryMatchUp(xmlcomment) || tryMatchUp(xmlblock) || tryMatchUp(xmlsingle)   // not particularly inefficient (see tryMatchUp)
@@ -509,7 +533,40 @@ class EditSession(val document: DocumentInterface, private var _path: String)
           case Some(spec) => tryMatchDown(spec)
           case None       => false
         }
+      }
+    }
+  }
 
+  def anyBraUpwards(): Boolean = {
+    if (cursor==0) false else {
+      val left = Bracketing.anyBra.findSuffix(document.characters, 0, cursor)
+      left match {
+        case None => false
+        case Some(theMatch) =>
+          val oldCursor = cursor
+          cursor = theMatch.start
+          if (selectMatchingDown()) true else {
+            cursor = oldCursor
+            false
+          }
+      }
+    }
+  }
+
+  def anyKetDownwards(): Boolean = {
+    val length = document.characters.length()
+    if (cursor>=length) false else {
+      val right = Bracketing.anyKet.findPrefix(document.characters, cursor, length)
+      right match {
+        case None => false
+        case Some(theMatch) =>
+          val oldCursor = cursor
+          cursor = theMatch.end
+          if (logging) fine(s"$oldCursor=>$cursor '${document.character(cursor)}' ($theMatch)")
+          if (selectMatchingUp()) true else {
+            cursor = oldCursor
+            false
+          }
       }
     }
   }

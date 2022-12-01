@@ -1,10 +1,10 @@
 package Red
 
-import RedScript.Language.{Nothing, SExp}
-import Personalised.Bindings.RedScriptEvaluator.EditSessionCommand
 import Red.EditSessionCommands.insertCommand
-import Red.UserInputDetail.Modifiers._
+import Red.Personalised.Bindings.RedScriptEvaluator.EditSessionCommand
 import Red.UserInputDetail.Key
+import Red.UserInputDetail.Modifiers._
+import RedScript.Language.{Nothing, SExp}
 
 import scala.collection.mutable.ListBuffer
 
@@ -181,8 +181,10 @@ class EditSessionHandlers(context: EditSessionContext) {
         case Instruction(Key.Down, _, NoModifier)  => UI_DO(commands.nextLine)
         case Instruction(Key.Up, _, NoModifier)    => UI_DO(commands.prevLine)
 
-        case Instruction(Key.PageUp,   _, NoModifier) => UI_DO(commands.selectMatchingUp)
-        case Instruction(Key.PageDown, _, NoModifier) => UI_DO(commands.selectMatchingDown)
+        case Instruction(Key.PageUp,   _, NoModifier) => UI_DO(commands.selectAnyBraUpwards)
+        case Instruction(Key.PageUp,   _, Control)    => UI_DO(commands.selectMatchingUp)
+        case Instruction(Key.PageDown, _, NoModifier) => UI_DO(commands.selectAnyKetDownwards)
+        case Instruction(Key.PageDown, _, Control)    => UI_DO(commands.selectMatchingDown)
 
         case Instruction(Key.Escape, _, NoModifier) => UI_DO(commands.abbreviate)
         case Instruction(Key.Escape, _, AltShift)   => UI_DO(commands.unicode)
@@ -244,5 +246,10 @@ class EditSessionHandlers(context: EditSessionContext) {
        *  keys in the same way as  `redScriptInputHandler`
        */
       val singleLineRedScriptInputHandler: UserInputHandler = ignoreMultiLineKeys orElse redScriptInputHandler
+
+      /**
+       *
+       */
+       def unhandled(caption: String): UserInputHandler = { case input: UserInput => UI_DO(EditSessionCommands.unhandledInput(caption)(input)) }
 
 }

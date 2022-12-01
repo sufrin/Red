@@ -459,7 +459,7 @@ class Evaluator {
     "SOURCE"    -> PositionSubr("SOURCE",  { case List(s: Str) => s }), // special case
 
     // String methods as functions
-    "str:cat"      -> StrMethods("cat"),
+    "string:cat"   -> StrMethods("cat"),
     "string:range" -> StrMethods("range"),
     // List methods as functions
     "list"       -> Subr  ("list", { args => SExps(args)}),

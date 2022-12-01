@@ -286,7 +286,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
   private val argLine: TextLine = new TextLine(25) {
     focusable = true
     override protected def eventMap: EventMap = Personalised.theEventMap(theSession.path)
-
+    override protected def lastHandler = handlers.unhandled("(A)rgument")
     override def firstHandler: UserInputHandler = {
       case Instruction(Key.G, _, mods) if mods.hasControl =>
         val loc = argLine.text.strip()
@@ -312,7 +312,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
   private val findLine: TextLine = new TextLine(25) {
     focusable = true
     override protected def eventMap: EventMap = Personalised.theEventMap(theSession.path)
-
+    override protected def lastHandler = handlers.unhandled("(F)ind")
     override def firstHandler: UserInputHandler = findreplHandler
     /** hand back focus to the main text */
     override def mouseExited(): Unit = theView.requestFocusInWindow()
@@ -321,7 +321,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
   private val replLine: TextLine = new TextLine(25) {
     focusable = true
     override protected def eventMap: EventMap = Personalised.theEventMap(theSession.path)
-
+    override protected def lastHandler = handlers.unhandled("(R)eplace")
     override def firstHandler: UserInputHandler = findreplHandler
     /** hand back focus to the main text */
     override def mouseExited(): Unit = theView.requestFocusInWindow()
@@ -773,11 +773,12 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
           top.closeOperation()
         case Instruction(Key.S, _, Control) =>
           saveOperation()
+        case Instruction(Key.E, _, Control) =>
+          openArglinePath()
         case Diacritical(mark: Char) =>
           feedback(s"[$mark]")
 
-        case other: UserInput =>
-          UI_DO(EditSessionCommands.unhandledInput(other))
+        case other: UserInput => UI_DO(EditSessionCommands.unhandledInput("Document")(other))
       }
     }
 

@@ -60,15 +60,15 @@ UI:useFont font:C menu menubutton button
 #
 constant shell:Commands (list "wc" "ls -lt" "date" "printenv")
 
-(def (UI:pipeShellCommands path) shell:Commands)
+(def (CONFIG:pipeShellCommands path) shell:Commands)
 
 #
 #       Latex menu is to be present for .tex files / what's on the menu
 #
-(def (UI:needsLatex      path)
+(def (CONFIG:needsLatex      path)
      (if (endsWith path ".tex") (seq (LOADTEX:) true) false))
      
-(def (UI:latexBlockTypes path) latex:blocktypes)
+(def (CONFIG:latexBlockTypes path) latex:blocktypes)
 
 
 (constant latex:blocktypes
@@ -83,7 +83,7 @@ constant shell:Commands (list "wc" "ls -lt" "date" "printenv")
 # Latex snippets are placed on the \begin{...}/Tex menu
 #
 #
-(def (UI:latex:Snippets path) LATEX:Snippets)
+(def (CONFIG:latex:Snippets path) LATEX:Snippets)
 
 variable  LATEX:Snippets ()
 
@@ -193,12 +193,12 @@ variable  LATEX:Snippets ()
 PROFILE:bool    quietignore  "Features" "Silence Undefined Keys" false
 
 # 
-(def (UI:unhandledInput key)
+(def (CONFIG:unhandledInput key where)
      (if quietignore
          ()
-         (popup "Undefined Keystroke: " (inputToString key))))
+         (UI:popup (string:cat "Undefined Keystroke from " where) " " (UI:inputToString key))))
 
-(def (UI:eventMap path)
+(def (CONFIG:eventMap path)
      (if* ((endsWith path ".tex") . texEvents)
           ((endsWith path ".md")  . mdEvents)
           ( true . UI:defaultEventMap)))
@@ -221,9 +221,9 @@ PROFILE:bool    quietignore  "Features" "Silence Undefined Keys" false
 #
 def  (Eval path arg find repl sel) (readEval sel false)
 
-(def (UI:pipeRedScripts path) (list `Eval))
+(def (CONFIG:pipeRedScripts path) (list `Eval))
 
-(def (UI:needsPandoc    path) (endsWith path ".md"))
+(def (CONFIG:needsPandoc    path) (endsWith path ".md"))
 
 #
 #

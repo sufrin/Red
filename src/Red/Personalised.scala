@@ -13,8 +13,6 @@ import scala.swing.{Dialog, Font}
  *  Personalisation module, with definitions of
  *  abbreviations, menu entries, etc.
  *
- *  TODO: "safe"-mode should have a built-in minimal script.
- *
  */
 object Personalised extends Logging.Loggable {
 
@@ -27,7 +25,7 @@ object Personalised extends Logging.Loggable {
   }
 
   def latexBlockTypes(path: String): Seq[String] =
-  { applyScript("UI:latexBlockTypes",  path) match {
+  { applyScript("CONFIG:latexBlockTypes",  path) match {
       case SExps(Nil) => Nil
       case SExps(es)  => es.map(_.toPlainString)
       case other      => profileWarning(s"latexBlockTypes: path -> Seq[String]: $other"); Nil
@@ -35,20 +33,20 @@ object Personalised extends Logging.Loggable {
   }
 
   def latexSnippets(path: String): Seq[(String,String)] =
-  { applyScript("UI:latex:Snippets",  path) match {
+  { applyScript("CONFIG:latex:Snippets",  path) match {
     case SExps(Nil) => Nil
     case SExps(es)  => es.map {
       case Pair(button, (Str(text))) => (button.toPlainString, text)
       case Pair(button, (Str(text))) => (button.toPlainString, text)
-      case other => profileWarning(s"UI:latex:Snippets $other"); ("BAD", other.toString)
+      case other => profileWarning(s"CONFIG:latex:Snippets $other"); ("BAD", other.toString)
     }
-    case other => profileWarning(s"UI:latex:Snippets: path -> Seq[(Symbol, String)]: $other"); Nil
+    case other => profileWarning(s"CONFIG:latex:Snippets: path -> Seq[(Symbol, String)]: $other"); Nil
   }
   }
 
   def needsLatex(path: String): Boolean = {
     Bindings.importBindings()
-    applyScript("UI:needsLatex", path) match {
+    applyScript("CONFIG:needsLatex", path) match {
       case Bool(bool) => bool
       case other      => profileWarning(s"needsLatex: path -> Bool: $other"); false
     }
@@ -56,7 +54,7 @@ object Personalised extends Logging.Loggable {
 
   def needsPandoc(path: String): Boolean = {
     Bindings.importBindings()
-    applyScript("UI:needsPandoc", path) match {
+    applyScript("CONFIG:needsPandoc", path) match {
       case Bool(bool) => bool
       case other      => profileWarning(s"needsPandoc: path -> Bool: $other"); false
     }
@@ -64,7 +62,7 @@ object Personalised extends Logging.Loggable {
 
   def pipeShellCommands(path: String): Seq[String] =
   { Bindings.importBindings()
-    applyScript("UI:pipeShellCommands", path) match {
+    applyScript("CONFIG:pipeShellCommands", path) match {
       case SExps(es) => es.map(_.toPlainString)
       case other     => profileWarning(s"pipeShellCommands: path -> Seq[String]: $other"); Nil
     }
@@ -72,7 +70,7 @@ object Personalised extends Logging.Loggable {
 
   def pipeRedScripts(path: String): Seq[String] =
   { Bindings.importBindings()
-    applyScript("UI:pipeRedScripts", path) match {
+    applyScript("CONFIG:pipeRedScripts", path) match {
       case SExps(es) => es.map(_.toPlainString)
       case other     => profileWarning(s"pipeRedScripts: path -> Seq[fun]: $other"); Nil
     }
@@ -81,10 +79,10 @@ object Personalised extends Logging.Loggable {
   /** Keyboard mappings for editing the document at `path` */
   def theEventMap(path: String): EventMap = {
     Bindings.importBindings()
-    applyScript("UI:eventMap", path) match {
+    applyScript("CONFIG:eventMap", path) match {
       case EVENTMAP(theMap) => theMap
       case other            =>
-        if (other!=nil) profileWarning(s"UI:eventMap: path -> EventMap: $other\n(Using global event map instead)")
+        if (other!=nil) profileWarning(s"CONFIG:eventMap: path -> EventMap: $other\n(Using global event map instead)")
         Bindings.eventMap
     }
   }
@@ -175,35 +173,39 @@ object Personalised extends Logging.Loggable {
       def bindingsNotFound(path: Path): Unit = {
         if (notfoundCount==0) {
             profileWarning(s"""
-           |USING THE BUILT-IN MINIMAL CONFIGURATION SCRIPT
+           |USING THE BUILT-IN SAFE CONFIGURATION SCRIPT
            |
            |This is because there is no configuration script file: $path
            |
            |This is not catastrophic; but to avoid seeing this message again
            |
            |    1. ensure the ~/.red folder is present
-           |    2. copy AppleRed.app/Contents/Resources/Bindings/* to ~/.red
+           |    2. copy AppleRed.app/Contents/Resources/Configuration/*.redscript to ~/.red
            |
            |or provide a configuration file of your own and then restart the editor.
            |
-           |The button Pipe/MinimalConfiguration inserts the minimal configuration
-           |script into the current document.
+           |The environment variable REDBINDINGS indicates the filestore path of the "root"
+           |configuration script. It is normally "~/.red/bindings.redscript".
+           |
+           |The button Pipe/SafeConfiguration inserts a safe configuration
+           |script into the current document. It can be extended and modified
+           |as you require.
            |""".stripMargin)
           notfoundCount += 1
-          minimalReadEvalPrint(minimalConfiguration, false, true)
+          safeReadEvalPrint(safeConfiguration, false, true)
         }
       }
 
       /**
-       * RedScript minimal configuration. This provides functionality equivalent to
+       * RedScript safe configuration. This provides functionality equivalent to
        * my original Red, but without abbreviations. It's here in case there's no
        * script in the expected location.
        */
-      lazy val minimalConfiguration = """
+      lazy val safeConfiguration = """
                               |##############################################################################
-                              |# AppleRed minimal configuration file:
+                              |# AppleRed safe configuration file:
                               |##############################################################################
-                              ##############################################################################
+                              |##############################################################################
                               |#
                               |# Persistent features for the profile
                               |#
@@ -231,7 +233,7 @@ object Personalised extends Logging.Loggable {
                               |         user
                               |         os
                               |         (if OSX "OSX" "Linux")
-                              |         #(string "Cut Ring: " (UI:cutringBound))
+                              |         #(string "Cut Ring: " (CONFIG:cutringBound))
                               |         )
                               |
                               |#############################################################################
@@ -261,13 +263,13 @@ object Personalised extends Logging.Loggable {
                               |#
                               |constant shell:Commands (list "wc" "ls -lt" "date" "printenv")
                               |
-                              |(def (UI:pipeShellCommands path) shell:Commands)
+                              |(def (CONFIG:pipeShellCommands path) shell:Commands)
                               |
                               |#
                               |#       Latex menu is to be present for .tex files / what's on the menu
                               |#
-                              |(def (UI:needsLatex      path) (endsWith path ".tex"))
-                              |(def (UI:latexBlockTypes path) latex:blocktypes)
+                              |(def (CONFIG:needsLatex      path) (endsWith path ".tex"))
+                              |(def (CONFIG:latexBlockTypes path) latex:blocktypes)
                               |
                               |
                               |(constant latex:blocktypes
@@ -280,15 +282,13 @@ object Personalised extends Logging.Loggable {
                               |)
                               |
                               |# Latex snippets are on the \begin{...}/Tex menu
-                              |(def (UI:latex:Snippets path) latex:Snippets)
+                              |(def (CONFIG:latex:Snippets path) latex:Snippets)
                               |
                               |variable  latex:Snippets ()
                               |
-                              |(constant latex:snippet
-                              |  (form (env tag text)
-                              |        (:= latex:Snippets (:: (tag . text) latex:Snippets))
-                              |        ()))
-                              |
+                              |(defForm (LATEX:snippet env tag text)
+                              |         (:= LATEX:Snippets (:: (tag . text) LATEX:Snippets))
+                              |         ())
                               |
                               |#
                               |#
@@ -304,7 +304,7 @@ object Personalised extends Logging.Loggable {
                               |#       ALTS: ch ins ins'       == both the above
                               |#
                               |(def (alt: ch ins)
-                              |     (UI:keys ( (string "'" ch "'(A)")  . (insert (string ins)) )))
+                              |     (CONFIG:keys ( (string "'" ch "'(A)")  . (insert (string ins)) )))
                               |
                               |(def (ALT: ch ins)
                               |     (UI:keys ( (string "'" ch "'(AS)") . (insert (string ins)) )))
@@ -331,13 +331,12 @@ object Personalised extends Logging.Loggable {
                               |# A () result needs no further evaluation
                               |# A non-() result is re-evaluated, and the result inserted in the
                               |# current document if it's a string.
-                              |(def (UI:unhandledInput key)
+                              |(def (CONFIG:unhandledInput key where)
                               |     (if quietignore
                               |         ()
-                              |         (seq (popup "Undefined Keystroke: " (inputToString key))
-                              |              ())))
+                              |         (UI:popup (string:cat "Undefined Keystroke from " where) " " (UI:inputToString key))))
                               |
-                              |(def (UI:eventMap path) ())
+                              |(def (CONFIG:eventMap path) ())
                               |#
                               |#
                               |#############################################################################
@@ -348,9 +347,10 @@ object Personalised extends Logging.Loggable {
                               |#       Experimental scripts for the foot of the "Pipe" menu
                               |#
                               |def  (Eval path arg find repl sel) (readEval sel false)
+                              |def  (SafeConfiguration path arg find repl sel) UI:minimalconfiguration)
                               |
-                              |(def (UI:pipeRedScripts path) (list `Eval))
-                              |(def (UI:needsPandoc    path) (endsWith path ".md"))
+                              |(def (CONFIG:pipeRedScripts path) (list `Eval `SafeConfiguration))
+                              |(def (CONFIG:needsPandoc    path) (endsWith path ".md"))
                               |
                               |#
                               |#
@@ -359,7 +359,7 @@ object Personalised extends Logging.Loggable {
                               |
                               |""".stripMargin
 
-      def minimalReadEvalPrint(sourceString: String, show:  Boolean, throwError: Boolean): Unit =
+      def safeReadEvalPrint(sourceString: String, show:  Boolean, throwError: Boolean): Unit =
           readEvalPrint(new Parser(io.Source.fromString(sourceString), "<Minimal Red Bindings>"), show, throwError)
 
       override def readEvalPrint(path: Path, show: Boolean, throwError: Boolean): Unit = {
@@ -550,7 +550,7 @@ object Personalised extends Logging.Loggable {
         "UI:diacritical"    -> Subr("UI:diacritical",   doDia(_)),
         "UI:altclear"       -> Subr("UI:altclear",      {  Nil => AltKeyboard.clear(); Nothing }),
         "UI:font"           -> Subr("UI:font",          { case List(Str(name)) => FontExpr(name, Utils.mkFont(name))}),
-        "UI:minimalconfiguration" -> Str(minimalConfiguration),
+        "UI:minimalconfiguration" -> Str(safeConfiguration),
         "UI:useFont"        -> FSubr("useFont",    useFont),
         "UI:cutringBound"   -> Subr("UI:cutringBound", { case List(Num(bound)) => CutRing.bound = bound.toInt; Nothing; case Nil => Num(CutRing.bound)}),
         "PROFILE:select"      -> FSubr("PROFILE:select", declSelect),

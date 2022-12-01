@@ -190,13 +190,13 @@ object EditSessionCommands extends Logging.Loggable {
     }
   }
 
-  def unhandledInput(key: UserInput): SessionCommand = new SessionCommand  {
+  def unhandledInput(caption: String)(key: UserInput): SessionCommand = new SessionCommand  {
     val evaluator = Personalised.Bindings.RedScriptEvaluator
     val global    = evaluator.global
     val theKey    = Personalised.Bindings.RedScriptEvaluator.USERINPUT(key)
 
     override def DO(target: EditSession): Option[StateChange] = {
-      evaluator.run(SExps(List(Variable("UI:unhandledInput"), theKey))) match {
+      evaluator.run(SExps(List(Variable("CONFIG:unhandledInput"), theKey, Str(caption)))) match {
         case r: Error => Logging.Default.error(s"Unhandled input: $r")
         case other    =>
       }
@@ -594,6 +594,8 @@ object EditSessionCommands extends Logging.Loggable {
     }
   }
 
+  val selectAnyBraUpwards: SessionCommand   = selectMatching(_.anyBraUpwards())
+  val selectAnyKetDownwards: SessionCommand = selectMatching(_.anyKetDownwards())
   val selectMatchingUp: SessionCommand   = selectMatching(_.selectMatchingUp())
   val selectMatchingDown: SessionCommand = selectMatching(_.selectMatchingDown())
   val selectMatching: SessionCommand     = (selectMatchingUp ||| selectMatchingDown ||| Command.doNothing)
