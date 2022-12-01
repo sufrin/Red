@@ -173,9 +173,12 @@ variable  LATEX:Snippets ()
 #
 # indents, etc on the keypad
 #
-(UI:keys ("LEFT(SC)"  . (UI:commandNamed "removeCommonPrefix")))
-(UI:keys ("LEFT(C)"   . (UI:commandNamed "undentSelection")))
-(UI:keys ("RIGHT(C)"  . (UI:commandNamed "indentSelection")))
+(constant ArrowKeys
+          (UI:newEventMap 
+             ("LEFT(SC)"  . (UI:commandNamed "removeCommonPrefix"))
+             ("LEFT(C)"   . (UI:commandNamed "undentSelection"))
+             ("RIGHT(C)"  . (UI:commandNamed "indentSelection"))
+             ))
 #
 #
 #
@@ -194,6 +197,19 @@ PROFILE:bool    quietignore  "Features" "Silence Undefined Keys" false
      (if quietignore
          ()
          (popup "Undefined Keystroke: " (inputToString key))))
+
+(def (UI:eventMap path)
+     (if* ((endsWith path ".tex") . texEvents)
+          ((endsWith path ".md")  . mdEvents)
+          ( true . UI:defaultEventMap)))
+
+(constant texEvents
+          (UI:newEventMap UI:defaultEventMap ArrowKeys
+          ))
+
+(constant mdEvents
+          (UI:newEventMap UI:defaultEventMap ArrowKeys
+          ))
 #
 #
 #############################################################################
@@ -206,6 +222,7 @@ PROFILE:bool    quietignore  "Features" "Silence Undefined Keys" false
 def  (Eval path arg find repl sel) (readEval sel false)
 
 (def (UI:pipeRedScripts path) (list `Eval))
+
 (def (UI:needsPandoc    path) (endsWith path ".md"))
 
 #
