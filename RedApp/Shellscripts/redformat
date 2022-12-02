@@ -1,11 +1,16 @@
-# Format input as a scala comment using whatever resource is available
-# gfmt is the name used by brew to import the standard gnome text tool fmt
+#
+# Format input using whatever resource is available: Lines whose
+# first non-space character is $1 have it removed, and are reformatted
+# (according to the remaining arguments), and the $1 is then prepended
+# to each of the gfmt is the name used by brew to import the standard
+# gnome text tool fmt
+#
 lead=${1-"*"}
 shift
 if  [ $(uname) = "Linux" ]
 then
     exec /usr/bin/fmt -p "$lead" "$@"
 else
-    exec ~/bin/gfmt -p "$lead" "$@"
+    exec ~/bin/redfmt --prefix="$lead" "$@"
 fi
     
