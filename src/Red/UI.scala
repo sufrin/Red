@@ -517,7 +517,15 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
 
     } // File Menu
 
-    /** A group that generates menu items for managing formatting options  */
+    /**
+     *   A group that generates menu items for managing formatting styles
+     *
+     *  When a new style is set, the formatter uses it then, and thenceforth.
+     *
+     *  TODO:  the styles should be determined intelligently, rather than by
+     *         the user.
+     */
+
     val formatting = new Buttons.Group() {
       def select(value: String): Unit = {
         if (value == "")
