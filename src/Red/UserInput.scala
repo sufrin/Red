@@ -65,7 +65,7 @@ import scala.swing.event.Key
 
   }
 
-  /** A keystroke deemed to be an action was typed.
+  /** A keystroke deemed to be a command was typed.
    *  The `location` can usually be safely ignored, unless it
    *  is {{{Key.Location.NumPad}}}
    */
@@ -74,6 +74,11 @@ import scala.swing.event.Key
         location: Key.Location.Value,
         mods:     Detail)
     extends UserInput {
+
+    /**
+     *  The `description` that yields an  `Instruction` equivalent
+     *  to this from `UserInput(description)`.
+     */
     override def toInput: String =
       f"${KeySymbol.nameForKey(key)}%s${mods.asText}%s@$location%s"
 
@@ -81,6 +86,12 @@ import scala.swing.event.Key
       f"Instruction($key, $location%s, ${mods.asText}%s) ($toInput)"
   }
 
+  /**
+   * A diacritical mark output by an OS/X keyboard in the process of
+   * synthesising an accented character that it will also output. This
+   * mark should be discarded just befor (or just after) the synthesised
+   * character is seen.
+   */
   case class Diacritical(mark: Char )  extends UserInput {
     override def toString: String =
       s"Diacritical: $mark"

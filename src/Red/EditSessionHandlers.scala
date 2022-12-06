@@ -71,8 +71,8 @@ case class EditSessionContext(DO: Commands.Command[EditSession]=>Unit, session: 
  *  The handler `singleLineKeyboard` responds the same as `keyboard` except
  *  for `Key.Up`, `Key.Down`, and `'\n'`, to which it responds by doing nothing.
  *
- *  `UI_DO` should execute its argument `command`, by invoking `command.UI_DO` on
- *  a suitable target editing session. This may be done directly, or
+ *  `UI_DO` should execute its argument `command`, by invoking `command.DO` on
+ *  a suitable target editing session. This may be done directly or
  *  through the intermediary of a `StateChangeHistory` manager
  *  that provides additional functionality.
  *
@@ -146,7 +146,7 @@ class EditSessionHandlers(context: EditSessionContext) {
 
       /**  The default keyboard input handler.
        *
-       *   This is the keyboard used in the uncustomised editor.
+       *   This is the keyboard used in the "safe" uncustomised/unpersonalised editor.
        *   It was originally the only keyboard input handler.
        */
       val keyboard: UserInputHandler =  {

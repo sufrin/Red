@@ -13,7 +13,15 @@ import scala.swing.BorderPanel.Position._
 import scala.swing.FileChooser.Result.{Approve, Cancel}
 import scala.swing._
 
-/** Graphical User Interface to an EditSession */
+/**
+ * Graphical User Interface to an `EditSession`, providing a top-level
+ * document view for the session, and a (large) number of menu entries.
+ *
+ * Its sheer size might intimidate the reader, and it could/should be refactored;
+ * but right now it's not quite clear to me what the appropriate axes for this
+ * refactoring should be.
+ *
+ */
 class UI(val theSession: EditSession) extends SimpleSwingApplication {
   import Menus.EmbeddedDynamicMenu
   import UI._
@@ -38,7 +46,6 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
   /**
    * `Personalised.Bindings` emits feedback and warnings about various things
    * that we wish to report via this user interface.
-   *
    */
   locally {
     Red.Personalised.Bindings.feedback.handleWith {
@@ -56,11 +63,22 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
     } { body }
   }
 
-  /** Default event Map is the one defined by `Personalised.Bindings`
+  /**
+   * The default event Map for this session is defined by {{{Personalised.Bindings}}}
+   * while bindings are being set up for this session. It is effectively a mapping
+   * from user input events that happen in this session to their meanings/interpretations as
+   * RedScript expressions that will, in turn, denote `EditSession` commands.
+   *
+   * @see `EditSessionHandlers.redscriptInputHandler`
+   *
    */
   private var theEventMap = Personalised.theEventMap(theSession.path)
 
-  /** The source of handlers for user input events. */
+  /**
+   * The source of handlers for user input events.
+   *
+   * @see
+   */
   protected val handlers = new EditSessionHandlers(EditSessionContext(UI_DO, theSession, theEventMap))
 
   /**
@@ -527,14 +545,16 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
      */
 
     val formatting = new Buttons.Group() {
+
       def select(value: String): Unit = {
         if (value == "")
-          UI_DO(EditSessionCommands.formatter(argLine.text, "fmt"))
+          UI_DO(EditSessionCommands.formatter(argLine.text, "redfmt"))
         else
           withFilterWarnings("fmt ") {
             UI_DO(EditSessionCommands.formatter(argLine.text, s"redformat '$value'", List(value)))
           }
       }
+
     }
 
     contents += new Utils.Menu("Edit") {
@@ -565,10 +585,10 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
         contents += new Utils.Menu(" Formats ") {
           font = Utils.menuButtonFont
           contents += formatting.CheckBox(" ...", "", "Format the selection in non-prefix mode, and set mode to non-prefix")
-          contents += formatting.CheckBox(" -p * ...", "*", "Format the selection with redformat -p * and set mode to -p *")
-          contents += formatting.CheckBox(" -p | ...", "|", "Format the selection with redformat -p | and set mode to -p |")
-          contents += formatting.CheckBox(" -p # ...", "#", "Format the selection with redformat -p # and set mode to -p #")
-          contents += formatting.CheckBox(" -p -- ...", "--", "Format the selection with redformat -p -- and set mode to -p --")
+          contents += formatting.CheckBox(" -p * ...", "*", "Format the selected program comment  with redformat '*' and set mode to -p *")
+          contents += formatting.CheckBox(" -p | ...", "|", "Format the selected program comment  with redformat '|' and set mode to -p |")
+          contents += formatting.CheckBox(" -p # ...", "#", "Format the selected program comment  with redformat '#' and set mode to -p #")
+          contents += formatting.CheckBox(" -p -- ...", "--", "Format the selected program comment  with redformat '--- and set mode to -p --")
         }
 
     } // Edit Menu
@@ -607,8 +627,13 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
 
     } // Pipe Menu
 
-    // Latex matters
 
+    ////////////////////////////////////////////////////// 2 Candidates for separation during a refactoring
+    //
+    //
+    //
+
+    // Latex
 
     if (Red.Personalised.needsLatex(theSession.path)) {
 
@@ -724,15 +749,24 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
         contents += Glue.horizontal()
     }
 
+    // Pandoc
+
     if (Personalised.needsPandoc(theSession.path)) {
         contents += Button("Pandoc", toolTip = "Run redpandoc now") {
           saveOperation()
           UI_DO(EditSessionCommands.pandocToPDF)
         }
+
+
     }
 
-    contents += Glue.horizontal()
+    //
+    //
+    //
+    //////////////////////////////////////////////////////////// end of candidates for refactoring
 
+
+    contents += Glue.horizontal()
     contents += undoButton
     contents += redoButton
 

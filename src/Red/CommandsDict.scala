@@ -2,9 +2,18 @@ package Red
 
 import EditSessionCommands._
 
+/**
+ *  Mapping from the names of (parameterless) edit session commands to the commands themselves. Effectively of type
+ *  {{{ String => Option[SessionCommand] }}} where
+ *  {{{ SessionCommand==Command[EditSession]}}}
+ *
+ *  Used in the implementation of the {{{RedScript.Personalised.Bindings}}} primitive: {{{UI:commandNamed}}}
+ */
 object CommandsDict {
 
-private val commands = List (
+  def apply(name: String): Option[SessionCommand] = dict.get(name)
+
+  private val commands = List (
         "abbreviate" -> abbreviate, 
         "autoIndentNL" -> autoIndentNL, 
         "autoIndentSelection" -> autoIndentSelection, 
@@ -49,5 +58,4 @@ private val commands = List (
     for { pair <- commands } dict.addOne(pair)
   }
 
-  def apply(name: String): Option[SessionCommand] = dict.get(name)
 }

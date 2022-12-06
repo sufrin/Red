@@ -8,10 +8,14 @@ The command
 
         make
 
-compiles the entire source into Red.jar, then makes from it an
-AppleRed.jar that can be run from the java top-level anywhere, on
-any operating system, because it has embedded in it all the libraries
-it requires.
+compiles the entire source into Red.jar, then makes from it an `AppleRed.jar`
+that can be run from the java top-level anywhere, on any operating system,
+because it has embedded in it all the libraries it requires.
+
+You will need to have jars corresponding to the libraries `regexkit`,
+`scala-swing` and a recent `scala-library` present: this can be
+achieved by making symbolic links to them.
+
 
 Distribution and Installation
 -----------------------------
@@ -28,7 +32,6 @@ can be obeyed less strictly.
 Working on new features
 -----------------------
 
-
 The files `Makefile`, and `Makefile-Scala` specify various other make
 targets, some of which will be of use while working on new features
 with `IntelliJ`.
@@ -36,19 +39,18 @@ with `IntelliJ`.
         ./ired [args]
 
 runs the editor using the compilation classpath and the current
-`IntelliJ`-compiled  class files.
+`IntelliJ`-compiled class files.
 
-If you don't use `IntelliJ` in your development it's not a problem,
-because:
+If you don't use `IntelliJ` in your development it's not a
+problem, because:
 
         ./sred [args]
 
 runs the editor using the compilation classpath and `Red.jar`
 
-
-
 You can test a new variant you have compiled with either of the above
-two commands. 
+two commands.
+
 
 You specify the logging of classes/modules by providing additional
 arguments of the form
@@ -60,6 +62,7 @@ which logs at or below the most detailed level; or
         -l<package>.<class>=<level>
 
 which logs at or below the specified level.
+
 
 \newpage
 
