@@ -2,10 +2,11 @@
 
 package Commands
 
-  /**    === Command: the big ideas
+  /**
+   * === Command: the big ideas
    *
    *     Every `command: Command[T]` represents a state-changing operation that is
-   *     applied to a `target` of type T` by invoking
+   *     applied to a `target` of type `T` by invoking
    *     {{{ command.DO(target}}}
    *
    *     Suppose a (mutable) object `target: T` is in state `s`.
@@ -47,6 +48,7 @@ package Commands
    *     In that case it yields the resulting `StateChange`
    *     but only after executng  `c2.DO(target)`.
    */
+  //noinspection ScalaDocParserErrorInspection
   trait Command[T] {
     def DO(target: T): Option[StateChange]
     def &&&(that: Command[T]): Command[T] = Command.andThen(this, that)
@@ -65,7 +67,8 @@ package Commands
    *      was just before the `undo`
    *
    */
-   
+  //noinspection ScalaDocParserErrorInspection
+
   trait StateChange  {
     def undo(): Unit
     def redo(): Unit
@@ -181,6 +184,8 @@ package Commands
      * target, and yields a state change whose `undo` and `redo` have
      * no effect.
      */
+
+    //noinspection MutatorLikeMethodIsParameterless
     def doNothing[T]: Command[T] = new Command[T] {
         def DO(target: T): Option[StateChange] = Some(undoNothing)
     }

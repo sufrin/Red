@@ -1,11 +1,11 @@
 package RedScript
 
-
 import java.io.FileInputStream
 import java.nio.file.Path
+import scala.annotation.{nowarn, tailrec}
 import scala.io.BufferedSource
 import scala.language.postfixOps
-
+@nowarn("msg=not.*?exhaustive") // nonexhaustive matches are deliberate
 /**
  *  A global evaluator that defines syntactic forms as well as the semantics of
  *  primitive functions. In this implementation, "abstract syntax" and "semantics" are
@@ -31,6 +31,7 @@ class Evaluator {
    * of the conditions that yields `true`.
    */
   def evCond(env: Env, body: SExp): SExp = {
+    @tailrec
     def evCases(cases: List[SExp]): SExp = cases match {
       case Nil => Nothing
 
@@ -43,7 +44,7 @@ class Evaluator {
 
       case List(default) => default.eval(env)
 
-      case other => throw SyntaxError(s"Malformed conditional: ${cases.mkString(" ")}")
+      case _ => throw SyntaxError(s"Malformed conditional: ${cases.mkString(" ")}")
     }
     body match {
       case SExps(cases) => evCases(cases)
@@ -80,7 +81,7 @@ class Evaluator {
   /** Check the declareability of a name */
   def whenRedefinable[T](sexp: SExp)(expr: => T): T = {
     sexp match {
-      case Variable(name) => expr
+      case Variable(_) => expr
       case other => throw SyntaxError(s"Built-ins cannot be rebound or redefined: $other")
     }
   }
@@ -88,7 +89,7 @@ class Evaluator {
   def evSet(env: Env, body: SExp): SExp = {
     body match {
       case SExps(List(lvalue, rvalue)) =>
-        lvalue.lval(env).value = rvalue.eval(env);
+        lvalue.lval(env).value = rvalue.eval(env)
         Nothing
       case other => throw SyntaxError(s"Malformed assignment: $other")
     }
@@ -109,9 +110,9 @@ class Evaluator {
   // TODO: (decls, body) = pairs.splitAtFirstNonPair
   def evLet(isVar: Boolean)(env: Env, form: SExp): SExp = {
     form match {
-      case SExps(pairs) if pairs.length >= 1 =>
+      case SExps(pairs) if pairs.nonEmpty =>
         pairs.last match {
-          case p: Pair =>
+          case _: Pair =>
             // A globally-scoped declaration
             // (let (vi . ei )*)
             if (isVar)
@@ -130,18 +131,18 @@ class Evaluator {
                   for { Pair(bv, expr)  <- decls } yield whenRedefinable(bv) { Ref(bv.toString, expr.eval(env)) }
                 else
                   for { Pair(bv, expr)  <- decls } yield whenRedefinable(bv) { expr.eval(env) }
-              body.eval(env.extend(SExps(bvs), args.toList))
+              body.eval(env.extend(SExps(bvs), args))
             } catch {
               case exn: MatchError => throw SyntaxError(s"Malformed declaration: $form (${exn.getMessage()})")
             }
         }
 
-      case other => throw SyntaxError(s"Malformed declaration: there should be at least one (variable.value)")
+      case _ => throw SyntaxError(s"Malformed declaration: there should be at least one (variable.value)")
     }
   }
 
   @inline def isAtom(pattern: SExp): Boolean = pattern match { case Variable(_) => true ; case _ => false }
-  @inline def isPattern(pattern: List[SExp]): Boolean = pattern.forall(isPattern(_))
+  @inline def isPattern(pattern: List[SExp]): Boolean = pattern.forall(isPattern)
   @inline def isPattern(pattern: SExp): Boolean = pattern match {
     case SExps(params) if params.forall(isAtom) => true
     case _             if isAtom(pattern)       => true
@@ -151,7 +152,7 @@ class Evaluator {
   def evDef(env: Env, form: SExp): SExp = {
     form match {
       //   def (f . arg) body // arg bound to the list of actual parameters
-      case SExps(Pair(Variable(name),  (allArg: Variable))  :: body) =>
+      case SExps(Pair(Variable(name),  allArg: Variable)  :: body) =>
            global.define(name, ExprAll(env, allArg, mkSequential(body)) )
            Nothing
       //   def (f arg1 arg2 ...) body // arg1 arg2 ... bound to the actual parameters
@@ -180,7 +181,7 @@ class Evaluator {
    * `(map (name.value)* )`
    */
   def evMap(env: Env, form: SExp): SExp = form match {
-    case SExps(pairs) => EnvExpr(new LocalEnv(pairs.map { case (Pair(d,r)) => (d.eval(env).toPlainString, r.eval(env)) }))
+    case SExps(pairs) => EnvExpr(new LocalEnv(pairs.map { case Pair(d,r) => (d.eval(env).toPlainString, r.eval(env)) }))
   }
 
   def mapExtend(args: List[SExp]): SExp = {
@@ -205,7 +206,7 @@ class Evaluator {
       // fun (arg1 arg2 ...) body -- binds actual params to arg1 arg2 ....
       case SExps(pattern :: body) if isPattern(pattern) => Expr(env, pattern, mkSequential(body))
       // incorrect
-      case SExps(pattern :: body) if !isPattern(pattern) => throw SyntaxError(s"Malformed fun parameter(s): ${pattern.position}")
+      case SExps(pattern :: _) if !isPattern(pattern) => throw SyntaxError(s"Malformed fun parameter(s): ${pattern.position}")
       case _ => throw SyntaxError(s"Malformed function expression: $form")
     }
   }
@@ -221,7 +222,7 @@ class Evaluator {
       // form (env arg1 arg2 ...) body  // env bound to calling environment, arg1 arg2 ... bound to actual parameters
       case SExps(pattern :: body) if isPattern(pattern) => FExpr(env, pattern, mkSequential(body))
       // form all body
-      case SExps(pattern :: body) if !isPattern(pattern) => throw SyntaxError(s"Malformed parameter(s): ${pattern.position}")
+      case SExps(pattern :: _) if !isPattern(pattern) => throw SyntaxError(s"Malformed parameter(s): ${pattern.position}")
       case _ => throw SyntaxError(s"Malformed function expression: $form")
     }
   }
@@ -242,7 +243,7 @@ class Evaluator {
   }
 
   /**  Workhorse to implement the transformation (for `N>1`)
-   *   of a sequence of expressions of length `N`` to a single
+   *   of a sequence of expressions of length `N` to a single
    *   `(seq ...)` expression. Used to systematically transform
    *   the `body` part of a function expression or definition.
    */
@@ -270,13 +271,13 @@ class Evaluator {
       case (a: Num, b: Hex) => new Hex(op(a.value, b.value))
       case (Num(a),Num(b)) => Num(op(a,b))
     }
-    fun(name, { case args: List[SExp] if (args.nonEmpty) => args.reduceLeft(opn(_,_)) })
+    fun(name, { case args: List[SExp] if args.nonEmpty => args.reduceLeft(opn(_,_)) })
   }
 
   /** `op`-(left)reduction of the arguments as a whole */
   def redString(name: String, op: (String,String)=>String):Subr = {
     val opn: (SExp,SExp)=>SExp  = { case (a,b) => Str(op(a.toPlainString, b.toPlainString)) }
-    fun(name, { case args: List[SExp] if (args.nonEmpty) => args.reduceLeft(opn(_,_)) })
+    fun(name, { case args: List[SExp] if args.nonEmpty => args.reduceLeft(opn(_,_)) })
   }
 
   /**
@@ -314,7 +315,7 @@ class Evaluator {
             case None => nil
             case Some(theMatch) => REGMATCH(theMatch)
           }
-        case other => throw RuntimeError(s"re:match: REGEX -> nil | REGMATCH")
+        case _ => throw RuntimeError(s"re:match: REGEX -> nil | REGMATCH")
       }),
       "find" -> Subr("re:find", {
         case List(REGEX(regex), Str(text)) =>
@@ -332,7 +333,7 @@ class Evaluator {
             case None => nil
             case Some(theMatch) => REGMATCH(theMatch)
           }
-        case other => throw RuntimeError(s"re:find: REGEX STRING Num? Num? -> nil | REGMATCH")
+        case _ => throw RuntimeError(s"re:find: REGEX STRING Num? Num? -> nil | REGMATCH")
       })
     )
 
@@ -343,19 +344,19 @@ class Evaluator {
     val lookup: collection.immutable.HashMap[String, SExp] = collection.immutable.HashMap[String, SExp](
       "span" -> Subr("re:span", {
         case List(REGMATCH(theMatch)) => SExps(List(Num(theMatch.start), Num(theMatch.end)))
-        case other => throw RuntimeError(s"re:span: REGMATCH->[Num,Num]")
+        case _ => throw RuntimeError(s"re:span: REGMATCH->[Num,Num]")
       }),
       "subst" -> Subr("re:subst", {
         case List(REGMATCH(theMatch), Str(theTemplate)) => Str(theMatch.substitute(theTemplate))
-        case other => throw RuntimeError(s"re:subst: REGMATCH STRING -> STRING")
+        case _ => throw RuntimeError(s"re:subst: REGMATCH STRING -> STRING")
       }),
       "group" -> Subr("re:group", {
         case List(REGMATCH(theMatch), Num(i)) => Str(theMatch.group(i.toInt))
-        case other => throw RuntimeError(s"re:group: REGMATCH Num -> STRING")
+        case _ => throw RuntimeError(s"re:group: REGMATCH Num -> STRING")
       }),
       "groups" -> Subr("re:groups", {
-        case List(REGMATCH(theMatch)) => SExps(theMatch.groups.map(Str(_)).toList)
-        case other => throw RuntimeError(s"re:groups: REGMATCH -> [STRING]")
+        case List(REGMATCH(theMatch)) => SExps(theMatch.groups.map(Str).toList)
+        case _ => throw RuntimeError(s"re:groups: REGMATCH -> [STRING]")
       })
     )
 
@@ -382,8 +383,8 @@ class Evaluator {
   val primitives: List[(String, SExp)] = List(
     "nil"       -> nil,
     "null"      -> Subr("null",       { case List(SExps(Nil)) => Bool(true); case List(_) => Bool(false); case _ => throw SyntaxError("null requires an argument") }),
-    "hd"        -> Subr("hd",         { case List(SExps((h::t))) => h; case List(SExps(Nil)) => throw RuntimeError(s"(hd nil)"); case other => RuntimeError("Non-list: (hd $other)") } ),
-    "tl"        -> Subr("tl",         { case List(SExps((h::t))) => SExps(t); case List(SExps(Nil)) => throw RuntimeError(s"(tl nil)"); case other => RuntimeError("Non-list: (tl $other)")  } ),
+    "hd"        -> Subr("hd",         { case List(SExps(h::t)) => h; case List(SExps(Nil)) => throw RuntimeError(s"(hd nil)"); case other => RuntimeError("Non-list: (hd $other)") } ),
+    "tl"        -> Subr("tl",         { case List(SExps(h::t)) => SExps(t); case List(SExps(Nil)) => throw RuntimeError(s"(tl nil)"); case other => RuntimeError("Non-list: (tl $other)")  } ),
     "::"        -> Subr("::",         { case List(s, SExps(ss)) => SExps(s::ss)  }),
     "member"    -> Subr("member",     { case List(s, SExps(ss)) => Bool(ss.contains(s))  }),
     "++"        -> Subr("++",         { case List(SExps(k0), SExps(k1)) => SExps(k0++k1); case other => throw RuntimeError(s"malformed ++: ${SExps(other)}") } ),
@@ -411,23 +412,23 @@ class Evaluator {
     "@"         -> Subr  ("@",        {
       case List(EnvExpr(env), arg) => env.apply(arg.toPlainString) match { case None => Nothing; case Some(value) => value}
     }),
-    "map:empty" -> EnvExpr(new LocalEnv(Nil)),
-    "map:"      -> FSubr  ("map:",       evMap),
-    "map:extend"-> Subr  ("map:extend", mapExtend(_)),
-    "seq"       -> Subr  ("seq",      { case Nil => Nothing; case args => args.last }),
-    "readEvalPrint"  -> Subr  ("readEvalPrint", { case Str(text) :: Bool(show) :: rest => readEvalPrint(text, show, false); Nothing}),
-    "println"   -> Subr  ("println",  { case args => args.foreach{ case k => normalFeedback(k.toPlainString); normalFeedback(" ") } ; normalFeedbackLn(""); Nothing }),
-    "log"       -> Subr  ("log",      { case args => Logging.Default.log(Logging.INFO, args.map(_.toPlainString).mkString("", " ", "")); Nothing }),
-    "?"         -> Subr  ("?",        { case args => args.foreach{ case k => normalFeedback(k.toPlainString); normalFeedback(" ") }; args.last }),
-    "toString*" -> Subr  ("toString*", evPlainString),
-    "quote"     -> FSubr ("quote",    { case (env, form) => form }),
-    "isAtom"    -> forall("isAtom")   { case Quote(Variable(_)) => true; case _ => false },
-    "isSymb"    -> forall("isSymb")   { case Quote(v@Variable(_)) => v.symbolic; case _ => false },
-    "isVar"     -> forall("isVar")    { case Quote(v@Variable(_)) => !v.symbolic; case _ => false },
-    "isNum"     -> forall("isNum")    { case Num(_)=>true;    case _ => false },
-    "isList"    -> forall("isList")   { case SExps(_)=>true;  case _ => false },
-    "isString"  -> forall("isString") { case Str(_)=>true;    case _ => false },
-    "isNothing" -> forall("isNothing"){ case Nothing => true; case _ => false },
+    "readEvalPrint" -> Subr  ("readEvalPrint", { case Str(text) :: Bool(show) :: _ => readEvalPrint(text, show, false); Nothing}),
+    "map:empty" -> EnvExpr  (new LocalEnv(Nil)),
+    "map:"      -> FSubr    ("map:",       evMap),
+    "map:extend"-> Subr     ("map:extend", mapExtend),
+    "seq"       -> Subr     ("seq",       { case Nil => Nothing; case args => args.last }),
+    "println"   -> Subr     ("println",   { args => args.foreach { k => normalFeedback(k.toPlainString); normalFeedback(" ") }; normalFeedbackLn(""); Nothing }),
+    "log"       -> Subr     ("log",       { args => Logging.Default.log(Logging.INFO, args.map(_.toPlainString).mkString("", " ", "")); Nothing }),
+    "?"         -> Subr     ("?",         { args => args.foreach{  k => normalFeedback(k.toPlainString); normalFeedback(" ") }; args.last }),
+    "toString*" -> Subr     ("toString*", evPlainString),
+    "quote"     -> FSubr    ("quote",     { case (env, form) => form }),
+    "isAtom"    -> forall("isAtom")       { case Quote(Variable(_)) => true; case _ => false },
+    "isSymb"    -> forall("isSymb")       { case Quote(v@Variable(_)) => v.symbolic; case _ => false },
+    "isVar"     -> forall("isVar")        { case Quote(v@Variable(_)) => !v.symbolic; case _ => false },
+    "isNum"     -> forall("isNum")        { case Num(_)=>true;    case _ => false },
+    "isList"    -> forall("isList")       { case SExps(_)=>true;  case _ => false },
+    "isString"  -> forall("isString")     { case Str(_)=>true;    case _ => false },
+    "isNothing" -> forall("isNothing")    { case Nothing => true; case _ => false },
     "isDefined" -> FSubr("isDefined", {
       case (env, SExps(exps)) =>
         Bool(exps.forall {
@@ -440,14 +441,14 @@ class Evaluator {
     "toHex"     -> Subr("toHex",      { case List(a: Hex) => a; case List(n: Num) => new Hex(n.value)}),
     "&&"        -> forall("&&")       { case Bool(b)=> b },
     "||"        -> exists("||")       { case Bool(b)=> b },
-    "string"    -> redString("string", (_.+(_))),
-    "+"         -> red("+",   (_.+(_))),
+    "string"    -> redString("string", _.+(_)),
+    "+"         -> red("+",   _.+(_)),
     "-"         -> minus, // special treatment of unary negation
-    "max"       -> red("max", (_.max(_))),
-    "min"       -> red("min", (_.min(_))),
-    "*"         -> red("*",   (_.*(_))),
-    "/"         -> red("/",   (_./(_))),
-    "="         -> rel("=",   (_.equals(_))),
+    "max"       -> red("max", _.max(_)),
+    "min"       -> red("min", _.min(_)),
+    "*"         -> red("*",   _.*(_)),
+    "/"         -> red("/",   _./(_)),
+    "="         -> rel("=",   _.equals(_)),
     "<"         -> rel("<",   { case (Num(a), Num(b))=>a<b;  case (Str(a), Str(b))=>a<b;  case (Bool(a), Bool(b))=>a<b  }),
     "<="        -> rel("<=",  { case (Num(a), Num(b))=>a<=b; case (Str(a), Str(b))=>a<=b; case (Bool(a), Bool(b))=>a<=b }),
     ">"         -> rel("<",   { case (Num(a), Num(b))=>a>b;  case (Str(a), Str(b))=>a<b;  case (Bool(a), Bool(b))=>a>b  }),

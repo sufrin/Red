@@ -7,6 +7,7 @@ import Useful.PrefixMap
 
 import java.io.File
 import java.nio.file.{Path, Paths}
+import scala.annotation.nowarn
 import scala.swing.{Dialog, Font}
 
 /**
@@ -36,7 +37,6 @@ object Personalised extends Logging.Loggable {
   { applyScript("CONFIG:latex:Snippets",  path) match {
     case SExps(Nil) => Nil
     case SExps(es)  => es.map {
-      case Pair(button, (Str(text))) => (button.toPlainString, text)
       case Pair(button, (Str(text))) => (button.toPlainString, text)
       case other => profileWarning(s"CONFIG:latex:Snippets $other"); ("BAD", other.toString)
     }
@@ -145,7 +145,8 @@ object Personalised extends Logging.Loggable {
         else
           context.resolveSibling(thePath)
       }
-
+      
+    @nowarn("msg=not.*?exhaustive") // nonexhaustive matches are deliberate
     object RedScriptEvaluator extends Evaluator {
 
       case class USERINPUT(input: UserInput) extends Const
@@ -364,7 +365,7 @@ object Personalised extends Logging.Loggable {
 
       override def readEvalPrint(path: Path, show: Boolean, throwError: Boolean): Unit = {
           paths.push(path)
-          try { super.readEvalPrint(path, show, false) }
+          try { super.readEvalPrint(path, show, false) } finally {}
           paths.pop()
       }
 
