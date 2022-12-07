@@ -447,6 +447,7 @@ instance of \texttt{\$n} in it by the text that matches the \texttt{n}th
 bracketed expression in the instance of the pattern that is being
 replaced. Otherwise it is interpreted literally.
 
+
 \begin{itemize}
 \item
   \emph{FindDown} (\texttt{C-f}, or \texttt{Numpad-0}) selects the
@@ -489,9 +490,6 @@ If the current selection is an instance of \textbf{(F)} then:
   the left of the mark.
 \end{itemize}
 
-By convention the ``upward'' variant of an action is bound to the
-shifted key that its ``downward'' variant is bound to.
-
 \hypertarget{find-and-replace-technique}{%
 \subsubsection{Find and Replace
 (Technique)}\label{find-and-replace-technique}}
@@ -508,23 +506,17 @@ move between texts is to type:
     C-Numpad-0 F O O Numpad-0 C-Numpad-. B A R Numpad-.
 \end{verbatim}
 
-Replacing the following instance just requires
+Because the \emph{Find} and \emph{Repl} minitexts are now set
+to the right pattern and replacement, replacing the following
+instance just requires the two keystrokes \emph{FindDown} \emph{ReplaceDown},
+that is, either:
+\begin{alltt}
+    Numpad-0 Numpad-.      \textrm{or}         C-f C-r
+\end{alltt}
 
-\begin{verbatim}
-    C-Numpad-0 Numpad-.
-\end{verbatim}
-
-or
-
-\begin{verbatim}
-    C-f C-r
-\end{verbatim}
-
-Since the \emph{Find} and \emph{Repl} minitexts are already set to
-the right pattern and replacement. Obviously subsequent instances
-can be found/replaced with the same keystrokes; and the same technique
-can be used ``upwards'', by using \emph{FindUp} and \emph{ReplaceUp}
-(the same keys pressed, but shifted).
+Subsequent instances can be found/replaced with the same keystrokes;
+and the same technique can be used ``upwards'', by using \emph{FindUp}
+and \emph{ReplaceUp} (the same keys pressed, but shifted).
 
 \begin{itemize}
 \item
@@ -545,8 +537,10 @@ can be used ``upwards'', by using \emph{FindUp} and \emph{ReplaceUp}
   \emph{Undo}).
 \end{itemize}
 
-To find/replace earlier instances just type the same actions with the
-shift key pressed.
+To find/replace earlier instances just type the same actions with
+the shift key pressed.\footnote{You may have noticed that the
+``upward'' variant of an action is bound to the shifted key that
+its ``downward'' variant is bound to.}
 
 
 
@@ -566,16 +560,16 @@ indentation of the current line. This is achieved by inserting spaces
 after \texttt{Enter} is typed, and removing spaces to the right of the
 cursor if necessary.
 
-When there is a nonempty selection:
+When there is a \textit{nonempty selection:}
 
 \begin{itemize}
 \item
-  \emph{Indent selection} (\texttt{Tab}) indents the selected lines by 1
+  \emph{Indent selection} (\texttt{Tab}, \texttt{C-Right}) indents the selected lines by 1
   space. If invoked with the \textbf{alt}-shift pressed, then the
   selected lines are indented by prefixing them with the \textbf{(A)}
   text, and then re-selected.
 \item
-  \emph{Undent selection} (\texttt{Shift-Tab}) (when there is a nonempty
+  \emph{Undent selection} (\texttt{Shift-Tab}, \texttt{C-Left}) (when there is a nonempty
   selection) reduces the indentation of the selected lines by 1 space
   where possible. If invoked with the \textbf{alt}-shift pressed, then
   the selected lines are ``undented'' by the (literal) \textbf{(A)} text
@@ -632,8 +626,11 @@ bracketing pair.
 
 \texttt{Red} builds-in most unicode bracketing pairs in addition to the
 obvious ``\{\}'', ``()'', ``{[}{]}'' and can be easily adapted to add
-more pairs specified by regular expressions; such as those that match
-the built-in Latex and HTML blocks.
+more pairs specified by regular expressions; for example
+those that match the built-in Latex and HTML block brackets
+described below.\footnote{The adaptation may require thought to be
+given to the potential for ambiguity, and for the ambiguity to be
+resolved programmatically.}
 
 Any \verb/\begin{/$kind_b$\verb/}/ is considered to match
 any \verb/\end{/$kind_e$\verb/}/
