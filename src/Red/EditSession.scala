@@ -442,13 +442,13 @@ class EditSession(val document: DocumentInterface, private var _path: String)
     val anyBra = {
       val trees: Seq[Tree[Char]] = compositeBras ++ lefts.values.map(_.bra.tree)
       val tree: Tree[Char] = trees . reduce (Alt(_,_))
-      new Regex(tree, false, false)
+      new Regex(tree, false, false, -1)
     }
 
     val anyKet = {
       val trees: Seq[Tree[Char]] =  compositeKetSpecials ++ rights.values.map(_.ket.tree)
       val tree: Tree[Char] = trees . reduce (Alt(_,_))
-      val res = new Regex(tree, false, false)
+      val res = new Regex(tree, false, false, -1)
       res
     }
 
@@ -481,7 +481,8 @@ class EditSession(val document: DocumentInterface, private var _path: String)
      *  the right.
      */
     def tryMatchDown(spec: Brackets.Specification): Boolean = {
-      if (spec.bra.prefixes(document.characters, cursor).isEmpty) false else
+      if (logging) finest(s"tryMatchDown $spec")
+      if (spec.bra.prefixes(document.characters, cursor, document.characters.length).isEmpty) false else
       spec.matchForward(document.characters, cursor, document.characters.length) match {
         case None      => false
         case Some(end) => setMark(end, tentative=true); true
