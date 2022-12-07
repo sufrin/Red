@@ -155,13 +155,13 @@ object UserInput {
       theLoc = Location.withName(locName)
       true
   } catch {
-    case _ =>
+    case _ : NoSuchElementException =>
       theLoc = Location.Standard
       if (locName!="") error.append(s"$locName isn't a keyboard location")
       locName==""
   }
 
-  def isHexKey(string: String): Boolean = try {
+  def isHexKey(string: String): Boolean = {
     import Useful.CharSequenceOperations._
     string.hexToLong match {
       case None => false
@@ -169,9 +169,6 @@ object UserInput {
         theKey = Key(long.toInt)
         true
     }
-  } catch {
-    case _ =>
-      false
   }
 
   def isUnicode(string: String): Boolean = {
