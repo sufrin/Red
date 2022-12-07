@@ -1,5 +1,7 @@
 package RedScript
 
+import scala.annotation.nowarn
+
 /**
  * Abstract syntax and "pre-semantics" of S-expressions.
  *
@@ -96,8 +98,8 @@ object Language {
         try value catch  {
           case exn: RuntimeError => throw RuntimeError(s"${exn.getMessage}\nin\n$this $position")
           case exn: SyntaxError  => throw SyntaxError(s"${exn.getMessage}\nin\n$this $position")
-          case exn: MatchError   => throw SyntaxError(s"Number or type(s) of argument(s) wrong\nwhile evaluating\n$this $position")
-          case exn => exn.printStackTrace(); throw SyntaxError(s"${exn.getMessage}\nin\n$this $position")
+          case _:   MatchError   => throw SyntaxError(s"Number or type(s) of argument(s) wrong\nwhile evaluating\n$this $position")
+          case exn: Throwable    => exn.printStackTrace(); throw SyntaxError(s"${exn.getMessage}\nin\n$this $position")
         }
     }
 
@@ -270,6 +272,7 @@ object Language {
 
 
   /** List methods */
+  @nowarn("msg=not.*?exhaustive") // nonexhaustive matches are deliberate
   object ListMethods {
     val lookup: collection.immutable.HashMap[String, SExp] = collection.immutable.HashMap[String, SExp](
       "range" -> Subr("list:range", {
@@ -282,7 +285,9 @@ object Language {
     def apply(name: String): SExp = lookup.getOrElse(name, Nothing)
   }
 
+
   /** String built-ins */
+  @nowarn("msg=not.*?exhaustive") // nonexhaustive matches are deliberate
   object StrMethods {
     val cat = Subr("string:cat", {
       case values =>
