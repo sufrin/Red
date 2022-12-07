@@ -1,1 +1,1 @@
-scala -cp /Users/sufrin/GitHomes/Jed/scala-library.jar:/Users/sufrin/GitHomes/Jed/scala-swing.jar:/Users/sufrin/GitHomes/Jed/regexkit.jar:/Users/sufrin/GitHomes/Jed/Red.jar Red.AppleRed "$@"
+scala -cp /Users/sufrin/GitHomes/Red/scala-library.jar:/Users/sufrin/GitHomes/Red/scala-swing.jar:/Users/sufrin/GitHomes/Red/regexkit.jar:/Users/sufrin/GitHomes/Red/Red.jar Red.AppleRed "$@"
