@@ -1,6 +1,6 @@
 package RedScript
 
-import scala.annotation.nowarn
+import RedScript.RedObject.SexpSeqMethods
 
 /**
  * Abstract syntax and "pre-semantics" of S-expressions.
@@ -87,12 +87,13 @@ object Language {
     override def toString = name
   }
 
-  val nil = SExps(Nil)
+  val nil = SExpSeq(Nil)
 
-  case class SExps(elements: List[SExp]) extends SExp {
+  case class SExpSeq(elements: List[SExp]) extends Obj {
     override def toString = elements.mkString("(", " ", ")")
     override def toPlainString = elements.map(_.toPlainString).mkString("(", " ", ")")
     override def isNull = elements.isEmpty
+    def method(name: String): SExp = SexpSeqMethods(name)
 
     def withErrorHandling(value: => SExp): SExp = {
         try value catch  {
@@ -135,9 +136,9 @@ object Language {
      *      `env0` and the list of unevaluated arguments to the
      *      scala method.
      *
-     *  === Objects as operators ===
-     *  If the operator's value is an `Obj` and there is more than one
-     *  argument, then `arg0` is taken to be the name of a
+     *  === Method references as operators ===
+     *  If the operator's value takes the form `(obj.method)`, where `obj` is an
+     *  object then `method` is taken to be the name of a
      *  method, whose value is to be provided by the object (for the moment, the
      *  method's value must be a `Subr`). The method name is looked up in
      *  the object, and the expression is evaluated as:
@@ -154,8 +155,8 @@ object Language {
      *  and `string:range` is their `range` method.
      *  So if `s` is a string, then
      *  {{{
-     *    (s cat arg1 arg2 ...) = (string:cat arg1 arg2 ...)
-     *    (s range from to)     = (string:range from to)
+     *    ((s.cat) arg1 arg2 ...) = (string:cat arg1 arg2 ...)
+     *    ((s.range) from to)     = (string:range from to)
      *  }}}
      *
      *  Our intention here is to provide a (limited) form of polymorphism, and to
@@ -165,22 +166,21 @@ object Language {
      *        Declarations of the form `implement (type . name) function)`
      *        For example `(implement (List . rev) (fun (l) ...))`
      */
-    def eval(env0: Env): SExp =
+    override def eval(env0: Env): SExp =
       if (elements.isEmpty) nil else {
           val operator = elements.head.opVal(env0)
           val operands = elements.tail
           val result =
             operator match {
-              case obj: Obj if operands.nonEmpty =>
-                   obj.method(operands.head.toPlainString) match {
+              case MethodRef(obj: Obj, methodName) =>
+                   obj.method(methodName.toPlainString) match {
                      case Subr(_, scala) =>
                        withErrorHandling {
-                         val args = obj::operands.tail.map(_.eval(env0))
+                         val args = obj::operands.map(_.eval(env0))
                          scala(args)
                        }
                      case Language.Nothing  => throw RuntimeError(s"No such method: $obj.${operands(0)}")
                      case other    => throw RuntimeError(s"Method: $obj.${operands(0)} is a non-subr ($other)")
-
                    }
 
               case PositionSubr(_, scala) =>
@@ -197,7 +197,7 @@ object Language {
 
               case FSubr(_, scala) =>
                 withErrorHandling {
-                  val args = SExps(elements.tail)
+                  val args = SExpSeq(elements.tail)
                   scala(env0, args)
                 }
 
@@ -220,7 +220,7 @@ object Language {
 
               case FExprAll(env1, Pair(envArg: Variable, argsArg: Variable), body) =>
                 withErrorHandling {
-                  body.eval(env1.extend(SExps(List(envArg, argsArg)), List(EnvExpr(env0), SExps(operands))))
+                  body.eval(env1.extend(SExpSeq(List(envArg, argsArg)), List(EnvExpr(env0), SExpSeq(operands))))
                 }
 
               case other =>
@@ -239,14 +239,19 @@ object Language {
     def eval(env: Env): Const = this
   }
 
-  trait Obj extends Const {
-    /** Returns (usually) a subr */
+  trait Obj extends SExp {
+    /** Returns a metjhod body: for the moment a subr */
     def method(name: String): SExp
+    override def eval(env: Env): SExp = this
   }
+
+  case class MethodRef(obj: SExp, methodName: SExp) extends Const
 
   case class Pair(l: SExp, r: SExp) extends SExp {
    override def toString: String = s"($l . $r)"
    def eval(env: Env): SExp = new ConstPair(l.eval(env), r.eval(env))
+   // invoked only in operator position
+   override def opVal(env: Env): SExp = MethodRef(l.eval(env), r)
   }
 
   class ConstPair(l: SExp, r: SExp) extends Pair(l, r) with Const {
@@ -265,48 +270,12 @@ object Language {
     override def toString = f"0x$value%08x"
   }
 
-
   case class Bool(value: Boolean) extends Const {
     override def toString = value.toString
   }
 
+  import RedObject._
 
-  /** List methods */
-  @nowarn("msg=not.*?exhaustive") // nonexhaustive matches are deliberate
-  object ListMethods {
-    val lookup: collection.immutable.HashMap[String, SExp] = collection.immutable.HashMap[String, SExp](
-      "range" -> Subr("list:range", {
-        case List(SExps(elts), Num(from), Num(to)) => SExps(elts.drop(from.toInt).take((to - from).toInt))
-      }),
-      "nth" -> Subr("list:nth", {
-        case List(SExps(elts), Num(n)) => elts(n.toInt)
-      })
-    )
-    def apply(name: String): SExp = lookup.getOrElse(name, Nothing)
-  }
-
-
-  /** String built-ins */
-  @nowarn("msg=not.*?exhaustive") // nonexhaustive matches are deliberate
-  object StrMethods {
-    val cat = Subr("string:cat", {
-      case values =>
-        val res = new StringBuilder
-        for { v <- values } res.append(v.toPlainString)
-        Str(res.toString())
-    })
-
-    val range = Subr("string:range", {
-      case List(Str(text), Num(from), Num(to)) => Str(text.subSequence(from.toInt, to.toInt).toString)
-    })
-
-    def apply(name: String): SExp = name match {
-      case "cat"   => cat
-      case "range" => range
-      case _       => Nothing
-    }
-
-  }
   case class Str(value: String) extends Obj {
     override def toString = s"\"$value\""
     override def toPlainString = value
@@ -347,11 +316,6 @@ object Language {
 
   case class FSubr(name: String, scala: (Env, SExp) => SExp) extends Const {
     override def toString = name // s"Lazy: $name"
-  }
-
-
-  case class Opaque(value: Any) extends Const {
-    override def toString = s"$value"
   }
 
   case class Quote(value: SExp) extends SExp {

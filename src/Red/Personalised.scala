@@ -19,7 +19,7 @@ object Personalised extends Logging.Loggable {
 
   def applyScript(name: String, path: String): SExp = {
     val fname = Variable(name)
-    val sexp = SExps(List(fname,  Str(path)))
+    val sexp = SExpSeq(List(fname,  Str(path)))
     sexp.position  = SourcePosition(s"setting up UI for $path")
     fname.position = sexp.position
     Bindings.RedScriptEvaluator.run(sexp)
@@ -27,16 +27,16 @@ object Personalised extends Logging.Loggable {
 
   def latexBlockTypes(path: String): Seq[String] =
   { applyScript("CONFIG:latexBlockTypes",  path) match {
-      case SExps(Nil) => Nil
-      case SExps(es)  => es.map(_.toPlainString)
+      case SExpSeq(Nil) => Nil
+      case SExpSeq(es)  => es.map(_.toPlainString)
       case other      => profileWarning(s"latexBlockTypes: path -> Seq[String]: $other"); Nil
     }
   }
 
   def latexSnippets(path: String): Seq[(String,String)] =
   { applyScript("CONFIG:latex:Snippets",  path) match {
-    case SExps(Nil) => Nil
-    case SExps(es)  => es.map {
+    case SExpSeq(Nil) => Nil
+    case SExpSeq(es)  => es.map {
       case Pair(button, (Str(text))) => (button.toPlainString, text)
       case other => profileWarning(s"CONFIG:latex:Snippets $other"); ("BAD", other.toString)
     }
@@ -63,7 +63,7 @@ object Personalised extends Logging.Loggable {
   def pipeShellCommands(path: String): Seq[String] =
   { Bindings.importBindings()
     applyScript("CONFIG:pipeShellCommands", path) match {
-      case SExps(es) => es.map(_.toPlainString)
+      case SExpSeq(es) => es.map(_.toPlainString)
       case other     => profileWarning(s"pipeShellCommands: path -> Seq[String]: $other"); Nil
     }
   }
@@ -71,7 +71,7 @@ object Personalised extends Logging.Loggable {
   def pipeRedScripts(path: String): Seq[String] =
   { Bindings.importBindings()
     applyScript("CONFIG:pipeRedScripts", path) match {
-      case SExps(es) => es.map(_.toPlainString)
+      case SExpSeq(es) => es.map(_.toPlainString)
       case other     => profileWarning(s"pipeRedScripts: path -> Seq[fun]: $other"); Nil
     }
   }
@@ -374,6 +374,7 @@ object Personalised extends Logging.Loggable {
           case Str(newPath)::Nil                       => (newPath, false)
           case List(Str(newPath), Language.Bool(show)) => (newPath, show)
         }
+        val position = args.head.position
         val exPath = toPath(paths.top, newPath)
         if (exPath.toFile.exists() && exPath.toFile.canRead())
           importBindings(1+paths.length, paths.top, exPath, show)
@@ -402,7 +403,7 @@ object Personalised extends Logging.Loggable {
 
       /** Implements {{{(usefont font role1 role2 ...)}}} */
       def useFont(env: Env, params: SExp) : SExp = {
-        val SExps(font :: roles) = params
+        val SExpSeq(font :: roles) = params
         val roleNames = for {case Variable(role) <- roles} yield role
         font.eval(env) match {
           case FontExpr(fontName, font)  => Utils.setFontRoles(font, roleNames)
@@ -413,8 +414,8 @@ object Personalised extends Logging.Loggable {
 
       /** Implements {{{(PROFILE:select name path menu-title initialValue choices)}}}*/
       def declSelect(env: Env, params: SExp) : Const = {
-        val SExps(Variable(name) :: args) = params
-        val Str(path) :: Str(title) :: _value :: SExps(_choices) :: update = args.map(_.eval(env))
+        val SExpSeq(Variable(name) :: args) = params
+        val Str(path) :: Str(title) :: _value :: SExpSeq(_choices) :: update = args.map(_.eval(env))
         val feature = new Persistent.StringFeature(name, path, _value.toPlainString, title) {
           override def choices: Seq[String] = _choices.map(_.toPlainString)
           override def toString(t: String): String = t
@@ -443,7 +444,7 @@ object Personalised extends Logging.Loggable {
 
       /** Implements: {{{(tick name path menu-title initialValue)}}} */
       def declBool(env: Env, params: SExp) : Const = {
-        val SExps(Variable(name) :: args) = params
+        val SExpSeq(Variable(name) :: args) = params
         val Str(path) :: Str(title) :: Bool(value) :: update = args.map(_.eval(env))
         val feature = new Persistent.BoolFeature(name, path, value, title)
         val persist = new LoadUpdate {
@@ -515,7 +516,7 @@ object Personalised extends Logging.Loggable {
 
 
       import Language._
-      val bindingPrimitives: List[(String, Const)] = List(
+      val bindingPrimitives: List[(String, SExp)] = List(
         "abbrev"      -> Subr("abbrev",      {  case List(Str(abbr), Str(text)) => mapTo(abbr, text); Nothing }),
         "diacritical" -> Subr("diacritical", doDia(_)),
         "altclear"    -> Subr("UI:altclear", {  Nil => AltKeyboard.clear(); Nothing }),

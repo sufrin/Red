@@ -1,6 +1,6 @@
 package RedScript
 
-import RedScript.Language.{Pair, SExps, SyntaxError, nil}
+import RedScript.Language.{Pair, SExpSeq, SyntaxError, nil}
 
 
 object Lexical {
@@ -325,12 +325,12 @@ class Parser(source: io.Source, val path: String="") {
       // (hd            )
       case Ket =>
         nextSymb()
-        SExps(List(hd))
+        SExpSeq(List(hd))
       // (hd            e1 ... )
       case other =>
         val tl = exprs
         if (symb==Ket) nextSymb() else throw SyntaxError(s"Expecting ')' after ($hd ... but looking at $symb")
-        SExps(hd :: tl)
+        SExpSeq(hd :: tl)
     }
 
   /**
@@ -345,7 +345,7 @@ class Parser(source: io.Source, val path: String="") {
     symb match {
       case Quote => nextSymb(); Language.Quote(expr)
       case Bra   => nextSymb(); pairOrExprs
-      case SqBra => SExps(readWithClosing (SqKet) { sqexprs } )
+      case SqBra => SExpSeq(readWithClosing (SqKet) { sqexprs } )
       case Chunk(text, symbolic) => nextSymb()
         syntaxEnv(text) match {
           case None                =>
@@ -421,7 +421,7 @@ class Parser(source: io.Source, val path: String="") {
       case Quote => expr
       case other => lineOfExprs match {
         case List(e)  => e
-        case es       => SExps(es)
+        case es       => SExpSeq(es)
       }
     }
     res.position=pos

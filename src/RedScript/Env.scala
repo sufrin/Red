@@ -25,16 +25,16 @@ trait Env {
     val newEnv =
     pattern match {
       case Variable(name) =>
-        val newPairs: List[(String, SExp)] = List((name, Language.SExps(values)))
+        val newPairs: List[(String, SExp)] = List((name, Language.SExpSeq(values)))
         new LocalEnv(newPairs, Some(this))
 
-      case SExps(patterns) if patterns.forall(_.isInstanceOf[Variable]) =>
+      case SExpSeq(patterns) if patterns.forall(_.isInstanceOf[Variable]) =>
         if (patterns.length==values.length)
            new LocalEnv(patterns.map {  case Variable(v) => v }.zip(values), Some(thisEnv))
         else
            throw RuntimeError(s"${patterns.length} variables ${values.length} values: binding $patterns to $values")
 
-      case SExps(patterns) if !patterns.forall(_.isInstanceOf[Variable]) =>
+      case SExpSeq(patterns) if !patterns.forall(_.isInstanceOf[Variable]) =>
         throw SyntaxError(s"Pattern must be a sequence of variables: binding $patterns to $values")
 
       /** One layer of matching */

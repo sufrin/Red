@@ -30,7 +30,7 @@ class Evaluator {
    * it yields the value of the `expr` paired with the first
    * of the conditions that yields `true`.
    */
-  def evCond(env: Env, body: SExp): SExp = {
+  private def evCond(env: Env, body: SExp): SExp = {
     @tailrec
     def evCases(cases: List[SExp]): SExp = cases match {
       case Nil => Nothing
@@ -47,7 +47,7 @@ class Evaluator {
       case _ => throw SyntaxError(s"Malformed conditional: ${cases.mkString(" ")}")
     }
     body match {
-      case SExps(cases) => evCases(cases)
+      case SExpSeq(cases) => evCases(cases)
       case _            => throw SyntaxError(s"Malformed conditional body $body")
     }
   }
@@ -60,8 +60,8 @@ class Evaluator {
    *
    *  `(if* (condition . thenExpr) (true . elseExpr))`
    */
-  def evIf(env: Env, body: SExp): SExp = body match {
-    case SExps(List(pred, thenPart, elsePart)) => pred.eval(env) match {
+  private def evIf(env: Env, body: SExp): SExp = body match {
+    case SExpSeq(List(pred, thenPart, elsePart)) => pred.eval(env) match {
       case Bool(true) => thenPart.eval(env)
       case Bool(false) => elsePart.eval(env)
       case other => throw RuntimeError(s"Non-Bool condition: $other in (if $pred $thenPart $elsePart)", Some(pred))
@@ -79,16 +79,16 @@ class Evaluator {
   val syntaxEnv = new MutableEnv
 
   /** Check the declareability of a name */
-  def whenRedefinable[T](sexp: SExp)(expr: => T): T = {
+  private def whenRedefinable[T](sexp: SExp)(expr: => T): T = {
     sexp match {
       case Variable(_) => expr
       case other => throw SyntaxError(s"Built-ins cannot be rebound or redefined: $other")
     }
   }
 
-  def evSet(env: Env, body: SExp): SExp = {
+  private def evSet(env: Env, body: SExp): SExp = {
     body match {
-      case SExps(List(lvalue, rvalue)) =>
+      case SExpSeq(List(lvalue, rvalue)) =>
         lvalue.lval(env).value = rvalue.eval(env)
         Nothing
       case other => throw SyntaxError(s"Malformed assignment: $other")
@@ -96,21 +96,21 @@ class Evaluator {
   }
 
   // TODO: generalise to multiple declarations
-  def evGlobal(isVar: Boolean)(env: Env, body: SExp): SExp = {
+  private def evGlobal(isVar: Boolean)(env: Env, body: SExp): SExp = {
     body match {
-      case SExps(List(Variable(name), value)) =>
+      case SExpSeq(List(Variable(name), value)) =>
           val v = value.eval(env)
           global.define(name, if (isVar) Ref(name, v) else v)
           Nothing
-      case SExps(List(sexp, _)) => whenRedefinable(sexp) { Nothing } // for consistency of the error message
+      case SExpSeq(List(sexp, _)) => whenRedefinable(sexp) { Nothing } // for consistency of the error message
       case _                    => throw SyntaxError(s"Malformed ${if (isVar) "global" else "constant"} declaration: $body")
     }
   }
 
   // TODO: (decls, body) = pairs.splitAtFirstNonPair
-  def evLet(isVar: Boolean)(env: Env, form: SExp): SExp = {
+  private def evLet(isVar: Boolean)(env: Env, form: SExp): SExp = {
     form match {
-      case SExps(pairs) if pairs.nonEmpty =>
+      case SExpSeq(pairs) if pairs.nonEmpty =>
         pairs.last match {
           case _: Pair =>
             // A globally-scoped declaration
@@ -131,7 +131,7 @@ class Evaluator {
                   for { Pair(bv, expr)  <- decls } yield whenRedefinable(bv) { Ref(bv.toString, expr.eval(env)) }
                 else
                   for { Pair(bv, expr)  <- decls } yield whenRedefinable(bv) { expr.eval(env) }
-              body.eval(env.extend(SExps(bvs), args))
+              body.eval(env.extend(SExpSeq(bvs), args))
             } catch {
               case exn: MatchError => throw SyntaxError(s"Malformed declaration: $form (${exn.getMessage()})")
             }
@@ -141,37 +141,37 @@ class Evaluator {
     }
   }
 
-  @inline def isAtom(pattern: SExp): Boolean = pattern match { case Variable(_) => true ; case _ => false }
-  @inline def isPattern(pattern: List[SExp]): Boolean = pattern.forall(isPattern)
-  @inline def isPattern(pattern: SExp): Boolean = pattern match {
-    case SExps(params) if params.forall(isAtom) => true
+  @inline private def isAtom(pattern: SExp): Boolean = pattern match { case Variable(_) => true ; case _ => false }
+  @inline private def isPattern(pattern: List[SExp]): Boolean = pattern.forall(isPattern)
+  @inline private def isPattern(pattern: SExp): Boolean = pattern match {
+    case SExpSeq(params) if params.forall(isAtom) => true
     case _             if isAtom(pattern)       => true
     case _                                      => false
   }
 
-  def evDef(env: Env, form: SExp): SExp = {
+  private def evDef(env: Env, form: SExp): SExp = {
     form match {
       //   def (f . arg) body // arg bound to the list of actual parameters
-      case SExps(Pair(Variable(name),  allArg: Variable)  :: body) =>
+      case SExpSeq(Pair(Variable(name),  allArg: Variable)  :: body) =>
            global.define(name, ExprAll(env, allArg, mkSequential(body)) )
            Nothing
       //   def (f arg1 arg2 ...) body // arg1 arg2 ... bound to the actual parameters
-      case SExps(SExps(Variable(name) :: pattern) :: body) if isPattern(pattern) =>
-           global.define(name, Expr(env, SExps(pattern), mkSequential(body)))
+      case SExpSeq(SExpSeq(Variable(name) :: pattern) :: body) if isPattern(pattern) =>
+           global.define(name, Expr(env, SExpSeq(pattern), mkSequential(body)))
            Nothing
       case _ => throw SyntaxError(s"Malformed definition $form: should be (def (f . args)  ...) or (def (f arg  ...) ...)")
     }
   }
 
-  def evDefForm(env: Env, form: SExp): SExp = {
+  private def evDefForm(env: Env, form: SExp): SExp = {
     form match {
       //   defForm (f env arg1 ...) body    // env bound to the calling environment, arg1 arg2 ... bound to the actual parameters
       //   defForm (f (env.arg) body        // env bound to the calling environment, arg bound to the list of actual parameters
-      case SExps(SExps(Variable(name) :: (pattern@Pair(_: Variable, _: Variable)) :: Nil) :: body) =>
+      case SExpSeq(SExpSeq(Variable(name) :: (pattern@Pair(_: Variable, _: Variable)) :: Nil) :: body) =>
         global.define(name, FExprAll(env, pattern, mkSequential(body)) )
         Nothing
-      case SExps(SExps(Variable(name) :: pattern) :: body) if isPattern(pattern) =>
-        global.define(name, FExpr(env, SExps(pattern), mkSequential(body)))
+      case SExpSeq(SExpSeq(Variable(name) :: pattern) :: body) if isPattern(pattern) =>
+        global.define(name, FExpr(env, SExpSeq(pattern), mkSequential(body)))
         Nothing
       case _ => throw SyntaxError(s"Malformed definition: should be (def (f . args)  ...) or (def (f arg  ...) ...)")
     }
@@ -180,11 +180,11 @@ class Evaluator {
   /**
    * `(map (name.value)* )`
    */
-  def evMap(env: Env, form: SExp): SExp = form match {
-    case SExps(pairs) => EnvExpr(new LocalEnv(pairs.map { case Pair(d,r) => (d.eval(env).toPlainString, r.eval(env)) }))
+  private def evMap(env: Env, form: SExp): SExp = form match {
+    case SExpSeq(pairs) => EnvExpr(new LocalEnv(pairs.map { case Pair(d,r) => (d.eval(env).toPlainString, r.eval(env)) }))
   }
 
-  def mapExtend(args: List[SExp]): SExp = {
+  private def mapExtend(args: List[SExp]): SExp = {
     val map :: maps = args
     var EnvExpr(res) = map
       for { m <- maps } m match {
@@ -199,14 +199,14 @@ class Evaluator {
    *
    * TODO: check redefinability of parameter names
    */
-  def evFun(env: Env, form: SExp): SExp = {
+  private def evFun(env: Env, form: SExp): SExp = {
     form match {
       // fun arg body -- binds list of actual params to arg
-      case SExps((all: Variable) :: body) => ExprAll(env, all, mkSequential(body))
+      case SExpSeq((all: Variable) :: body) => ExprAll(env, all, mkSequential(body))
       // fun (arg1 arg2 ...) body -- binds actual params to arg1 arg2 ....
-      case SExps(pattern :: body) if isPattern(pattern) => Expr(env, pattern, mkSequential(body))
+      case SExpSeq(pattern :: body) if isPattern(pattern) => Expr(env, pattern, mkSequential(body))
       // incorrect
-      case SExps(pattern :: _) if !isPattern(pattern) => throw SyntaxError(s"Malformed fun parameter(s): ${pattern.position}")
+      case SExpSeq(pattern :: _) if !isPattern(pattern) => throw SyntaxError(s"Malformed fun parameter(s): ${pattern.position}")
       case _ => throw SyntaxError(s"Malformed function expression: $form")
     }
   }
@@ -215,19 +215,19 @@ class Evaluator {
    *  (see also defForm)
    *  TODO: check redefinability of parameter names
    */
-  def evForm(env: Env, form: SExp): SExp = {
+  private def evForm(env: Env, form: SExp): SExp = {
     form match {
       // form (env . args) body         // env bound to calling environment, args bound to list of actual parameters
-      case SExps((pattern: Pair) :: body)  => FExprAll(env, pattern, mkSequential(body))
+      case SExpSeq((pattern: Pair) :: body)  => FExprAll(env, pattern, mkSequential(body))
       // form (env arg1 arg2 ...) body  // env bound to calling environment, arg1 arg2 ... bound to actual parameters
-      case SExps(pattern :: body) if isPattern(pattern) => FExpr(env, pattern, mkSequential(body))
+      case SExpSeq(pattern :: body) if isPattern(pattern) => FExpr(env, pattern, mkSequential(body))
       // form all body
-      case SExps(pattern :: _) if !isPattern(pattern) => throw SyntaxError(s"Malformed parameter(s): ${pattern.position}")
+      case SExpSeq(pattern :: _) if !isPattern(pattern) => throw SyntaxError(s"Malformed parameter(s): ${pattern.position}")
       case _ => throw SyntaxError(s"Malformed function expression: $form")
     }
   }
 
-  def evPlainString(args: List[SExp]): SExp =  {
+  private def evPlainString(args: List[SExp]): SExp =  {
     args match {
       case Nil => Str("")
       case List(c) => Str(c.toPlainString)
@@ -236,7 +236,7 @@ class Evaluator {
     }
   }
 
-  def mkAtom(name: String, pos: SourcePosition): Variable = {
+  private def mkAtom(name: String, pos: SourcePosition): Variable = {
     val atom = Variable(name)
     atom.position=pos
     atom
@@ -247,25 +247,25 @@ class Evaluator {
    *   `(seq ...)` expression. Used to systematically transform
    *   the `body` part of a function expression or definition.
    */
-  def mkSequential(exprs: List[SExp]): SExp = exprs match {
+  private def mkSequential(exprs: List[SExp]): SExp = exprs match {
     case List(expr) => expr
-    case exprs => SExps(syntaxEnv("seq").get :: exprs)
+    case exprs => SExpSeq(syntaxEnv("seq").get :: exprs)
   }
 
 
   /** Lazy conjunction of `test` applied to the value of each argument */
-  def forall(name: String)(test: SExp => Boolean): SExp =
-    FSubr(name, { case (env, SExps(exprs)) => Bool(exprs.forall(expr => test(expr.eval(env))))})
+  private def forall(name: String)(test: SExp => Boolean): SExp =
+    FSubr(name, { case (env, SExpSeq(exprs)) => Bool(exprs.forall(expr => test(expr.eval(env))))})
 
   /** Lazy disjunction of `test` applied to the value of each argument */
-  def exists(name: String)(test: SExp => Boolean): SExp =
-    FSubr(name, { case (env, SExps(exprs)) => Bool(exprs.exists(expr => test(expr.eval(env))))})
+  private def exists(name: String)(test: SExp => Boolean): SExp =
+    FSubr(name, { case (env, SExpSeq(exprs)) => Bool(exprs.exists(expr => test(expr.eval(env))))})
 
   /** Application of `op` to the arguments as a whole */
-  def fun(name: String, op: List[SExp]=>SExp): Subr  =  Subr(name, op)
+  private def fun(name: String, op: List[SExp]=>SExp): Subr  =  Subr(name, op)
 
   /** `op`-(left)reduction of the arguments as a whole */
-  def red(name: String, op: (Long,Long)=>Long):Subr = {
+  private def red(name: String, op: (Long,Long)=>Long):Subr = {
     val opn: (SExp,SExp)=>SExp  = {
       case (a: Hex, b: Num) => new Hex(op(a.value, b.value))
       case (a: Num, b: Hex) => new Hex(op(a.value, b.value))
@@ -275,7 +275,7 @@ class Evaluator {
   }
 
   /** `op`-(left)reduction of the arguments as a whole */
-  def redString(name: String, op: (String,String)=>String):Subr = {
+  private def redString(name: String, op: (String,String)=>String):Subr = {
     val opn: (SExp,SExp)=>SExp  = { case (a,b) => Str(op(a.toPlainString, b.toPlainString)) }
     fun(name, { case args: List[SExp] if args.nonEmpty => args.reduceLeft(opn(_,_)) })
   }
@@ -286,108 +286,43 @@ class Evaluator {
    * This permits unary negation straightforwardly
    * Thus: (- x) means negated x, and (- x1 x2 ...) means (x1-x2)-x3)-...
    */
-  def minus: Subr = {
+  private def minus: Subr = {
     val opn: (SExp,SExp)=>SExp  = { case (Num(a),Num(b)) => Num(a-b) }
     fun("-", { case List(Num(arg))    => Num(- arg)
                case args: List[SExp] => args.reduceLeft(opn(_,_)) }) }
 
-  def rel(name: String, op: (SExp, SExp) => Boolean):Subr =
+  private def rel(name: String, op: (SExp, SExp) => Boolean):Subr =
     fun(name, { case List(a: SExp, b: SExp) => Bool(op(a,b)) })
 
-  def evalENV(args: List[SExp]): SExp = args match {
+  private def evalENV(args: List[SExp]): SExp = args match {
     case List(Str(variable), Str(default)) => Str(sys.env.getOrElse(variable, default))
     case List(Str(variable))               => Str(sys.env.getOrElse(variable, ""))
   }
 
-  def evalPROP(args: List[SExp]): SExp = args match {
+  private def evalPROP(args: List[SExp]): SExp = args match {
     case List(Str(variable), Str(default)) => Str(sys.props.getOrElse(variable, default))
     case List(Str(variable))               => Str(sys.props.getOrElse(variable, ""))
   }
 
-  var position: SourcePosition = SourcePosition("",0,0)
+  private var position: SourcePosition = SourcePosition("",0,0)
 
-  /** Experimental object-centred calls  */
-  object RegexMethods {
-    val lookup: collection.immutable.HashMap[String, SExp] = collection.immutable.HashMap[String, SExp](
-      "match" -> Subr("re:match", {
-        case List(REGEX(regex), Str(text)) =>
-          regex.matches(text, 0, text.length) match {
-            case None => nil
-            case Some(theMatch) => REGMATCH(theMatch)
-          }
-        case _ => throw RuntimeError(s"re:match: REGEX -> nil | REGMATCH")
-      }),
-      "find" -> Subr("re:find", {
-        case List(REGEX(regex), Str(text)) =>
-          regex.findPrefix(text, 0, text.length) match {
-            case None => nil
-            case Some(theMatch) => REGMATCH(theMatch)
-          }
-        case List(REGEX(regex), Str(text), Num(from)) =>
-          regex.findPrefix(text, from.toInt, text.length) match {
-            case None => nil
-            case Some(theMatch) => REGMATCH(theMatch)
-          }
-        case List(REGEX(regex), Str(text), Num(from), Num(to)) =>
-          regex.findPrefix(text, from.toInt, to.toInt, text.length) match {
-            case None => nil
-            case Some(theMatch) => REGMATCH(theMatch)
-          }
-        case _ => throw RuntimeError(s"re:find: REGEX STRING Num? Num? -> nil | REGMATCH")
-      })
-    )
-
-    def apply(name: String): SExp = lookup.getOrElse(name, Nothing)
-  }
-
-  object RegMatchMethods {
-    val lookup: collection.immutable.HashMap[String, SExp] = collection.immutable.HashMap[String, SExp](
-      "span" -> Subr("re:span", {
-        case List(REGMATCH(theMatch)) => SExps(List(Num(theMatch.start), Num(theMatch.end)))
-        case _ => throw RuntimeError(s"re:span: REGMATCH->[Num,Num]")
-      }),
-      "subst" -> Subr("re:subst", {
-        case List(REGMATCH(theMatch), Str(theTemplate)) => Str(theMatch.substitute(theTemplate))
-        case _ => throw RuntimeError(s"re:subst: REGMATCH STRING -> STRING")
-      }),
-      "group" -> Subr("re:group", {
-        case List(REGMATCH(theMatch), Num(i)) => Str(theMatch.group(i.toInt))
-        case _ => throw RuntimeError(s"re:group: REGMATCH Num -> STRING")
-      }),
-      "groups" -> Subr("re:groups", {
-        case List(REGMATCH(theMatch)) => SExps(theMatch.groups.map(Str).toList)
-        case _ => throw RuntimeError(s"re:groups: REGMATCH -> [STRING]")
-      })
-    )
-
-    def apply(name: String): SExp = lookup.getOrElse(name, Nothing)
-  }
-
-  case class REGEX(regex: sufrin.regex.Regex) extends Obj {
-    override def toString: String = s"(re:regex \"${regex.toString()}\")"
-    def method(name: String): SExp = RegexMethods(name)
-  }
-
-  case class REGMATCH(regmatch: sufrin.regex.Regex.StringMatch) extends Obj {
-    override def toString: String = s"$regmatch"
-    def method(name: String): SExp = RegMatchMethods(name)
-  }
+  import RedScript.RedObject._
 
   /**
-   *  The top-level environment binds, as `SExps`, names subject to "just-in-time"
+   *  The top-level environment binds, as `SExpSeq`, names subject to "just-in-time"
    *  translation in the parser. When any of the names defined here appear
    *  in an expression they are JIT-translated into their value. This
    *  means that the cost of evaluating a predefined language form, or primitive, is not
    *  dependent on the length of the environment at the time of its evaluation.
    */
-  val primitives: List[(String, SExp)] = List(
+  private val primitives: List[(String, SExp)] = List(
     "nil"       -> nil,
-    "null"      -> Subr("null",       { case List(SExps(Nil)) => Bool(true); case List(_) => Bool(false); case _ => throw SyntaxError("null requires an argument") }),
-    "hd"        -> Subr("hd",         { case List(SExps(h::t)) => h; case List(SExps(Nil)) => throw RuntimeError(s"(hd nil)"); case other => RuntimeError("Non-list: (hd $other)") } ),
-    "tl"        -> Subr("tl",         { case List(SExps(h::t)) => SExps(t); case List(SExps(Nil)) => throw RuntimeError(s"(tl nil)"); case other => RuntimeError("Non-list: (tl $other)")  } ),
-    "::"        -> Subr("::",         { case List(s, SExps(ss)) => SExps(s::ss)  }),
-    "member"    -> Subr("member",     { case List(s, SExps(ss)) => Bool(ss.contains(s))  }),
-    "++"        -> Subr("++",         { case List(SExps(k0), SExps(k1)) => SExps(k0++k1); case other => throw RuntimeError(s"malformed ++: ${SExps(other)}") } ),
+    "null"      -> Subr("null",       { case List(SExpSeq(Nil)) => Bool(true); case List(_) => Bool(false); case _ => throw SyntaxError("null requires an argument") }),
+    "hd"        -> Subr("hd",         { case List(SExpSeq(h::t)) => h; case List(SExpSeq(Nil)) => throw RuntimeError(s"(hd nil)"); case other => RuntimeError("Non-list: (hd $other)") } ),
+    "tl"        -> Subr("tl",         { case List(SExpSeq(h::t)) => SExpSeq(t); case List(SExpSeq(Nil)) => throw RuntimeError(s"(tl nil)"); case other => RuntimeError("Non-list: (tl $other)")  } ),
+    "::"        -> Subr("::",         { case List(s, SExpSeq(ss)) => SExpSeq(s::ss)  }),
+    "member"    -> Subr("member",     { case List(s, SExpSeq(ss)) => Bool(ss.contains(s))  }),
+    "++"        -> Subr("++",         { case List(SExpSeq(k0), SExpSeq(k1)) => SExpSeq(k0++k1); case other => throw RuntimeError(s"malformed ++: ${SExpSeq(other)}") } ),
     ":="        -> FSubr (":=",       evSet),
     "variable"  -> FSubr ("variable", evGlobal(true)),
     "constant"  -> FSubr ("constant", evGlobal(false)),
@@ -426,11 +361,11 @@ class Evaluator {
     "isSymb"    -> forall("isSymb")       { case Quote(v@Variable(_)) => v.symbolic; case _ => false },
     "isVar"     -> forall("isVar")        { case Quote(v@Variable(_)) => !v.symbolic; case _ => false },
     "isNum"     -> forall("isNum")        { case Num(_)=>true;    case _ => false },
-    "isList"    -> forall("isList")       { case SExps(_)=>true;  case _ => false },
+    "isList"    -> forall("isList")       { case SExpSeq(_)=>true;  case _ => false },
     "isString"  -> forall("isString")     { case Str(_)=>true;    case _ => false },
     "isNothing" -> forall("isNothing")    { case Nothing => true; case _ => false },
     "isDefined" -> FSubr("isDefined", {
-      case (env, SExps(exps)) =>
+      case (env, SExpSeq(exps)) =>
         Bool(exps.forall {
           case Variable(name) => env(name).nonEmpty
           case _ : Const => true
@@ -463,9 +398,9 @@ class Evaluator {
     "string:cat"   -> StrMethods("cat"),
     "string:range" -> StrMethods("range"),
     // List methods as functions
-    "list"       -> Subr  ("list", { args => SExps(args)}),
-    "list:range" -> ListMethods("range"),
-    "list:nth"   -> ListMethods("nth"),
+    "list"       -> Subr  ("list", { args => SExpSeq(args)}),
+    "list:range" -> SexpSeqMethods("range"),
+    "list:cat"   -> SexpSeqMethods("cat"),
     // Regex methods as functions
     "re:regex" -> Subr("re:regex", {
       case List(Str(source)) => REGEX(sufrin.regex.Regex(source))
@@ -475,7 +410,7 @@ class Evaluator {
     "re:subst" -> RegMatchMethods("subst"),
     "re:group" -> RegMatchMethods("group"),
     "re:groups" -> RegMatchMethods("groups"),
-    "re:find" -> RegexMethods("find")
+    "re:find"   -> RegexMethods("find")
   )
 
   val globals: List[(String, SExp)] = List (
