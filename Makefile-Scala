@@ -70,9 +70,19 @@ clean:      ; cleandir; rm -rf CLASSES .classes $(DOC) $(JAR)
 
 $(DOC):     $(SOURCE); mkdir -p $(DOC) ; $(SCALADOC) -dependencyfile $@.DEP -cp $(CP) -d $(DOC) $(SOURCE) ; touch $@
 
+LISTING=LISTINGSOURCES.pdf
 # Make a printable/maintainable listing 
-LISTING.pdf: $(SOURCE); @ [ -e LISTING.pdf ] && \
-                        listing +c `find src -name '*.scala' -newer LISTING.pdf | sort` || \
-                        listing +c `find src -name '*.scala' | sort`
+$(LISTING): $(SOURCE); @ [ -e $(LISTING) ] && \
+                              listing $(LISTING) -l +c `find src -name '*.scala' -newer $(LISTING) | sort` || \
+                              listing $(LISTING) -l +c `find src -name '*.scala' | sort`
 
-list:       LISTING.pdf
+
+SCRIPTS:= $(wildcard REDAPP/Configuration/*.redscript REDAPP/AppleRed-server REDAPP/Profiles/*.profile)
+LISTINGSCRIPTS=LISTINGSCRIPTS.pdf
+$(LISTINGSCRIPTS): $(SCRIPTS); listing $(LISTINGSCRIPTS) -l  $(SCRIPTS) `find REDAPP/Shellscripts -type f -not -name 'redfmt'`
+
+scripts: $(LISTINGSCRIPTS)
+sources: $(LISTING)
+
+listing: scripts sources
+

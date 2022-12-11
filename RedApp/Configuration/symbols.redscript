@@ -43,13 +43,27 @@ UI:abbrev  "notexists"        "\u2204"
 UI:abbrev  "in"               "\u2208" 
 UI:abbrev  "notin"            "\u2209"
 UI:abbrev  "~\u2203"          "\u2204"
-UI:abbrev  "leq"              "\u2264"
-UI:abbrev  "geq"              "\u2265"
 UI:abbrev  "<-"               "\u2190"
 UI:abbrev  "ua"               "\u2191"
 UI:abbrev  "->"               "\u2192"
 UI:abbrev  "da"               "\u2193"
 UI:abbrev  "<->"              "\u2194"
+
+# Dominates and refinement
+UI:abbrev  "≤"                "\u227c" # ≼
+UI:abbrev  "≥"                "\u227d" # ≽
+UI:abbrev  "<"                "\u227a" # ≺
+UI:abbrev  ">"                "\u227b" # ≻
+UI:abbrev  "<="               "\u2264" # ≤
+UI:abbrev  "=>"               "\u2265" # ≥
+UI:abbrev  "leq"              "\u2264" # ≤
+UI:abbrev  "geq"              "\u2265" # ≥
+
+UI:abbrev  "[="               "\u2291" # ⊑ 
+UI:abbrev  "]="               "\u2292" # ⊒
+UI:abbrev  "["                "\u228f" # ⊏
+UI:abbrev  "]"                "\u2290" # ⊐
+
 
 # Quotation marks
 UI:abbrev  "``"               "\u201c" # “
@@ -65,9 +79,7 @@ UI:abbrev  "|->"      "\u21a6"          # ↦
     
 UI:abbrev  "zz"       "\u21af"          # ↯ 
     
-UI:abbrev  "<="       "\u21D0"          # ⇐
 UI:abbrev  "Ua"       "\u21D1"          # ⇑
-UI:abbrev  "=>"       "\u21D2"          # ⇒
 UI:abbrev  "Da"       "\u21D3"          # ⇓
 UI:abbrev  "<->"      "\u2194"          # ↔
 UI:abbrev  "iff"      "\u2194"          # ↔
