@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>README</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    span.underline{text-decoration: underline;}
+    div.column{display: inline-block; vertical-align: top; width: 50%;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    ul.task-list{list-style: none;}
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
+</head>
+<body>
+<h1 id="applered-application">AppleRed Application</h1>
+<h2 id="introduction">Introduction</h2>
+<p>The “Universal” <code>AppleRed.app</code> is a folder/application that can safely be used on both Linux and OS/X, and can be installed on either without a fuss. On OS/X it functions as well as an “orthodox” OS/X app (<em>ie</em> it can be used to open files with the <code>open</code> command or act as a drop target).</p>
+<p>Its only difference with an orthodox OS/X app is that it splits its functions into two parts, one of which acts as an editing service provider for all instantiations of the app: each invocation of the app passes its arguments to the service provider over a UDP port.</p>
+<p>On OS/X it is nearly always somewhat faster to invoke <code>AppleRed</code> on the command line with one of the scripts (<code>red</code>, <code>cred</code>) discussed below rather than using</p>
+<pre><code>    open -a AppleRed ...</code></pre>
+<h2 id="how-to-build-and-install-it-from-osx">How to build and install it (from OS/X)</h2>
+<ol type="1">
+<li>Build <code>AppleRed.jar</code> in the parent folder by: <code>make AppleRed.jar</code></li>
+<li>Build <code>AppleRed.app</code> in this folder by: <code>make clean app</code></li>
+<li>(optional: OS/X or Linux) Install <code>AppleRed.app</code> in your local <code>~/Applications</code> folder by: <code>make install</code></li>
+<li>(optional: OS/X or Linux) Install all the scripts from the application <code>~/Applications/AppleRed.app/Contents/Resources/Shellscripts</code> in your local OS/X or Linux scripts folder. This is often named <code>~/bin/</code> but needn’t be. Installing may be done by copying or by making (symbolic or other) links.</li>
+<li>Copy the various <code>.AppleRed</code>…<code>.profile</code> files to your home folder. You may wish to edit them to establish a richer environment or to select a different editing service port number.</li>
+</ol>
+<h2 id="how-to-build-and-install-it-linux">How to build and install it (Linux)</h2>
+<p>The “universality” is heavily compromised, of course, unless you have a way of compiling the Applescript program <code>AppleRed.scpt</code> and generating a “skeleton” <code>AppleRed.app</code> structure into which the Linux components can be “poured”.</p>
+<p>The <code>Makefile</code> target <code>linuxapp</code> does the right thing:</p>
+<pre><code>    make clean linuxapp app</code></pre>
+<p>But the resulting <code>AppleRed.app</code> is now suitable only for deployment on a Linux system.</p>
+<h2 id="scripts">Scripts</h2>
+<p>The shell script <code>red [</code><em>paths</em><code>]</code> starts an AppleRed service provider if one isn’t already running: the service starts an editing session for each <em>path</em>. Otherwise it passes the given <em>paths</em> to the running service by invoking netcat. This avoids the (irritating) overhead of starting a <code>JVM</code> simply to pass on arguments to a running service.</p>
+<p>The script <code>red-nonnc [</code><em>paths</em><code>]</code> runs a service (if one isn’t already running), and passes <code>_paths_</code> to the running service if one is running. It doesn’t use netcat, but has the overhead of (always) starting up a <code>JVM</code>.</p>
+<p>The shell script <code>cred [</code><em>paths</em><code>]</code> runs standalone (<em>ie.</em> not as a server). It starts an editing window for each <em>path</em>.</p>
+<h2 id="why-is-applered-not-an-orthodox-osx-app-on-osx">Why is AppleRed not an orthodox OS/X App on OS/X?</h2>
+<p>The “orthodox” OS/X app (instructions for building/installing are elsewhere) acts as its own editing service, and relies on OS/X to ensure that there is no more than one such service running at the same time.</p>
+<p>At present one of the features provided to support <code>Skim</code> integration via <code>pdfsync</code> – namely <code>Skim</code> moving its point of interest to the pdf region resulting from the]ine on which the editor cursor is sitting – can only operate if the red server was started from a shell rather than from <em>the first</em> invocation of <code>AppleRed</code>. This slight inconvenience, is because of (legitimate, though stringent) Apple-imposed security requirements that it would be tedious to try and meet.</p>
+</body>
+</html>

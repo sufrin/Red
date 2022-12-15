@@ -35,7 +35,7 @@ How to build and install it (from OS/X)
   in your local OS/X or Linux scripts folder. This is
   often named `~/bin/` but needn't be. Installing may be done by copying or
   by making (symbolic or other) links.
-  5. Copy the various `.AppleRed`...`.profile` files to you home folder.
+  5. Copy the various `.AppleRed`...`.profile` files to your home folder.
   You may wish to edit them to establish a richer environment or to
   select a different editing service port number.
 
@@ -78,9 +78,15 @@ Why is AppleRed not an orthodox OS/X App on OS/X?
 The "orthodox" OS/X app (instructions for building/installing are
 elsewhere) acts as its own editing service, and relies on OS/X to
 ensure that there is no more than one such service running at the
-same time. Sadly, at present some of the features that are needed
-by `pdfsync` cannot be implemented in it because of (legitimate,
-though stringent) Apple-imposed security requirements that it would
-be tedious to try and meet.
+same time.
+
+At present one of the features provided to support `Skim` integration via
+`pdfsync` -- namely `Skim` moving its point of interest to the pdf region
+resulting from the]ine on which the editor cursor is sitting -- can only
+operate if the red server was started from a shell rather than from *the
+first* invocation of `AppleRed`. This slight inconvenience, is because of
+(legitimate, though stringent) Apple-imposed security requirements that it
+would be tedious to try and meet.
+
 
 
