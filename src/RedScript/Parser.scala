@@ -1,6 +1,6 @@
 package RedScript
 
-import RedScript.Language.{Pair, SExpSeq, SyntaxError, nil}
+import RedScript.Language.{Dot, Pair, SExpSeq, SyntaxError, nil}
 
 
 object Lexical {
@@ -84,6 +84,7 @@ class Parser(source: io.Source, val path: String="") {
      case '"'   => false
      case '\u0000' => false
      case '`'  => false
+     case '.'  => false
      case other => !other.isSpaceChar & !other.isLetterOrDigit
    }
 
@@ -223,6 +224,10 @@ class Parser(source: io.Source, val path: String="") {
          while (getNext().isDigit) n = n*10 + (in.ch-'0')
          Num(n)
 
+       case '.' =>
+         getNext()
+         Chunk(".", symbolic = true)
+
        case other if (other.isLetterOrDigit) =>
          val buf = new collection.mutable.StringBuilder()
          while (in.ch.isLetterOrDigit || in.ch=='\'' || in.ch=='*' || in.ch==':') { buf.append(in.ch); getNext() }
@@ -317,7 +322,7 @@ class Parser(source: io.Source, val path: String="") {
   def pairOrTail(hd: SExp): SExp =
     symb match {
       // ( hd .         tl)
-      case Chunk(".", _) =>
+      case Chunk("↦", _) | Chunk("=>", _) =>
         val tl  = readWithClosing (Ket) { expr }
         val res = Pair(hd, tl)
         res.position = hd.position
@@ -360,7 +365,15 @@ class Parser(source: io.Source, val path: String="") {
       case other => nextSymb(); Language.Variable(other.toString)
     }
     res.position = pos
-    res
+    symb match {
+      case Chunk(".", _) =>
+        val pos = this.position
+        nextSymb()
+        val d = Dot(res, expr)
+        d.position = pos
+        d
+      case _ => res
+    }
   }
 
   /**

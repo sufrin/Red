@@ -19,14 +19,14 @@
 
   # Bind ALT variants of some function keys
   (UI:keys
-    ("LEFT(SA)"   . (insert "⇐"))
-    ("RIGHT(SA)"  . (insert "⇒"))
-    ("LEFT(A)"    . (insert "←"))
-    ("RIGHT(A)"   . (insert "→"))
-    ("UP(SA)"     . (insert "⇑"))
-    ("DOWN(SA)"   . (insert "⇓"))
-    ("UP(A)"      . (insert "↑"))
-    ("DOWN(A)"    . (insert "↓"))
+    ("LEFT(SA)"   ↦ (insert "⇐"))
+    ("RIGHT(SA)"  ↦ (insert "⇒"))
+    ("LEFT(A)"    ↦ (insert "←"))
+    ("RIGHT(A)"   ↦ (insert "→"))
+    ("UP(SA)"     ↦ (insert "⇑"))
+    ("DOWN(SA)"   ↦ (insert "⇓"))
+    ("UP(A)"      ↦ (insert "↑"))
+    ("DOWN(A)"    ↦ (insert "↓"))
   )
 ]
 
