@@ -83,6 +83,8 @@ spartacus:      app; \
 
 global:         app; \
                 rm -rf /Applications/AppleRed.app ; \
+                cp -pr AppleRed.app ~/Dropbox/AppleRed ; \
                 mv AppleRed.app /Applications
+
 
 clean:          ; rm -rf app $(APP).app
