@@ -106,6 +106,21 @@ object RedObject {
       "cat" -> Subr("list:cat", {
         case List(SExpSeq(k0), SExpSeq(k1)) => SExpSeq(k0++k1); case other => throw RuntimeError(s"malformed ++: ${SExpSeq(other)}")
       }),
+
+    "map" -> Subr("list:map", {
+      case List(SExpSeq(elts), Expr(env1, params, body)) =>
+        SExpSeq(elts.map { case arg: SExp => body.eval(env1.extend(params, List(arg))) })
+      case List(SExpSeq(elts), ExprAll(env1, params, body)) =>
+        SExpSeq(elts.map { case arg: SExp => body.eval(env1.extend(params, List(arg))) })
+      case other => throw RuntimeError(s"malformed list:map: $other")
+    }),
+    "filter" -> Subr("list:filter", {
+        case List(SExpSeq(elts), Expr(env1, params, body)) =>
+          SExpSeq(elts.filter { case arg: SExp => body.eval(env1.extend(params, List(arg))).truth })
+        case List(SExpSeq(elts), ExprAll(env1, params, body)) =>
+          SExpSeq(elts.filter { case arg: SExp => body.eval(env1.extend(params, List(arg))).truth })
+        case other => throw RuntimeError(s"malformed list:map: $other")
+      })
     )
     def apply(name: String): SExp = lookup.getOrElse(name, Nothing)
   }

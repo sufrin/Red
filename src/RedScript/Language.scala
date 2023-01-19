@@ -44,6 +44,8 @@ object Language {
     var position: SourcePosition = SourcePosition("",-1,-1)
 
     def toPlainString: String = this.toString
+
+    def truth: Boolean = false
   }
 
   abstract trait LoadUpdate extends SExp {
@@ -283,6 +285,7 @@ object Language {
 
   case class Bool(value: Boolean) extends Const {
     override def toString = value.toString
+    override def truth: Boolean = value
   }
 
   import RedObject._

@@ -2,7 +2,12 @@ import RedScript.Test.SourceCode
 """
   | (`a=(+ 3 4))
   | `a.7
-  |""".stripMargin.rep
+  | (& 3 2 (- 0x1))
+  | (- 0x7007)
+  | ((list 1 2 3).map(fun (x) (+ x x)))
+  | (list:map (list "1" "2" "3") (fun (x) (x.cat x)))
+  | (list:map (list "1" "2" "3") (fun x (x.cat x)))
+  """.stripMargin.rep
 
 """
   |("foobar".cat "baz" 23 " " 35)

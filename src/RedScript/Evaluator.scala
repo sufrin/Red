@@ -287,8 +287,13 @@ class Evaluator {
    * Thus: (- x) means negated x, and (- x1 x2 ...) means (x1-x2)-x3)-...
    */
   private def minus: Subr = {
-    val opn: (SExp,SExp)=>SExp  = { case (Num(a),Num(b)) => Num(a-b) }
-    fun("-", { case List(Num(arg))    => Num(- arg)
+    val opn: (SExp,SExp)=>SExp  = {
+      case (a: Hex, b: Num) => new Hex(a.value -  b.value)
+      case (a: Num, b: Hex) => new Hex(a.value - b.value)
+      case (Num(a),Num(b)) => Num(a-b)
+    }
+    fun("-", { case List(n: Hex) => new Hex(-n.value)
+               case List(n: Num) => Num(-n.value)
                case args: List[SExp] => args.reduceLeft(opn(_,_)) }) }
 
   private def rel(name: String, op: (SExp, SExp) => Boolean):Subr =
@@ -383,6 +388,8 @@ class Evaluator {
     "min"       -> red("min", _.min(_)),
     "*"         -> red("*",   _.*(_)),
     "/"         -> red("/",   _./(_)),
+    "&"         -> red("&",   _.&(_)),
+    "|"         -> red("|",   _.|(_)),
     "="         -> rel("=",   _.equals(_)),
     "<"         -> rel("<",   { case (Num(a), Num(b))=>a<b;  case (Str(a), Str(b))=>a<b;  case (Bool(a), Bool(b))=>a<b  }),
     "<="        -> rel("<=",  { case (Num(a), Num(b))=>a<=b; case (Str(a), Str(b))=>a<=b; case (Bool(a), Bool(b))=>a<=b }),
@@ -401,6 +408,8 @@ class Evaluator {
     "list"       -> Subr  ("list", { args => SExpSeq(args)}),
     "list:range" -> SexpSeqMethods("range"),
     "list:cat"   -> SexpSeqMethods("cat"),
+    "list:map"   -> SexpSeqMethods("map"),
+    "list:filter" -> SexpSeqMethods("filter"),
     // Regex methods as functions
     "re:regex" -> Subr("re:regex", {
       case List(Str(source)) => REGEX(sufrin.regex.Regex(source))
