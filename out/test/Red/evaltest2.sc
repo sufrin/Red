@@ -7,6 +7,7 @@ import RedScript.Test.SourceCode
   | ((list 1 2 3).map(fun (x) (+ x x)))
   | (list:map (list "1" "2" "3") (fun (x) (x.cat x)))
   | (list:map (list "1" "2" "3") (fun x (x.cat x)))
+  | ((list 1 2 3 4 5 6 7 8).filter(fun (x) (> x 5)))
   """.stripMargin.rep
 
 """

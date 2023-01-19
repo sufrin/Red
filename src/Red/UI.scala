@@ -22,10 +22,13 @@ import scala.swing._
  * refactoring should be.
  *
  */
-class UI(val theSession: EditSession) extends SimpleSwingApplication {
+class UI(val theSession: EditSession) extends SimpleSwingApplication with UIInterface {
+  thisUI: UIInterface =>
+
   import Menus.EmbeddedDynamicMenu
   import UI._
   import Utils.Menu
+
   /**
    * `theSession` emits feedback and warnings about things like find/replace failures
    * that we wish to report via this user interface.
@@ -197,7 +200,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
 
   def smallButton(label: String, toolTip: String="")(act: => Unit): SmallButton = new SmallButton(label, toolTip, act)
 
-  def Button(label: String, toolTip: String="")(act: => Unit): Button = new Button(new Action(label) { def apply(): Unit = act } ) {
+  /*def Button(label: String, toolTip: String="")(act: => Unit): Button = new Button(new Action(label) { def apply(): Unit = act } ) {
     font = Utils.menuButtonFont
     focusable = false
     if (false) {
@@ -209,6 +212,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
     focusable = false // Magic to avoid blue focus ring
     if (toolTip.nonEmpty) tooltip=toolTip
   }
+   */
 
 
   /** The history manager for `theSession`. It responds to DO/UNDO
@@ -301,7 +305,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
 
   }
 
-  private val argLine: TextLine = new TextLine(25) {
+  val argLine: TextLine = new TextLine(25) {
     focusable = true
     override protected def eventMap: EventMap = Personalised.theEventMap(theSession.path)
     override protected def lastHandler = handlers.unhandled("(A)rgument")
@@ -327,7 +331,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
     tooltip = "Argument(s) for some commands"
   }
 
-  private val findLine: TextLine = new TextLine(25) {
+  val findLine: TextLine = new TextLine(25) {
     focusable = true
     override protected def eventMap: EventMap = Personalised.theEventMap(theSession.path)
     override protected def lastHandler = handlers.unhandled("(F)ind")
@@ -336,7 +340,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
     override def mouseExited(): Unit = theView.requestFocusInWindow()
   }
 
-  private val replLine: TextLine = new TextLine(25) {
+  val replLine: TextLine = new TextLine(25) {
     focusable = true
     override protected def eventMap: EventMap = Personalised.theEventMap(theSession.path)
     override protected def lastHandler = handlers.unhandled("(R)eplace")
@@ -356,20 +360,20 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
    *  linked to the undo history
    */
   private val theWidgets = new BoxPanel(Orientation.Horizontal) {
-    contents += Button("\u24b6", toolTip = "(Clear) the \u24b6 field \u2191") {
+    contents += Buttons.SwingButton("\u24b6", toolTip = "(Clear) the \u24b6 field \u2191") {
       argLine.text = ""
       argLine.requestFocusInWindow()
       // TODO: make this button drop down a menu of recents
     } // (A)
     contents += argLine
     contents += regexCheck
-    contents += Button("\u24bb", toolTip = "Clear the adjacent find pattern") {
+    contents += Buttons.SwingButton("\u24bb", toolTip = "Clear the adjacent find pattern") {
       findLine.text = ""
       findLine.requestFocusInWindow()
       // TODO: make this button drop down a menu of recents
     } // (F)
     contents += findLine
-    contents += Button("\u24c7", toolTip = "Clear the adjacent replacement template") {
+    contents += Buttons.SwingButton("\u24c7", toolTip = "Clear the adjacent replacement template") {
       replLine.text = ""
       replLine.requestFocusInWindow()
       // TODO: make this button drop down a menu of recents
@@ -379,7 +383,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
 
 
 
-  private val theMenuBar: MenuBar = new MenuBar {
+  val theMenuBar: MenuBar = new MenuBar {
     import Buttons.menuButton
     font = Utils.menuFont
 
@@ -597,51 +601,12 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
     //
     //
 
-    def withPipeMenu(): Unit = {
-      contents += new Utils.Menu("Pipe") {
-        // should piped output replace the selection or prefix it
-        var augmentSelection: Boolean = false
-
-        // Pipe the selection through ...
-        contents += menuButton("\u24b6", "Pipe the selection through the shell command \u24b6 (see also \"Append Selection\")") {
-          withFilterWarnings("\u24b6") {
-            UI_DO(EditSessionCommands.pipeThrough(argLine.text, replaceSelection = !augmentSelection))
-          }
-        }
-
-        for {program <- Personalised.pipeShellCommands(theSession.path)} {
-          contents += menuButton(s"$program", s"Pipe the selection through the shell command \"$program\" (see also \"(++sel'n)\"") {
-            withFilterWarnings(s"$program") {
-              UI_DO(EditSessionCommands.pipeThrough(program, replaceSelection = !augmentSelection))
-            }
-          }
-        }
-
-        contents += Separator()
-
-        for {program <- Personalised.pipeRedScripts(theSession.path)} {
-          contents += menuButton(s"$program", s"Evaluate the Redscript ($program <the session path> Ⓐ \u24bb \u24c7 <the selection>)  (see also \"(++sel'n)\"") {
-            withFilterWarnings(s"$program") {
-              UI_DO(EditSessionCommands.pipeThroughScript(program, theSession.path, argLine.text, findLine.text, replLine.text, replaceSelection = !augmentSelection))
-            }
-          }
-        }
-
-        contents += Separator()
-
-        contents += new Buttons.PersistentCheckItem("(++sel'n)", "appendselectiontopipedoutput", { b => augmentSelection = b }, augmentSelection) {
-          tooltip = "When enabled, the original selection is appended to the piped output from the above commands."
-          font = Utils.buttonFont
-        }
-
-      } // Pipe Menu
-    }
 
     def withLatexMenus(): Unit = {
 
       contents += new Label("     ")
 
-      contents += Button("Tex", toolTip = "Run redpdf now") {
+      contents += Buttons.SwingButton("Tex", toolTip = "Run redpdf now") {
         saveOperation()
         UI_DO(EditSessionCommands.latexToPDF)
       }
@@ -757,21 +722,13 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
       contents += Glue.horizontal()
     }
 
-    def withPandocMenus(): Unit = {
-      contents += Button("Pandoc", toolTip = "Run redpandoc now") {
-        saveOperation()
-        UI_DO(EditSessionCommands.pandocToPDF)
-      }
-    }
-
-    // Pipe
-    withPipeMenu()
+    val extraMenus = new UIExtraMenus(thisUI)
+    contents ++= extraMenus.menus
 
     // Latex
     if (Red.Personalised.needsLatex(theSession.path)) withLatexMenus()
 
-    // Pandoc
-    if (Personalised.needsPandoc(theSession.path)) withPandocMenus()
+
 
     //
     //
