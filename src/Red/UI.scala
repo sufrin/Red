@@ -383,8 +383,6 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
     import Buttons.menuButton
     font = Utils.menuFont
 
-
-
     contents += new Utils.Menu("Red") {
 
       contents += new Menus.DynamicMenu("cd ") {
@@ -492,7 +490,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
       contents += Separator()
 
       contents += menuButton("Quit", toolTip = "Quit now if there are no unsaved document sessions; else ask each unsaved document session what to do")  { top.closeOperation() }
-    }
+    } // Red Menu
 
     contents += new Utils.Menu("File") {
 
@@ -593,178 +591,192 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
 
     } // Edit Menu
 
-    contents += new Utils.Menu("Pipe") {
-      // should piped output replace the selection or prefix it
-      var augmentSelection: Boolean = false
 
-      // Pipe the selection through ...
-      contents += menuButton("\u24b6", "Pipe the selection through the shell command \u24b6 (see also \"Append Selection\")") {
-        withFilterWarnings("\u24b6") { UI_DO(EditSessionCommands.pipeThrough(argLine.text, replaceSelection = !augmentSelection)) }
-      }
-
-      for { program <- Personalised.pipeShellCommands(theSession.path) } {
-        contents += menuButton(s"$program", s"Pipe the selection through the shell command \"$program\" (see also \"(++sel'n)\"") {
-          withFilterWarnings(s"$program") { UI_DO(EditSessionCommands.pipeThrough(program, replaceSelection = !augmentSelection)) }
-        }
-      }
-
-      contents += Separator()
-
-      for { program <- Personalised.pipeRedScripts(theSession.path) } {
-        contents += menuButton(s"$program", s"Evaluate the Redscript ($program <the session path> Ⓐ \u24bb \u24c7 <the selection>)  (see also \"(++sel'n)\"") {
-          withFilterWarnings(s"$program") {
-            UI_DO(EditSessionCommands.pipeThroughScript(program, theSession.path, argLine.text, findLine.text, replLine.text, replaceSelection = !augmentSelection))
-          }
-        }
-      }
-
-      contents += Separator()
-
-      contents += new Buttons.PersistentCheckItem("(++sel'n)", "appendselectiontopipedoutput", {b => augmentSelection=b}, augmentSelection) {
-        tooltip  = "When enabled, the original selection is appended to the piped output from the above commands."
-        font     = Utils.buttonFont
-      }
-
-    } // Pipe Menu
-
-
-    ////////////////////////////////////////////////////// 2 Candidates for separation during a refactoring
+    ////////////////////////////////////////////////////// Candidates for separation during a refactoring
     //
     //
     //
 
-    // Latex
+    def withPipeMenu(): Unit = {
+      contents += new Utils.Menu("Pipe") {
+        // should piped output replace the selection or prefix it
+        var augmentSelection: Boolean = false
 
-    if (Red.Personalised.needsLatex(theSession.path)) {
-
-        contents += new Label("     ")
-
-        contents += Button("Tex", toolTip = "Run redpdf now") {
-          saveOperation()
-          UI_DO(EditSessionCommands.latexToPDF)
+        // Pipe the selection through ...
+        contents += menuButton("\u24b6", "Pipe the selection through the shell command \u24b6 (see also \"Append Selection\")") {
+          withFilterWarnings("\u24b6") {
+            UI_DO(EditSessionCommands.pipeThrough(argLine.text, replaceSelection = !augmentSelection))
+          }
         }
 
-        val headers = Red.Personalised.latexSnippets(theSession.path)
-
-        contents += new EmbeddedDynamicMenu("\\begin{...}", { Red.Personalised.latexBlockTypes(theSession.path) }) {
-          font = Utils.menuButtonFont
-          prefix += menuButton("%%%%%%%%") {
-            val header =
-              """%%%%%%%%%%%%%%%%%%%%%%%%
-                |%%%%%%%%%%%%%%%%%%%%%%%%
-                |%%%%%%%%%%%%%%%%%%%%%%%%
-                |""".stripMargin
-            UI_DO(EditSessionCommands.latexInsert(header))
+        for {program <- Personalised.pipeShellCommands(theSession.path)} {
+          contents += menuButton(s"$program", s"Pipe the selection through the shell command \"$program\" (see also \"(++sel'n)\"") {
+            withFilterWarnings(s"$program") {
+              UI_DO(EditSessionCommands.pipeThrough(program, replaceSelection = !augmentSelection))
+            }
           }
+        }
 
-          prefix += Separator()
+        contents += Separator()
 
-          def component (block: String): Component = {
-            if (block == "-")
-              Separator()
-            else
-              menuButton(s"""\\begin{$block}""") { UI_DO(EditSessionCommands.latexBlock(block)) }
+        for {program <- Personalised.pipeRedScripts(theSession.path)} {
+          contents += menuButton(s"$program", s"Evaluate the Redscript ($program <the session path> Ⓐ \u24bb \u24c7 <the selection>)  (see also \"(++sel'n)\"") {
+            withFilterWarnings(s"$program") {
+              UI_DO(EditSessionCommands.pipeThroughScript(program, theSession.path, argLine.text, findLine.text, replLine.text, replaceSelection = !augmentSelection))
+            }
           }
+        }
 
-          // contents ++= dynamic
+        contents += Separator()
 
-          suffix += Separator()
-          suffix += menuButton("\\begin{\u24b6}", "Embed selection in latex block named in \u24b6") {
-            UI_DO(EditSessionCommands.latexBlock(argLine.text.trim))
+        contents += new Buttons.PersistentCheckItem("(++sel'n)", "appendselectiontopipedoutput", { b => augmentSelection = b }, augmentSelection) {
+          tooltip = "When enabled, the original selection is appended to the piped output from the above commands."
+          font = Utils.buttonFont
+        }
+
+      } // Pipe Menu
+    }
+
+    def withLatexMenus(): Unit = {
+
+      contents += new Label("     ")
+
+      contents += Button("Tex", toolTip = "Run redpdf now") {
+        saveOperation()
+        UI_DO(EditSessionCommands.latexToPDF)
+      }
+
+      val headers = Red.Personalised.latexSnippets(theSession.path)
+
+      contents += new EmbeddedDynamicMenu("\\begin{...}", {
+        Red.Personalised.latexBlockTypes(theSession.path)
+      }) {
+        font = Utils.menuButtonFont
+        prefix += menuButton("%%%%%%%%") {
+          val header =
+            """%%%%%%%%%%%%%%%%%%%%%%%%
+              |%%%%%%%%%%%%%%%%%%%%%%%%
+              |%%%%%%%%%%%%%%%%%%%%%%%%
+              |""".stripMargin
+          UI_DO(EditSessionCommands.latexInsert(header))
+        }
+
+        prefix += Separator()
+
+        def component(block: String): Component = {
+          if (block == "-")
+            Separator()
+          else
+            menuButton(s"""\\begin{$block}""") {
+              UI_DO(EditSessionCommands.latexBlock(block))
+            }
+        }
+
+        // contents ++= dynamic
+
+        suffix += Separator()
+        suffix += menuButton("\\begin{\u24b6}", "Embed selection in latex block named in \u24b6") {
+          UI_DO(EditSessionCommands.latexBlock(argLine.text.trim))
+        }
+
+        suffix += menuButton("""\begin{...}->...""", "Extract content of selected latex block") {
+          UI_DO(EditSessionCommands.latexUnblock)
+        }
+
+        suffix += Separator()
+
+        // Infrequent additions
+        suffix += new Menu("Tex") {
+
+          for {(button, header) <- headers}
+            contents += menuButton(button) {
+              UI_DO(EditSessionCommands.latexInsert(header))
+            }
+          if (headers.isEmpty) { // PRO-TEM until we get template-definition implemented in RedScript
+            contents += menuButton("\\documentclass{article}") {
+              val up = "\\usepackage[]{}"
+              val header =
+                s"""\\documentclass[11pt,a4paper]{article}
+                   |%%%%%%%%%%%%%%%%%%%%%
+                   |$up
+                   |%%%%%%%%%%%%%%%%%%%%%
+                   |\\author{}
+                   |\\title{}
+                   |\\date{}
+                   |%%%%%%%%%%%%%%%%%%%%%
+                   |\\begin{document}
+                   |\\maketitle
+                   |
+                   |\\end{document}
+                   |""".stripMargin
+              UI_DO(EditSessionCommands.latexInsert(header))
+            }
           }
-
-          suffix += menuButton("""\begin{...}->...""", "Extract content of selected latex block") {
-            UI_DO(EditSessionCommands.latexUnblock)
-          }
-
-          suffix += Separator()
-
-          // Infrequent additions
-          suffix += new Menu("Tex") {
-
-            for { (button, header) <- headers }
-              contents += menuButton(button) { UI_DO(EditSessionCommands.latexInsert(header)) }
-            if (headers.isEmpty) { // PRO-TEM until we get template-definition implemented in RedScript
-              contents += menuButton("\\documentclass{article}") {
-                val up = "\\usepackage[]{}"
+          if (headers.isEmpty) { // PRO-TEM
+            contents +=
+              menuButton(
+                "\\documentclass{letter}") {
                 val header =
-                  s"""\\documentclass[11pt,a4paper]{article}
-                     |%%%%%%%%%%%%%%%%%%%%%
-                     |$up
-                     |%%%%%%%%%%%%%%%%%%%%%
-                     |\\author{}
-                     |\\title{}
-                     |\\date{}
-                     |%%%%%%%%%%%%%%%%%%%%%
-                     |\\begin{document}
-                     |\\maketitle
-                     |
-                     |\\end{document}
+                  s"""\\documentclass[12pt,lab|wor|home|magd,bernard|sufrin]{letter} %
+                     |\\To{lines\\\\of\\\\mailing address}
+                     |\\Dear[Dear]{Victim}
+                     |\\Re{subject matter}
+                     |    This is the body
+                     |\\Ps{ps paragraph}
+                     |\\PostSig{post signature para}
+                     |\\Cc{carrbon1, carbon2, ...}
+                     |\\Sign[yours sincerely]{Bernard Sufrin}
                      |""".stripMargin
                 UI_DO(EditSessionCommands.latexInsert(header))
               }
-            }
-            if (headers.isEmpty) { // PRO-TEM
-              contents +=
-                menuButton(
-                  "\\documentclass{letter}") {
-                  val header =
-                    s"""\\documentclass[12pt,lab|wor|home|magd,bernard|sufrin]{letter} %
-                       |\\To{lines\\\\of\\\\mailing address}
-                       |\\Dear[Dear]{Victim}
-                       |\\Re{subject matter}
-                       |    This is the body
-                       |\\Ps{ps paragraph}
-                       |\\PostSig{post signature para}
-                       |\\Cc{carrbon1, carbon2, ...}
-                       |\\Sign[yours sincerely]{Bernard Sufrin}
-                       |""".stripMargin
-                  UI_DO(EditSessionCommands.latexInsert(header))
-                }
-            }
-            contents += Separator()
-            contents += Separator()
+          }
+          contents += Separator()
+          contents += Separator()
 
-            contents += menuButton("Tex source := \u24b6", toolTip = "Change default tex source using dialogue or nonempty \u24b6 field") {
-              var text = argLine.text.trim
-              if (text.isEmpty) {
-                val chooser = fileChooser
-                chooser.showOpenDialog(top) match {
-                  case Approve => text = chooser.selectedFile.toString
-                  case Cancel  => text = ""
-                }
+          contents += menuButton("Tex source := \u24b6", toolTip = "Change default tex source using dialogue or nonempty \u24b6 field") {
+            var text = argLine.text.trim
+            if (text.isEmpty) {
+              val chooser = fileChooser
+              chooser.showOpenDialog(top) match {
+                case Approve => text = chooser.selectedFile.toString
+                case Cancel => text = ""
               }
-              if (text.nonEmpty) theSession.TEX=Utils.toPath(text)
-              feedbackPersistently(s"Tex source: ${theSession.TEX.toString}")
             }
-
-            contents += menuButton(s"Default tex source := ${theSession.path}", toolTip = "Change default latex source to current file") {
-              theSession.TEX=Utils.toPath(theSession.path)
-              feedbackPersistently(s"Tex source: ${theSession.TEX.toString}")
-            }
+            if (text.nonEmpty) theSession.TEX = Utils.toPath(text)
+            feedbackPersistently(s"Tex source: ${theSession.TEX.toString}")
           }
 
+          contents += menuButton(s"Default tex source := ${theSession.path}", toolTip = "Change default latex source to current file") {
+            theSession.TEX = Utils.toPath(theSession.path)
+            feedbackPersistently(s"Tex source: ${theSession.TEX.toString}")
+          }
         }
 
-        contents += Glue.horizontal()
+      }
+
+      contents += Glue.horizontal()
     }
+
+    def withPandocMenus(): Unit = {
+      contents += Button("Pandoc", toolTip = "Run redpandoc now") {
+        saveOperation()
+        UI_DO(EditSessionCommands.pandocToPDF)
+      }
+    }
+
+    // Pipe
+    withPipeMenu()
+
+    // Latex
+    if (Red.Personalised.needsLatex(theSession.path)) withLatexMenus()
 
     // Pandoc
-
-    if (Personalised.needsPandoc(theSession.path)) {
-        contents += Button("Pandoc", toolTip = "Run redpandoc now") {
-          saveOperation()
-          UI_DO(EditSessionCommands.pandocToPDF)
-        }
-
-
-    }
+    if (Personalised.needsPandoc(theSession.path)) withPandocMenus()
 
     //
     //
     //
     //////////////////////////////////////////////////////////// end of candidates for refactoring
-
 
     contents += Glue.horizontal()
     contents += undoButton
