@@ -13,6 +13,8 @@ trait UIInterface {
 
   val argLine, findLine, replLine: TextLine
 
+  val top: ControllingFrame
+
   /**
    * A warning from Filter during the execution of  `body` is reported
    * only in the present UI.
