@@ -3,15 +3,15 @@
 Red (1.5)
 ---
 
-`Red` (also known as `AppleRed`) is no-frills *unicode-capable*
-modeless (and colourless) text editor with a simple implementation
-that can be customized using the `redscript` language (a Lisp-like
-notation).  Its underlying capabilities can be straightforwardly
-extended using `scala`.  It has no pretensions to being an
-all-encompassing workplace, and unlike many IDE and modern editors
-does not confuse its user by *spontaneously* trying to be helpful:
-everything it does it does in response to user input from mouse,
-pad, or keyboard.
+`Red` (also known as `AppleRed`) is an efficient, no-frills
+*unicode-capable* mode-free (and colourless) text editor with a
+simple implementation and user interface that can be customized
+using the `redscript` language (a Lisp-like notation).  Its underlying
+capabilities can extended straightforwardly using `scala`.  It has
+no pretensions to being an all-encompassing workplace, and unlike
+many IDEs and modern editors does not confuse its user by *spontaneously*
+trying to be helpful: everything it does it does in response to
+user input from mouse, pad, or keyboard.
 
 Unicode
 -------
@@ -41,20 +41,20 @@ this (perhaps-eccentric) declaration binds `ALT`, and `ALT-SHIFT`
 of the up, down, left, and right keys to various unicode arrows.
 
     (UI:keys
-      ("LEFT(SA)"   . (insert "⇐"))
-      ("RIGHT(SA)"  . (insert "⇒"))
-      ("LEFT(A)"    . (insert "←"))
-      ("RIGHT(A)"   . (insert "→"))
-      ("UP(SA)"     . (insert "⇑"))
-      ("DOWN(SA)"   . (insert "⇓"))
-      ("UP(A)"      . (insert "↑"))
-      ("DOWN(A)"    . (insert "↓"))
+      ("LEFT(SA)"   ↦ (insert "⇐"))
+      ("RIGHT(SA)"  ↦ (insert "⇒"))
+      ("LEFT(A)"    ↦ (insert "←"))
+      ("RIGHT(A)"   ↦ (insert "→"))
+      ("UP(SA)"     ↦ (insert "⇑"))
+      ("DOWN(SA)"   ↦ (insert "⇓"))
+      ("UP(A)"      ↦ (insert "↑"))
+      ("DOWN(A)"    ↦ (insert "↓"))
     )
 
 These declarations bind `ALT` variants of some ordinary keys
 to unicode characters.
 
-     (ALTS: "," "←" "≤")
+     (ALTS: "," "←" "≤") # map ALT "," to "←" and ALT-SHIFT "," to "≤"
      (ALTS: "." "→" "≥")
      (ALTS: "1" "⇓" "⇑")
      (ALTS: "6" "↓" "↑")
