@@ -1,3 +1,4 @@
+#!/bin/bash
 #redpandoc  inputfile <texline#> editingfile
 # 
 # OS/X:
@@ -13,6 +14,8 @@ texfile=${inputfile%%.md}.tex
 line="${2-0}"
 editing="${3-$inputfile}"
 cwd=$(dirname $inputfile)
+sidecarfile=${inputfile%%.md}.properties
+metadata=${inputfile%%.md}.yaml
 echo "++++++++++++ REDPPDF ++++++++++"
 echo "EDITING:" $editing
 echo "INPUT:  " $inputfile
@@ -21,28 +24,157 @@ echo "HTML:   " $htmlfile
 echo "CWD:    " $cwd
 echo "+++++++++++++++++++++++++++++++"
 
-if [ -e $cwd/PANDOC-HTML -o $cwd/PANDOC-PDF-VIA-HTML ]
+#
+#       Defaults
+#
+css="github-markdown"
+html=true
+pdf=
+keeptex=
+toc=
+HIGHLIGHT="--highlight-style=breezedark"
+VERBOSE="--verbose"
+FROM="--from=gfm+gfm_auto_identifiers"
+
+#
+#       Sidecar sets various things
+#
+if [ -e "$sidecarfile" ]
 then
-    echo pandoc ... --output=$htmlfile
-    (cd $cwd ; pandoc  -s --from markdown+tex_math_dollars+pandoc_title_block --output=$htmlfile $inputfile)
+   . "$sidecarfile"
+   cat "$sidecarfile"
 fi
-if [ -e $cwd/PANDOC-PDF-VIA-HTML ]
+
+
+if [ -e "$metadata" ]
 then
-    echo pandoc ... --input $htmlfile --output=$texfile
-    (cd $cwd ; pandoc -s --output=$texfile $htmlfile)
-    (cd $cwd ; xelatex $texfile; xelatex $texfile)
+   METADATA=--metadata-file=\"$metadata\"
 else
-    echo pandoc  -s --pdf-engine=xelatex --from markdown+tex_math_dollars+pandoc_title_block --output=$pdffile $inputfile
-    (cd $cwd ; pandoc  -s --pdf-engine=xelatex --from markdown+tex_math_dollars+pandoc_title_block --output=$pdffile $inputfile)
+   echo NO METADATA FILE $metadata
+   METADATA=""
 fi
 
-
-if [ $(uname) = Linux ]
+#################
+#
+#               HTML
+#
+if [ "$html" ]
 then
+    if [ "$css" ]; then CSS="--css=$HOME/.pandoc/$css.css"; fi
+    if [ "$toc" ]; then TOC="--toc"; fi
+    cmd="(cd $cwd ; pandoc $METADATA --self-contained --standalone $VERBOSE $HIGHLIGHT $CSS $TOC $FROM -t html --output=$htmlfile $inputfile)"
+    echo $cmd
+    eval $cmd
+fi
+#
+#
+#
+#################
+
+#################
+#
+#               PDF
+#
+if [ "$pdf" ]
+then
+    cat > $texfile <<HEADER
+%xelatex
+%
+% the top line tells redpdf to use xelatex not pdflatex
+
+%
+% Print a warning if a character is missing.
+%
+\tracinglostchars=2 
+
+%
+%  Prefix placed by REDPANDOC
+%
+\documentclass[11pt,a4paper]{article}
+\usepackage{unicode-math}
+\usepackage{verbatimstyle}
+\verbatimsize{\small}
+
+\defaultfontfeatures{Scale=MatchLowercase}
+\setmathfont{STIX Two Math}    % For symbols
+\setmainfont{STIX Two Text}    % For text
+\setmonofont{DejaVu Sans Mono} % for verbatim
+
+\usepackage{xcolor}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\IfFileExists{bookmark.sty}{\usepackage{bookmark}}{\usepackage{hyperref}}
+\hypersetup{
+  pdftitle={Red 1.5},
+  pdfauthor={Bernard Sufrin},
+  pdflang={en-GB},
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+\urlstyle{same} % disable monospaced font for URLs
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+\ifxetex
+  % Load polyglossia as late as possible: uses bidi with RTL langages (e.g. Hebrew, Arabic)
+  \usepackage{polyglossia}
+  \setmainlanguage[variant=british]{english}
+\else
+  \usepackage[shorthands=off,main=british]{babel}
+\fi
+\ifluatex
+  \usepackage{selnolig}  % disable illegal ligatures
+\fi
+
+\parindent=0pt
+\parskip=\medskipamount
+%
+%
+%
+% additionaltex=
+$additionaltex
+
+\begin{document}
+% atbegindocument=
+$atbegindocument
+
+%
+%  END PREFIX PLACED BY REDPANDOC
+%
+HEADER
+    cmd="(cd $cwd ; pandoc $METADATA  --pdf-engine=xelatex $VERBOSE $HIGHLIGHT $CSS $TOC $FROM -t latex --output=/dev/stdout $inputfile | cat >> $texfile )"
+    echo $cmd
+    eval $cmd  
+    echo '\end{document}'>>"$texfile"
+    cmd="(cd $cwd ; xelatex $texfile; xelatex $texfile)"
+    echo $cmd
+    eval $cmd
+    if [ ! "$keeptex" ]
+    then
+       rm -v $texfile
+    fi
+fi
+#
+#
+#
+#################
+
+#################
+#
+#       Open  pdf in viewer
+#
+if [ $pdf ]
+then
+    if [ $(uname) = Linux ]
+    then
     # we should really do a search for text on opening
-    evince $pdffile 
-else
-    echo open -a Skim $pdffile
-    # skim invokes pdfsync %file %line at the right gesture (shift cmd point)
-    open -a Skim $pdffile
+      evince $pdffile 
+    else
+      echo open -a Skim $pdffile
+      # skim invokes pdfsync %file %line at the right gesture (shift cmd point)
+      open -a Skim $pdffile
+    fi
 fi
+#
+#
+#
+#################

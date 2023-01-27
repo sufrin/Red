@@ -1,0 +1,172 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+%
+\documentclass[
+  british,
+  a5paper,
+]{article}
+\usepackage{lmodern}
+\usepackage{amssymb,amsmath}
+\usepackage{ifxetex,ifluatex}
+\ifnum 0\ifxetex 1\fi\ifluatex 1\fi=0 % if pdftex
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math}
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+  \setmainfont[]{Stix Two Text}
+  \setmonofont[]{DejaVu Sans Mono Book}
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\IfFileExists{bookmark.sty}{\usepackage{bookmark}}{\usepackage{hyperref}}
+\hypersetup{
+  pdftitle={Red 1.5},
+  pdfauthor={Bernard Sufrin},
+  pdflang={en-GB},
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+\urlstyle{same} % disable monospaced font for URLs
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+\ifxetex
+  % Load polyglossia as late as possible: uses bidi with RTL langages (e.g. Hebrew, Arabic)
+  \usepackage{polyglossia}
+  \setmainlanguage[variant=british]{english}
+\else
+  \usepackage[shorthands=off,main=british]{babel}
+\fi
+\ifluatex
+  \usepackage{selnolig}  % disable illegal ligatures
+\fi
+
+\title{Red 1.5}
+\author{Bernard Sufrin}
+\date{Early January, 2023}
+
+\begin{document}
+\maketitle
+\begin{abstract}
+This is the abstract
+\end{abstract}
+
+{
+\setcounter{tocdepth}{3}
+\tableofcontents
+}
+\hypertarget{introduction}{%
+\subsection{Introduction}\label{introduction}}
+
+\texttt{Red} (also known as \texttt{AppleRed}) is an efficient,
+no-frills \emph{unicode-capable} mode-free (and colourless) text editor
+with a simple implementation and user interface that can be customized
+using the \texttt{redscript} language (a Lisp-like notation). Its
+underlying capabilities can extended straightforwardly using
+\texttt{scala}. It has no pretensions to being an all-encompassing
+workplace, and unlike many IDEs and modern editors does not confuse its
+user by \emph{spontaneously} trying to be helpful: everything it does it
+does in response to user input from mouse, pad, or keyboard.
+
+\hypertarget{unicode}{%
+\subsection{Unicode}\label{unicode}}
+
+\texttt{Red} comes equipped with configuration facilities that make
+working with a wide range of unicode characters straightforward.
+Configurations may include mnemonic abbreviations for character
+sequences that include unicode symbols. For example (material to the
+right of \# is a comment):
+
+\begin{verbatim}
+    UI:abbrev  "exists"    "\u2203"  # ∃
+    UI:abbrev  "notexists" "\u2204"  # ∄
+    UI:abbrev  "~∃"        "\u2204"  # ∄
+    UI:abbrev  "in"        "\u2208"  # ∈
+    UI:abbrev  "notin"     "\u2190"  # ∉
+    UI:abbrev  "<-"        "\u2190"  # ←
+ 
+    UI:abbrev "lb"         "pound"
+    UI:abbrev "lbs"        "pounds and pounds"
+\end{verbatim}
+
+When the abbrev key (often \texttt{ESC}) is pressed at the right of a
+mnemonic in text, that mnemonic is replaced by the corresponding
+character (sequence).
+
+They may also bind specific keystrokes to actions that insert character
+sequences that include unicode symbols. For example, this
+(perhaps-eccentric) declaration binds \texttt{ALT}, and
+\texttt{ALT-SHIFT} of the up, down, left, and right keys to various
+unicode arrows.
+
+\begin{verbatim}
+    (UI:keys
+      ("LEFT(SA)"   ↦ (insert "⇐"))
+      ("RIGHT(SA)"  ↦ (insert "⇒"))
+      ("LEFT(A)"    ↦ (insert "←"))
+      ("RIGHT(A)"   ↦ (insert "→"))
+      ("UP(SA)"     ↦ (insert "⇑"))
+      ("DOWN(SA)"   ↦ (insert "⇓"))
+      ("UP(A)"      ↦ (insert "↑"))
+      ("DOWN(A)"    ↦ (insert "↓"))
+    )
+\end{verbatim}
+
+The following declarations bind \texttt{ALT} variants of some ordinary
+keys to unicode characters.
+
+\begin{verbatim}
+    (ALTS: "," "←" "≤") # map ALT "," to "←" and ALT-SHIFT "," to "≤"
+    (ALTS: "." "→" "≥")
+    (ALTS: "1" "⇓" "⇑")
+    (ALTS: "6" "↓" "↑")
+    (ALTS: "7" "∧" "∨")
+    (ALTS: "o" "∘" "•")
+    (ALT:  "A" "∀")
+    (ALT:  "E" "∃")
+    (ALT:  "Z" "↯")
+\end{verbatim}
+
+\hypertarget{tex}{%
+\subsection{Tex}\label{tex}}
+
+\texttt{Red} was designed to work comfortably with Latex/Xelatex
+manuscripts, and to that end implements single-click actions that make
+the flow of work in producing, typesetting, and proofreading such
+manuscripts straightforward. It also comes equipped with actions to
+support convenient selection and motion of nested
+\texttt{\textbackslash{}begin}-\texttt{end} blocks.
+
+\hypertarget{markdown}{%
+\subsection{Markdown}\label{markdown}}
+
+Markdown manuscripts are also straighforward to work with; though the
+varieties of markdown-like manuscript languages and dialects means that
+some local configuration \emph{\textbf{may be necessary}} in order to
+work with a particular dialect.
+
+Bernard Sufrin
+
+Oxford, May and December 2022
+
+\end{document}

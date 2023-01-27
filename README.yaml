@@ -1,0 +1,20 @@
+---
+ title:  "Red 1.5"
+
+ lang:   en-GB
+
+ author: Bernard Sufrin
+
+ date:   January 2023
+
+ toc:     true
+
+ papersize: A5
+
+ abstract: This is the abstract
+
+
+ mainfont: Stix Two Text
+
+ monofont: DejaVu Sans Mono Book
+

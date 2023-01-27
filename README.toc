@@ -1,0 +1,5 @@
+\selectlanguage *[variant=british]{english}
+\contentsline {subsection}{Introduction}{1}{section*.2}%
+\contentsline {subsection}{Unicode}{1}{section*.3}%
+\contentsline {subsection}{Tex}{2}{section*.4}%
+\contentsline {subsection}{Markdown}{2}{section*.5}%
