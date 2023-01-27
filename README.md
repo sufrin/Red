@@ -1,7 +1,5 @@
 
-
 ## Introduction
-
 
 `Red` (also known as `AppleRed`) is an efficient, no-frills
 *unicode-capable* mode-free (and colourless) text editor with a
@@ -80,8 +78,9 @@ to unicode characters.
 and to that end implements single-click actions that make the flow
 of work in producing, typesetting, and proofreading such manuscripts
 straightforward.
+
 It also comes equipped with actions to support convenient selection and
-motion of nested `\begin`-`end` blocks.
+motion of nested `\begin`-`\end` blocks.
 
 ## Markdown
 
