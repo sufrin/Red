@@ -409,17 +409,47 @@ class Evaluator {
     "list:range" -> SexpSeqMethods("range"),
     "list:cat"   -> SexpSeqMethods("cat"),
     "list:map"   -> SexpSeqMethods("map"),
-    "list:filter" -> SexpSeqMethods("filter"),
-    // Regex methods as functions
+    "list:fst"   -> SexpSeqMethods("fst"),
+    "list:snd"   -> SexpSeqMethods("snd"),
+    "pair:fst"   -> PairMethods("fst"),
+    "pair:snd"   -> PairMethods("snd"),
+    /* re:regex has a variety of parameter forms, yielding a variety of regex results
+     *     PARAMETER            RESULT
+     *     string               non-literal regex
+     *     false string         non-literal regex
+     *     true  string         literal regex
+     *
+     *     (list regexes)       branched regex (from regexes
+     *     (list strings)       branched regex (from strings compiled as non-literal regexes
+     *     false (list strings) branched regex (from strings compiled as non-literal regexes)
+     *     true (list strings)  branched regex (from strings compiled as literal regexes)
+     *
+     *     Branched regexes have a replace method, whose parameters are:
+     *
+     *     (list template)        rewrites each recognised branch using the appropriate template
+     *     (list template) false  rewrites each recognised branch using the appropriate template
+     *     (list template) true   rewrites each recognised branch using the appropriate template as a literal
+     */
     "re:regex" -> Subr("re:regex", {
-      case List(Str(source)) => REGEX(sufrin.regex.Regex(source))
+      case List(Str(source)) =>
+           REGEX(sufrin.regex.Regex(source))
+      case List(Bool(literal), Str(source)) =>
+           REGEX(if (literal) sufrin.regex.Regex.literal(source) else sufrin.regex.Regex(source))
+      case List(SExpSeq(regexes)) if (regexes.forall { case REGEX(_) => true; case _ => false }) =>
+           REGEX(sufrin.regex.Regex.fromRegexes(regexes.map { case REGEX(r) => r}))
+      case List(SExpSeq(sources)) if (sources.forall { case Str(_) => true; case _ => false }) =>
+           REGEX(sufrin.regex.Regex.fromSources(sources.map { case Str(source) => source }))
+      case List(Bool(literal), SExpSeq(sources)) if (sources.forall { case Str(_) => true; case _ => false }) =>
+           val compile: String => sufrin.regex.Regex = if (literal) sufrin.regex.Regex.literal(_) else sufrin.regex.Regex(_)
+           REGEX(sufrin.regex.Regex.fromRegexes(sources.map { case Str(source) => compile(source) }))
     }),
     "re:match" -> RegexMethods("match"),
     "re:span"  -> RegMatchMethods("span"),
     "re:subst" -> RegMatchMethods("subst"),
     "re:group" -> RegMatchMethods("group"),
     "re:groups" -> RegMatchMethods("groups"),
-    "re:find"   -> RegexMethods("find")
+    "re:find"   -> RegexMethods("find"),
+    "re:replace"  -> RegexMethods("replace")
   )
 
   val globals: List[(String, SExp)] = List (

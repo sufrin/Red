@@ -1,6 +1,6 @@
 package RedScript
 
-import RedScript.RedObject.SexpSeqMethods
+import RedScript.RedObject.{PairMethods, SexpSeqMethods}
 
 /**
  * Abstract syntax and "pre-semantics" of S-expressions.
@@ -101,6 +101,7 @@ object Language {
         try value catch  {
           case exn: RuntimeError => throw RuntimeError(s"${exn.getMessage}\nin\n$this $position")
           case exn: SyntaxError  => throw SyntaxError(s"${exn.getMessage}\nin\n$this $position")
+          case exn: sufrin.regex.syntax.lexer.SyntaxError => throw RuntimeError(s"${exn.getMessage}\nin\n$this $position")
           case _:   MatchError   => throw SyntaxError(s"Number or type(s) of argument(s) wrong\nwhile evaluating\n$this $position")
           case exn: Throwable    => exn.printStackTrace(); throw SyntaxError(s"${exn.getMessage}\nin\n$this $position")
         }
@@ -253,7 +254,7 @@ object Language {
    override def toString: String = s"$l ↦ $r"
    def eval(env: Env): SExp = new ConstPair(l.eval(env), r.eval(env))
    // invoked only in operator position
-   override def opVal(env: Env): SExp = MethodRef(l.eval(env), r)
+   // override def opVal(env: Env): SExp = MethodRef(l.eval(env), r)
   }
 
   case class Dot(l: SExp, r: SExp) extends SExp {
@@ -263,8 +264,11 @@ object Language {
     override def opVal(env: Env): SExp = MethodRef(l.eval(env), r)
   }
 
-  class ConstPair(l: SExp, r: SExp) extends Pair(l, r) with Const {
-    override def eval(env: Env): Const = this
+  class ConstPair(l: SExp, r: SExp) extends Pair(l, r) with Obj {
+    //override def eval(env: Env): Const = this
+    override def toString: String = s"$l => $r"
+    override def method(name: String): SExp =
+      PairMethods.apply(name)
   }
 
   class ConstDot(l: SExp, r: SExp) extends Dot(l, r) with Const {

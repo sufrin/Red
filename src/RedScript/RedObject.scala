@@ -16,6 +16,15 @@ object RedObject {
           }
         case _ => throw RuntimeError(s"re:match: REGEX -> nil | REGMATCH")
       }),
+      "replace" -> Subr("re:replace", {
+        case REGEX(regex) :: Str(text) :: SExpSeq(templates) :: rest =>
+          val literal = rest match {
+            case Nil => false
+            case List(Bool(b)) => b
+          }
+          val (count, changed) = regex.rewriteAll(text, templates.map { case Str(str) => str}, literal)
+          Str(if (count==0) text else changed)
+      }),
       "find" -> Subr("re:find", {
         case List(REGEX(regex), Str(text)) =>
           regex.findPrefix(text, 0, text.length) match {
@@ -93,6 +102,19 @@ object RedObject {
     }
   }
 
+  object PairMethods {
+    val fst = Subr("pair:fst", {
+      case List(Pair(l, r)) => l
+    })
+    val snd = Subr("pair:snd", {
+      case List(Pair(l, r)) => r
+    })
+    def apply(name: String): SExp = name match {
+      case "fst" => fst
+      case "snd" => snd
+      case _ => Nothing
+    }
+  }
   /** Sequence methods */
   @nowarn("msg=not.*?exhaustive") // nonexhaustive matches are deliberate
   object SexpSeqMethods {
@@ -110,10 +132,20 @@ object RedObject {
     "map" -> Subr("list:map", {
       case List(SExpSeq(elts), Expr(env1, params, body)) =>
         SExpSeq(elts.map { case arg: SExp => body.eval(env1.extend(params, List(arg))) })
+      case List(SExpSeq(elts), Subr(name, scala)) =>
+        SExpSeq(elts.map { case arg: SExp => scala(List(arg)) })
       case List(SExpSeq(elts), ExprAll(env1, params, body)) =>
         SExpSeq(elts.map { case arg: SExp => body.eval(env1.extend(params, List(arg))) })
       case other => throw RuntimeError(s"malformed list:map: $other")
     }),
+    "fst" -> Subr("list:fst", {
+        case List(SExpSeq(e1::elts)) => e1
+        case other => throw RuntimeError(s"malformed list:fst: $other")
+      }),
+    "snd" -> Subr("list:snd", {
+        case List(SExpSeq(_ :: e2 :: elts)) => e2
+        case other => throw RuntimeError(s"malformed list:snd: $other")
+      }),
     "filter" -> Subr("list:filter", {
         case List(SExpSeq(elts), Expr(env1, params, body)) =>
           SExpSeq(elts.filter { case arg: SExp => body.eval(env1.extend(params, List(arg))).truth })
