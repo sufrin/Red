@@ -20,7 +20,7 @@ PROFILE:bool    monitoring   "Features" "Monitoring"             false
 #############################################################################
 
 # syntactic sugar for several global constant declarations
-(val (monitor ↦ (if monitoring popup (fun x ())))
+(val (monitor ↦ (if monitoring UI:popup (fun x ())))
      (user    ↦ (ENV "USER"))
      (os      ↦ (PROP "os.name"))
      (OSX     ↦ (<=  "Mac" os))
@@ -30,8 +30,8 @@ PROFILE:bool    monitoring   "Features" "Monitoring"             false
          user
          os
          (if OSX "OSX" "Linux")
-         #(string "Cut Ring: " (UI:cutringBound))
-         )
+         (string "Cut Ring: " (UI:cutringBound))
+)
 
 #############################################################################
 #
@@ -219,10 +219,60 @@ PROFILE:bool    quietignore  "Features" "Silence Undefined Keys" false
 #
 #       Experimental scripts for the foot of the "Pipe" menu 
 #
+
+# evaluate the selection
 def  (Eval path arg find repl sel) (readEval sel false)
 
-(def (CONFIG:pipeRedScripts path) (list `Eval))
+###############################
+#
+#  Pipe-transforms are systematic rewrites of the selection using (collections of) pattern=>template
+#  substitutions. They are presently delivered at the foot of the Pipe menu
+#
+###############################
 
+# (PIPE:transform translations) constructs a pipe-transform from translations, where
+#    translations is a list of find-replace specs of the form (pat=>template) or (pat template)
+#    the replacements are applied simultaneously, with matching priority from the left
+#    replacements are independently specified, and
+#    each pattern's groups are numbered individually in its corresponding template
+#    (with $0 denoting the entire match)  
+#
+(def (PIPE:transform translations)
+     (val (patterns  => (re:regex false (translations.map (fun (p) (p.fst)))))
+          (templates => (translations.map (fun (p) (p.snd))))
+          (fun (path arg find repl sel) (patterns.replace sel templates))))
+
+# (PIPE:transform translations...) constructs a pipe-transform from translations..., where
+#    translations... is any number of specs of the form (pat=>template) or (quote pat template) 
+(defForm (PIPE:transform* (env => translations))
+         (PIPE:transform (translations.map (fun (t) (eval env t)))))
+
+(var     (PIPE:transformNames => ()))
+
+#
+# (defTransform name translations) declares a named pipe-transform from translations, where
+#    translations is any number of specs of the form (pat => template) or (quote pat template) or `(pat template)
+#
+(defForm (defTransform (env => args))
+         (val (name         => (hd args))
+              (translations => (tl args))
+              (seq (monitor (string "defTransform " name " " translations))
+                   (val
+                     (theFun => (PIPE:transform (translations.map (fun (t) (eval env t)))))
+                     (seq 
+                          (eval (list `constant name theFun))
+                          (:= PIPE:transformNames (:: name PIPE:transformNames)))
+                   )
+              )
+         )
+)
+
+#  Examples:
+#  defTransform ABBARROW ("B" ↦ "A") (‘\\usepackage({[^}]+})’ ↦ ‘\useful$1’)
+#  defTransform ABBA `("B" "A") `(‘\\usepackage({[^}]+})’ ‘\useful$1’)
+#  defTransform ABBQ (quote "B" "A") (quote ‘\\usepackage({[^}]+})’ ‘\useful$1’)
+         
+(def (CONFIG:pipeRedScripts path) (:: `Eval PIPE:transformNames))
 (def (CONFIG:needsPandoc    path) (endsWith path ".md"))
 
 #
