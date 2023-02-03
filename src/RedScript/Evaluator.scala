@@ -351,13 +351,20 @@ class Evaluator {
     "?"         -> Subr     ("?",         { args => args.foreach{  k => normalFeedback(k.toPlainString); normalFeedback(" ") }; args.last }),
     "toString*" -> Subr     ("toString*", evPlainString),
     "quote"     -> FSubr    ("quote",     { case (env, form) => form }),
-    "isAtom"    -> forall("isAtom")       { case Quote(Variable(_)) => true; case _ => false },
-    "isSymb"    -> forall("isSymb")       { case Quote(v@Variable(_)) => v.symbolic; case _ => false },
-    "isVar"     -> forall("isVar")        { case Quote(v@Variable(_)) => !v.symbolic; case _ => false },
-    "isNum"     -> forall("isNum")        { case Num(_)=>true;    case _ => false },
-    "isList"    -> forall("isList")       { case SExpSeq(_)=>true;  case _ => false },
-    "isString"  -> forall("isString")     { case Str(_)=>true;    case _ => false },
-    "isNothing" -> forall("isNothing")    { case Nothing => true; case _ => false },
+    "type"      -> Subr("type", {
+      case List(arg) => arg match {
+           case _: Variable => Str("ATOM")
+           case _: Num => Str("NUM")
+           case _: SExpSeq => Str("LIST")
+           case _: Str     => Str("STRING")
+           case _: Expr    => Str("FUN")
+           case _: FExpr   => Str("FEXPR")
+           case _: FExprAll => Str("FEXPRALL")
+           case _: Subr     => Str("SUBR")
+           case _: Str     => Str("STRING")
+           case obj: Obj   => Str(obj.getType)
+           case other      => Str(other.getClass.toString)
+     }}),
     "isDefined" -> FSubr("isDefined", {
       case (env, SExpSeq(exps)) =>
         Bool(exps.forall {
@@ -419,20 +426,7 @@ class Evaluator {
      *     (list template) false  rewrites each recognised branch using the appropriate template
      *     (list template) true   rewrites each recognised branch using the appropriate template as a literal
      */
-    "re:regex" -> Subr("re:regex", {
-      case List(Str(source)) =>
-           REGEX(sufrin.regex.Regex(source))
-      case List(Bool(literal), Str(source)) =>
-           REGEX(if (literal) sufrin.regex.Regex.literal(source) else sufrin.regex.Regex(source))
-      case List(SExpSeq(regexes)) if (regexes.forall { case REGEX(_) => true; case _ => false }) =>
-           REGEX(sufrin.regex.Regex.fromRegexes(regexes.map { case REGEX(r) => r}))
-      case List(SExpSeq(sources)) if (sources.forall { case Str(_) => true; case _ => false }) =>
-           REGEX(sufrin.regex.Regex.fromSources(sources.map { case Str(source) => source }))
-      case List(Bool(literal), SExpSeq(sources)) if (sources.forall { case Str(_) => true; case _ => false }) =>
-           val compile: String => sufrin.regex.Regex = if (literal) sufrin.regex.Regex.literal(_) else sufrin.regex.Regex(_)
-           REGEX(sufrin.regex.Regex.fromRegexes(sources.map { case Str(source) => compile(source) }))
-    }),
-
+    "re:new"      -> RegexMethods("new"),
     "re:match"    -> RegexMethods("match"),
     "re:span"     -> RegMatchMethods("span"),
     "re:subst"    -> RegMatchMethods("subst"),

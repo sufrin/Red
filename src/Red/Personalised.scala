@@ -509,8 +509,12 @@ object Personalised extends Logging.Loggable {
         command
       }
 
-      case class SESSION(theSession: Session) extends Const {
+      case class SESSION(theSession: Session) extends Obj {
         override def toString: String = theSession.toString
+        override def getType: String = "SESSION"
+
+        /** Returns a method body: for the moment a subr */
+        override def method(name: String): SExp = RedObject.SessionMethods(name)
       }
 
 

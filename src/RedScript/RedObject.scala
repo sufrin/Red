@@ -1,5 +1,7 @@
 package RedScript
 
+import Red.Personalised
+
 import scala.annotation.nowarn
 
 object RedObject {
@@ -15,6 +17,19 @@ object RedObject {
             case Some(theMatch) => REGMATCH(theMatch)
           }
         case _ => throw RuntimeError(s"re:match: REGEX -> nil | REGMATCH")
+      }),
+      "new" -> Subr("re:new", {
+        case List(Str(source)) =>
+          REGEX(sufrin.regex.Regex(source))
+        case List(Bool(literal), Str(source)) =>
+          REGEX(if (literal) sufrin.regex.Regex.literal(source) else sufrin.regex.Regex(source))
+        case List(SExpSeq(regexes)) if (regexes.forall { case REGEX(_) => true; case _ => false }) =>
+          REGEX(sufrin.regex.Regex.fromRegexes(regexes.map { case REGEX(r) => r }))
+        case List(SExpSeq(sources)) if (sources.forall { case Str(_) => true; case _ => false }) =>
+          REGEX(sufrin.regex.Regex.fromSources(sources.map { case Str(source) => source }))
+        case List(Bool(literal), SExpSeq(sources)) if (sources.forall { case Str(_) => true; case _ => false }) =>
+          val compile: String => sufrin.regex.Regex = if (literal) sufrin.regex.Regex.literal(_) else sufrin.regex.Regex(_)
+          REGEX(sufrin.regex.Regex.fromRegexes(sources.map { case Str(source) => compile(source) }))
       }),
       "replace" -> Subr("re:replace", {
         case REGEX(regex) :: Str(text) :: SExpSeq(templates) :: rest =>
@@ -48,6 +63,12 @@ object RedObject {
     def apply(name: String): SExp = lookup.getOrElse(name, Nothing)
   }
 
+  object SessionMethods {
+    def apply(name: String): SExp = name match {
+      case "text" => Subr("session:text", {
+        case List(Personalised.Bindings.RedScriptEvaluator.SESSION(editSession)) => Str(editSession.session.document.characters.toString) })
+     }
+  }
   object RegMatchMethods {
     val lookup: collection.immutable.HashMap[String, SExp] = collection.immutable.HashMap[String, SExp](
       "span" -> Subr("re:span", {
@@ -73,11 +94,17 @@ object RedObject {
 
   case class REGEX(regex: sufrin.regex.Regex) extends Obj {
     override def toString: String = s"(re:regex \"${regex.toString()}\")"
+
+    override def getType: String = "REGEX"
+
     def method(name: String): SExp = RegexMethods(name)
   }
 
   case class REGMATCH(regmatch: sufrin.regex.Regex.StringMatch) extends Obj {
     override def toString: String = s"$regmatch"
+
+    override def getType: String = "REGMATCH"
+
     def method(name: String): SExp = RegMatchMethods(name)
   }
 
@@ -142,7 +169,9 @@ object RedObject {
     case class TABLE(map: scala.collection.mutable.Map[SExp,SExp]) extends Obj {
         /** Returns a metjhod body: for the moment a subr */
         override def method(name: String): SExp = apply(name)
-      }
+
+        override def getType: String = "TABLE"
+    }
 
     def add(args: List[SExp]): SExp = {
       val TABLE(map) :: SExpSeq(maplets) :: Nil = args
@@ -182,6 +211,9 @@ object RedObject {
     case class QUEUE(queue: collection.mutable.Queue[SExp]) extends Obj {
       /** Returns a metjhod body: for the moment a subr */
       override def method(name: String): SExp = apply(name)
+
+      override def getType: String = "TABLE"
+
       override def toString: String = queue.mkString("(queue:new(quote ", " ", "))")
     }
 

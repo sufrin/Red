@@ -246,6 +246,8 @@ object Language {
     /** Returns a metjhod body: for the moment a subr */
     def method(name: String): SExp
     override def eval(env: Env): SExp = this
+
+    def getType: String = "OBJ"
   }
 
   case class MethodRef(obj: SExp, methodName: SExp) extends Const
