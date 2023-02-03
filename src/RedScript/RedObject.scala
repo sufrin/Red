@@ -102,6 +102,7 @@ object RedObject {
     }
   }
 
+  @nowarn("msg=not.*?exhaustive") // nonexhaustive matches are deliberate
   object PairMethods {
     val fst = Subr("pair:fst", {
       case List(Pair(l, r)) => l
@@ -112,6 +113,108 @@ object RedObject {
     def apply(name: String): SExp = name match {
       case "fst" => fst
       case "snd" => snd
+      case _ => Nothing
+    }
+  }
+
+  @nowarn("msg=not.*?exhaustive") // nonexhaustive matches are deliberate
+  object MapMethods {
+    def add(args: List[SExp]): SExp = {
+      val map :: maps = args
+      var EnvExpr(res) = map
+      for {m <- maps} m match {
+        case EnvExpr(env) => res = res + env
+        case Pair(Str(d), r) => res = new LocalEnv(List((d, r)), Some(res))
+        case Pair(d, r) => res = new LocalEnv(List((d.toPlainString, r)), Some(res))
+      }
+      EnvExpr(res)
+    }
+
+    def apply(name: String): SExp = name match {
+      case "add" => Subr("map:add", add)
+      case _ => Nothing
+    }
+  }
+
+  @nowarn("msg=not.*?exhaustive") // nonexhaustive matches are deliberate
+  object TableMethods {
+
+    case class TABLE(map: scala.collection.mutable.Map[SExp,SExp]) extends Obj {
+        /** Returns a metjhod body: for the moment a subr */
+        override def method(name: String): SExp = apply(name)
+      }
+
+    def add(args: List[SExp]): SExp = {
+      val TABLE(map) :: SExpSeq(maplets) :: Nil = args
+      for {m <- maplets} m match {
+        case Pair(d, r) =>
+          map.addOne((d, r))
+        case SExpSeq(List(d, r)) =>
+          map.addOne((d, r))
+      }
+      Nothing
+    }
+
+    def keys(args: List[SExp]): SExp = {
+      val TABLE(map) :: Nil = args
+      SExpSeq(map.keys.toList)
+    }
+
+    def eval(args: List[SExp]): SExp = {
+      val TABLE(map) :: key :: Nil= args
+      map.getOrElse(key, Nothing)
+    }
+
+    def apply(name: String): SExp = name match {
+      case "add"  => Subr("table:add", add)
+      case "keys" => Subr("table:keys", keys)
+      case "eval" => Subr("table:eval", eval)
+      case "new" => Subr("table:new", {
+        case Nil => TABLE(new collection.mutable.LinkedHashMap[SExp,SExp])
+      })
+      case _     => Nothing
+    }
+  }
+
+
+  @nowarn("msg=not.*?exhaustive") // nonexhaustive matches are deliberate
+  object QueueMethods {
+    case class QUEUE(queue: collection.mutable.Queue[SExp]) extends Obj {
+      /** Returns a metjhod body: for the moment a subr */
+      override def method(name: String): SExp = apply(name)
+      override def toString: String = queue.mkString("(queue:new(quote ", " ", "))")
+    }
+
+    def apply(name: String): SExp = name match {
+      case "new" => Subr("queue:new", {
+        case Nil => QUEUE(new collection.mutable.Queue[SExp])
+        case List(SExpSeq(sexps)) =>
+             val res = new collection.mutable.Queue[SExp]
+             res.enqueueAll(sexps)
+             QUEUE(res)
+      })
+      case "enq" => Subr("queue:enq", {
+        case (List(QUEUE(queue), sexp)) => queue.enqueue(sexp); Nothing
+      })
+      case "deq" => Subr("queue:deq", {
+        case (List(QUEUE(queue))) => queue.dequeue()
+      })
+      case "isEmpty" => Subr("queue:isEmpty", {
+        case (List(QUEUE(queue))) => Bool(queue.isEmpty)
+      })
+      case "clear" => Subr("queue:clear", {
+        case (List(QUEUE(queue))) => queue.clear(); Nothing
+      })
+      case "size" => Subr("queue:size", {
+        case (List(QUEUE(queue))) => Num(queue.size)
+      })
+      case "toList" => Subr("queue:toList", {
+        case (List(QUEUE(queue))) => SExpSeq(queue.toList)
+        case (List(QUEUE(queue), Bool(clear))) =>
+           val res = SExpSeq(queue.toList)
+           if (clear) queue.clear()
+           res
+      })
       case _ => Nothing
     }
   }

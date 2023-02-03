@@ -184,17 +184,6 @@ class Evaluator {
     case SExpSeq(pairs) => EnvExpr(new LocalEnv(pairs.map { case Pair(d,r) => (d.eval(env).toPlainString, r.eval(env)) }))
   }
 
-  private def mapExtend(args: List[SExp]): SExp = {
-    val map :: maps = args
-    var EnvExpr(res) = map
-      for { m <- maps } m match {
-        case EnvExpr(env) => res = res + env
-        case Pair(Str(d), r) => res = new LocalEnv(List((d, r)), Some(res))
-        case Pair(d, r) => res = new LocalEnv(List((d.toPlainString, r)), Some(res))
-      }
-      EnvExpr(res)
-  }
-
   /** Evaluate a by-value function expression (to a closure)
    *
    * TODO: check redefinability of parameter names
@@ -355,7 +344,7 @@ class Evaluator {
     "readEvalPrint" -> Subr  ("readEvalPrint", { case Str(text) :: Bool(show) :: _ => readEvalPrint(text, show, false); Nothing}),
     "map:empty" -> EnvExpr  (new LocalEnv(Nil)),
     "map:"      -> FSubr    ("map:",       evMap),
-    "map:extend"-> Subr     ("map:extend", mapExtend),
+    "map:add"   -> MapMethods("add"),
     "seq"       -> Subr     ("seq",       { case Nil => Nothing; case args => args.last }),
     "println"   -> Subr     ("println",   { args => args.foreach { k => normalFeedback(k.toPlainString); normalFeedback(" ") }; normalFeedbackLn(""); Nothing }),
     "log"       -> Subr     ("log",       { args => Logging.Default.log(Logging.INFO, args.map(_.toPlainString).mkString("", " ", "")); Nothing }),
@@ -443,13 +432,26 @@ class Evaluator {
            val compile: String => sufrin.regex.Regex = if (literal) sufrin.regex.Regex.literal(_) else sufrin.regex.Regex(_)
            REGEX(sufrin.regex.Regex.fromRegexes(sources.map { case Str(source) => compile(source) }))
     }),
-    "re:match" -> RegexMethods("match"),
-    "re:span"  -> RegMatchMethods("span"),
-    "re:subst" -> RegMatchMethods("subst"),
-    "re:group" -> RegMatchMethods("group"),
-    "re:groups" -> RegMatchMethods("groups"),
-    "re:find"   -> RegexMethods("find"),
-    "re:replace"  -> RegexMethods("replace")
+
+    "re:match"    -> RegexMethods("match"),
+    "re:span"     -> RegMatchMethods("span"),
+    "re:subst"    -> RegMatchMethods("subst"),
+    "re:group"    -> RegMatchMethods("group"),
+    "re:groups"   -> RegMatchMethods("groups"),
+    "re:find"     -> RegexMethods("find"),
+    "re:replace"  -> RegexMethods("replace"),
+
+    "queue:new" -> QueueMethods("new"),
+    "queue:enq" -> QueueMethods("enq"),
+    "queue:deq" -> QueueMethods("deq"),
+    "queue:size" -> QueueMethods("size"),
+    "queue:toList" -> QueueMethods("toList"),
+
+    "table:new" -> TableMethods("new"),
+    "table:eval" -> TableMethods("eval"),
+    "table:keys" -> TableMethods("keys"),
+    "table:add" -> TableMethods("add"),
+
   )
 
   val globals: List[(String, SExp)] = List (

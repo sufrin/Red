@@ -83,13 +83,13 @@ constant shell:Commands (list "wc" "ls -lt" "date" "printenv")
 # Latex snippets are placed on the \begin{...}/Tex menu
 #
 #
-(def (CONFIG:latex:Snippets path) LATEX:Snippets)
+(def (CONFIG:latex:Snippets path) (LATEX:Snippets.toList))
 
-variable  LATEX:Snippets ()
+constant LATEX:Snippets (queue:new)
 
 # Add a snippet declaration with LATEX:snippet "name" “long string”
 (defForm (LATEX:snippet env tag text)
-         (:= LATEX:Snippets (:: (tag ↦ text) LATEX:Snippets))
+         (LATEX:Snippets.enq (tag ↦ text))
          ())
         
 # bind a keystroke to a styling action
@@ -223,6 +223,8 @@ PROFILE:bool    quietignore  "Features" "Silence Undefined Keys" false
 # evaluate the selection
 def  (Eval path arg find repl sel) (readEval sel false)
 
+constant PIPE:transformNames (queue:new `(Eval))
+
 ###############################
 #
 #  Pipe-transforms are systematic rewrites of the selection using (collections of) pattern=>template
@@ -247,7 +249,7 @@ def  (Eval path arg find repl sel) (readEval sel false)
 (defForm (PIPE:transform* (env => translations))
          (PIPE:transform (translations.map (fun (t) (eval env t)))))
 
-(var     (PIPE:transformNames => ()))
+
 
 #
 # (defTransform name translations) declares a named pipe-transform from translations, where
@@ -261,18 +263,18 @@ def  (Eval path arg find repl sel) (readEval sel false)
                      (theFun => (PIPE:transform (translations.map (fun (t) (eval env t)))))
                      (seq 
                           (eval (list `constant name theFun))
-                          (:= PIPE:transformNames (:: name PIPE:transformNames)))
+                          (PIPE:transformNames.enq name))
                    )
               )
          )
 )
 
-#  Examples:
-#  defTransform ABBARROW ("B" ↦ "A") (‘\\usepackage({[^}]+})’ ↦ ‘\useful$1’)
-#  defTransform ABBA `("B" "A") `(‘\\usepackage({[^}]+})’ ‘\useful$1’)
-#  defTransform ABBQ (quote "B" "A") (quote ‘\\usepackage({[^}]+})’ ‘\useful$1’)
+#   Examples: (all definitions yield the same transform)
+##  defTransform ABBARROW  ("B" ↦ "A")  (‘\\usepackage({[^}]+})’ ↦ ‘\useful$1’)
+##  defTransform ABBA     `("B" "A")   `(‘\\usepackage({[^}]+})’ ‘\useful$1’)
+##  defTransform ABBQ      (quote "B" "A") (quote ‘\\usepackage({[^}]+})’ ‘\useful$1’)
          
-(def (CONFIG:pipeRedScripts path) (:: `Eval PIPE:transformNames))
+(def (CONFIG:pipeRedScripts path) (PIPE:transformNames.toList))
 (def (CONFIG:needsPandoc    path) (endsWith path ".md"))
 
 #

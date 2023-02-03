@@ -107,7 +107,9 @@ class MutableEnv extends LocalEnv(Nil, None) {
   def define(name: String, value: SExp): Unit =
     map.get(name) match {
       case None    => map.put(name, value)
-      case Some(v) => throw new RuntimeError(s"Redefinition of global $name")
+      case Some(v) =>
+        map.put(name, value)
+        throw SyntaxError(s"Redefinition of global $name")
     }
 
   def set(name: String, value: SExp): Unit = map.put(name, value)
