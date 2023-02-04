@@ -253,28 +253,21 @@ object Language {
   case class MethodRef(obj: SExp, methodName: SExp) extends Const
 
   case class Pair(l: SExp, r: SExp) extends SExp {
-   override def toString: String = s"$l ↦ $r"
+   override def toString: String = s"($l ↦ $r)"
    def eval(env: Env): SExp = new ConstPair(l.eval(env), r.eval(env))
-   // invoked only in operator position
-   // override def opVal(env: Env): SExp = MethodRef(l.eval(env), r)
   }
 
-  case class Dot(l: SExp, r: SExp) extends SExp {
-    override def toString: String = s"$l . $r"
-    def eval(env: Env): SExp = new ConstDot(l.eval(env), r.eval(env))
-    // invoked only in operator position
-    override def opVal(env: Env): SExp = MethodRef(l.eval(env), r)
-  }
 
   class ConstPair(l: SExp, r: SExp) extends Pair(l, r) with Obj {
-    //override def eval(env: Env): Const = this
-    override def toString: String = s"$l => $r"
+    override def toString: String = s"($l => $r)"
     override def method(name: String): SExp =
       PairMethods.apply(name)
   }
 
-  class ConstDot(l: SExp, r: SExp) extends Dot(l, r) with Const {
-    override def eval(env: Env): Const = this
+  case class Dot(l: SExp, r: SExp) extends SExp {
+    override def toString: String = s"$l . $r"
+    def eval(env: Env): SExp = throw RuntimeError(s"Method reference $this in non-operator position: $position" )
+    override def opVal(env: Env): SExp = MethodRef(l.eval(env), r)
   }
 
   case class Num(value: Long) extends Const {
