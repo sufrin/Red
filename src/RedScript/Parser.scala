@@ -213,11 +213,13 @@ class Parser(source: io.Source, val path: String="") {
            while ( { getNext(); inHex }) buf.append(in.ch)
            import Useful.CharSequenceOperations._
            Hex(buf.toString().hexToLong.get)
-         } else {
+         } else
+         if (in.ch.isDigit) {
            var n: Long = in.ch-'0'
            while (getNext().isDigit) n = n*10 + (in.ch-'0')
            Num(n)
          }
+         else Num(0)
 
        case other if other.isDigit =>
          var n: Long = other-'0'

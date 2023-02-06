@@ -407,6 +407,9 @@ class Evaluator {
     "list:map"   -> SexpSeqMethods("map"),
     "list:fst"   -> SexpSeqMethods("fst"),
     "list:snd"   -> SexpSeqMethods("snd"),
+    "list:foldl" -> SexpSeqMethods("foldl"),
+    "list:foldr" -> SexpSeqMethods("foldr"),
+
     "pair:fst"   -> PairMethods("fst"),
     "pair:snd"   -> PairMethods("snd"),
     /* re:regex has a variety of parameter forms, yielding a variety of regex results

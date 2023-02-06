@@ -264,16 +264,26 @@ object RedObject {
         case List(SExpSeq(k0), SExpSeq(k1)) => SExpSeq(k0++k1); case other => throw RuntimeError(s"malformed ++: ${SExpSeq(other)}")
       }),
 
-    "map" -> Subr("list:map", {
-      case List(SExpSeq(elts), Expr(env1, params, body)) =>
-        SExpSeq(elts.map { case arg: SExp => body.eval(env1.extend(params, List(arg))) })
-      case List(SExpSeq(elts), Subr(name, scala)) =>
-        SExpSeq(elts.map { case arg: SExp => scala(List(arg)) })
-      case List(SExpSeq(elts), ExprAll(env1, params, body)) =>
-        SExpSeq(elts.map { case arg: SExp => body.eval(env1.extend(params, List(arg))) })
-      case other => throw RuntimeError(s"malformed list:map: $other")
-    }),
-    "fst" -> Subr("list:fst", {
+      "map" -> Subr("list:map", {
+        case List(SExpSeq(elts), Expr(env1, params, body)) =>
+          SExpSeq(elts.map { case arg: SExp => body.eval(env1.extend(params, List(arg))) })
+        case List(SExpSeq(elts), Subr(name, scala)) =>
+          SExpSeq(elts.map { case arg: SExp => scala(List(arg)) })
+        case List(SExpSeq(elts), ExprAll(env1, params, body)) =>
+          SExpSeq(elts.map { case arg: SExp => body.eval(env1.extend(params, List(arg))) })
+        case other => throw RuntimeError(s"malformed list:map: $other")
+      }),
+      "foldr" -> Subr("list:foldr", {
+        case List(SExpSeq(elts), lin: SExp, Expr(env1, params, body)) =>
+          elts.foldRight (lin) { case (arg: SExp, res: SExp) => body.eval(env1.extend(params, List(arg, res))) }
+        case other => throw RuntimeError(s"malformed list:foldr: $other")
+      }),
+      "foldl" -> Subr("list:foldl", {
+        case List(SExpSeq(elts), lin: SExp, Expr(env1, params, body)) =>
+          elts.foldLeft(lin) { case (res: SExp, arg: SExp) => body.eval(env1.extend(params, List(res, arg))) }
+        case other => throw RuntimeError(s"malformed list:foldr: $other")
+      }),
+      "fst" -> Subr("list:fst", {
         case List(SExpSeq(e1::elts)) => e1
         case other => throw RuntimeError(s"malformed list:fst: $other")
       }),
