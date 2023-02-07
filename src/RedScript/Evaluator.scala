@@ -107,31 +107,42 @@ class Evaluator {
     }
   }
 
-  // TODO: (decls, body) = pairs.splitAtFirstNonPair
+  /**
+   *  Implements val and var declarations:
+   *  `(val (vi => ei )* expr...)`
+   *  `(var (vi => ei )* expr...)`
+   *
+   *  When `expr...` is nonempty the declarations are local to the sequential evalution of the exprs
+   *  otherwise they are global.
+   */
   private def evLet(isVar: Boolean)(env: Env, form: SExp): SExp = {
     form match {
-      case SExpSeq(pairs) if pairs.nonEmpty =>
-        pairs.last match {
-          case _: Pair =>
-            // A globally-scoped declaration
-            // (let (vi . ei )*)
-            if (isVar)
-              for { Pair(bv, expr) <- pairs } whenRedefinable(bv) { global.define(bv.toString, Ref(bv.toString, expr.eval(env))) }
-            else
-              for { Pair(bv, expr) <- pairs } whenRedefinable(bv) { global.define(bv.toString, expr.eval(env)) }
-            Nothing
+      case SExpSeq(seq) =>
+        val body = seq.dropWhile  { case p: Pair => true; case _ => false }
+        val pairs = seq.takeWhile { case p: Pair => true; case _ => false }
+            if (body.isEmpty) {
+              // A globally-scoped declaration
+              // (let (vi => ei )*)
+              if (isVar)
+                for {Pair(bv, expr) <- pairs} whenRedefinable(bv) {
+                  global.define(bv.toString, Ref(bv.toString, expr.eval(env)))
+                }
+              else
+                for {Pair(bv, expr) <- pairs} whenRedefinable(bv) {
+                  global.define(bv.toString, expr.eval(env))
+                }
+              Nothing
+            } else {
           // A locally-scoped declaration
-          // (let (vi . ei )* body)
-          case body =>
+          // (let (vi => ei )* body)
             try {
-              val decls = pairs.take(pairs.length-1)
-              val bvs   = decls.map { case Pair(bv, _) => bv }
+              val bvs   = pairs.map { case Pair(bv, _) => bv }
               val args =
                 if (isVar)
-                  for { Pair(bv, expr)  <- decls } yield whenRedefinable(bv) { Ref(bv.toString, expr.eval(env)) }
+                  for { Pair(bv, expr)  <- pairs } yield whenRedefinable(bv) { Ref(bv.toString, expr.eval(env)) }
                 else
-                  for { Pair(bv, expr)  <- decls } yield whenRedefinable(bv) { expr.eval(env) }
-              body.eval(env.extend(SExpSeq(bvs), args))
+                  for { Pair(bv, expr)  <- pairs } yield whenRedefinable(bv) { expr.eval(env) }
+              mkSequential(body).eval(env.extend(SExpSeq(bvs), args))
             } catch {
               case exn: MatchError => throw SyntaxError(s"Malformed declaration: $form (${exn.getMessage()})")
             }
@@ -236,7 +247,7 @@ class Evaluator {
    *   `(seq ...)` expression. Used to systematically transform
    *   the `body` part of a function expression or definition.
    */
-  private def mkSequential(exprs: List[SExp]): SExp = exprs match {
+  @inline private def mkSequential(exprs: List[SExp]): SExp = exprs match {
     case List(expr) => expr
     case exprs => SExpSeq(syntaxEnv("seq").get :: exprs)
   }
@@ -363,7 +374,6 @@ class Evaluator {
            case _: FExpr   => Str("FEXPR")
            case _: FExprAll => Str("FEXPRALL")
            case _: Subr     => Str("SUBR")
-           case _: Str     => Str("STRING")
            case obj: Obj   => Str(obj.getType)
            case other      => Str(other.getClass.toString)
      }}),
