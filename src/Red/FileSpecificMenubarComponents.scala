@@ -33,7 +33,7 @@ class FileSpecificMenubarComponents(ui: UIInterface) {
         }
       }
 
-      for {program <- Personalised.pipeShellCommands(ui.theSession.path)} {
+      for {program <- Personalised.pipeShellCommands(ui.theSession.path, ui)} {
         contents += menuButton(s"$program", s"Pipe the selection through the shell command \"$program\" (see also \"(++sel'n)\"") {
           ui.withFilterWarnings(s"$program") {
             UI_DO(EditSessionCommands.pipeThrough(program, replaceSelection = !augmentSelection))
@@ -43,7 +43,7 @@ class FileSpecificMenubarComponents(ui: UIInterface) {
 
       contents += Separator()
 
-      for {program <- Personalised.pipeRedScripts(ui.theSession.path)} {
+      for {program <- Personalised.pipeRedScripts(ui.theSession.path, ui)} {
         contents += menuButton(s"$program", s"Evaluate the Redscript ($program <the session path> Ⓐ \u24bb \u24c7 <the selection>)  (see also \"(++sel'n)\"") {
           ui.withFilterWarnings(s"$program") {
             UI_DO(EditSessionCommands.pipeThroughScript(program, ui.theSession.path, ui.argLine.text, ui.findLine.text, ui.replLine.text, replaceSelection = !augmentSelection))

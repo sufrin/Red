@@ -63,12 +63,7 @@ object RedObject {
     def apply(name: String): SExp = lookup.getOrElse(name, Nothing)
   }
 
-  object SessionMethods {
-    def apply(name: String): SExp = name match {
-      case "text" => Subr("session:text", {
-        case List(Personalised.Bindings.RedScriptEvaluator.SESSION(editSession)) => Str(editSession.session.document.characters.toString) })
-     }
-  }
+
   object RegMatchMethods {
     val lookup: collection.immutable.HashMap[String, SExp] = collection.immutable.HashMap[String, SExp](
       "span" -> Subr("re:span", {

@@ -17,9 +17,9 @@ import scala.swing.{Dialog, Font}
  */
 object Personalised extends Logging.Loggable {
 
-  def applyScript(name: String, path: String): SExp = {
+  def applyScript(name: String, path: String, extra: List[SExp] = Nil): SExp = {
     val fname = Variable(name)
-    val sexp = SExpSeq(List(fname,  Str(path)))
+    val sexp = SExpSeq(List(fname,  Str(path)) ++ extra)
     sexp.position  = SourcePosition(s"setting up UI for $path")
     fname.position = sexp.position
     Bindings.RedScriptEvaluator.run(sexp)
@@ -60,17 +60,17 @@ object Personalised extends Logging.Loggable {
     }
   }
 
-  def pipeShellCommands(path: String): Seq[String] =
+  def pipeShellCommands(path: String, ui: UIInterface): Seq[String] =
   { Bindings.importBindings()
-    applyScript("CONFIG:pipeShellCommands", path) match {
+    applyScript("CONFIG:pipeShellCommands", path, List(Bindings.RedScriptEvaluator.UINTERFACE(ui))) match {
       case SExpSeq(es) => es.map(_.toPlainString)
       case other     => profileWarning(s"pipeShellCommands: path -> Seq[String]: $other"); Nil
     }
   }
 
-  def pipeRedScripts(path: String): Seq[String] =
+  def pipeRedScripts(path: String, ui: UIInterface): Seq[String] =
   { Bindings.importBindings()
-    applyScript("CONFIG:pipeRedScripts", path) match {
+    applyScript("CONFIG:pipeRedScripts", path, List(Bindings.RedScriptEvaluator.UINTERFACE(ui))) match {
       case SExpSeq(es) => es.map(_.toPlainString)
       case other     => profileWarning(s"pipeRedScripts: path -> Seq[fun]: $other"); Nil
     }
@@ -369,7 +369,20 @@ object Personalised extends Logging.Loggable {
         override def getType: String = "SESSION"
 
         /** Returns a method body: for the moment a subr */
-        override def method(name: String): SExp = RedObject.SessionMethods(name)
+        override def method(name: String): SExp = name match {
+            case "text" => Subr("session:text", {
+              case List(Personalised.Bindings.RedScriptEvaluator.SESSION(editSession)) => Str(editSession.session.document.characters.toString)
+            })
+          }
+        }
+
+      case class UINTERFACE(theUI: UIInterface) extends Obj {
+        override def toString: String = theUI.toString
+
+        override def getType: String = "UINTERFACE"
+
+        /** Returns a method body: for the moment a subr */
+        override def method(name: String): SExp = Nothing
       }
 
 

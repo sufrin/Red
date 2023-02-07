@@ -254,7 +254,7 @@ class Evaluator {
   private def fun(name: String, op: List[SExp]=>SExp): Subr  =  Subr(name, op)
 
   /** `op`-(left)reduction of the arguments as a whole */
-  private def red(name: String, op: (Long,Long)=>Long):Subr = {
+  private def leftReduceNum(name: String, op: (Long,Long)=>Long):Subr = {
     val opn: (SExp,SExp)=>SExp  = {
       case (a: Hex, b: Num) => new Hex(op(a.value, b.value))
       case (a: Num, b: Hex) => new Hex(op(a.value, b.value))
@@ -264,7 +264,7 @@ class Evaluator {
   }
 
   /** `op`-(left)reduction of the arguments as a whole */
-  private def redString(name: String, op: (String,String)=>String):Subr = {
+  private def leftReduceString(name: String, op: (String,String)=>String):Subr = {
     val opn: (SExp,SExp)=>SExp  = { case (a,b) => Str(op(a.toPlainString, b.toPlainString)) }
     fun(name, { case args: List[SExp] if args.nonEmpty => args.reduceLeft(opn(_,_)) })
   }
@@ -275,7 +275,7 @@ class Evaluator {
    * This permits unary negation straightforwardly
    * Thus: (- x) means negated x, and (- x1 x2 ...) means (x1-x2)-x3)-...
    */
-  private def minus: Subr = {
+  private def subtractReduce: Subr = {
     val opn: (SExp,SExp)=>SExp  = {
       case (a: Hex, b: Num) => new Hex(a.value -  b.value)
       case (a: Num, b: Hex) => new Hex(a.value - b.value)
@@ -285,14 +285,16 @@ class Evaluator {
                case List(n: Num) => Num(-n.value)
                case args: List[SExp] => args.reduceLeft(opn(_,_)) }) }
 
-  private def rel(name: String, op: (SExp, SExp) => Boolean):Subr =
+  private def binaryRelation(name: String, op: (SExp, SExp) => Boolean):Subr =
     fun(name, { case List(a: SExp, b: SExp) => Bool(op(a,b)) })
 
+  /** `(ENV "var" default)` => value of "var" in the OS environment  */
   private def evalENV(args: List[SExp]): SExp = args match {
     case List(Str(variable), Str(default)) => Str(sys.env.getOrElse(variable, default))
     case List(Str(variable))               => Str(sys.env.getOrElse(variable, ""))
   }
 
+  /** `(PROP "var" default)` => value of "var" as Java/Scala system runtime property  */
   private def evalPROP(args: List[SExp]): SExp = args match {
     case List(Str(variable), Str(default)) => Str(sys.props.getOrElse(variable, default))
     case List(Str(variable))               => Str(sys.props.getOrElse(variable, ""))
@@ -377,20 +379,20 @@ class Evaluator {
     "toHex"     -> Subr("toHex",      { case List(a: Hex) => a; case List(n: Num) => new Hex(n.value)}),
     "&&"        -> forall("&&")       { case Bool(b)=> b },
     "||"        -> exists("||")       { case Bool(b)=> b },
-    "string"    -> redString("string", _.+(_)),
-    "+"         -> red("+",   _.+(_)),
-    "-"         -> minus, // special treatment of unary negation
-    "max"       -> red("max", _.max(_)),
-    "min"       -> red("min", _.min(_)),
-    "*"         -> red("*",   _.*(_)),
-    "/"         -> red("/",   _./(_)),
-    "&"         -> red("&",   _.&(_)),
-    "|"         -> red("|",   _.|(_)),
-    "="         -> rel("=",   _.equals(_)),
-    "<"         -> rel("<",   { case (Num(a), Num(b))=>a<b;  case (Str(a), Str(b))=>a<b;  case (Bool(a), Bool(b))=>a<b  }),
-    "<="        -> rel("<=",  { case (Num(a), Num(b))=>a<=b; case (Str(a), Str(b))=>a<=b; case (Bool(a), Bool(b))=>a<=b }),
-    ">"         -> rel("<",   { case (Num(a), Num(b))=>a>b;  case (Str(a), Str(b))=>a<b;  case (Bool(a), Bool(b))=>a>b  }),
-    ">="        -> rel("<=",  { case (Num(a), Num(b))=>a>=b; case (Str(a), Str(b))=>a<=b; case (Bool(a), Bool(b))=>a>=b }),
+    "string"    -> leftReduceString("string", _.+(_)),
+    "+"         -> leftReduceNum("+",   _.+(_)),
+    "-"         -> subtractReduce, // special treatment of unary negation
+    "max"       -> leftReduceNum("max", _.max(_)),
+    "min"       -> leftReduceNum("min", _.min(_)),
+    "*"         -> leftReduceNum("*",   _.*(_)),
+    "/"         -> leftReduceNum("/",   _./(_)),
+    "&"         -> leftReduceNum("&",   _.&(_)),
+    "|"         -> leftReduceNum("|",   _.|(_)),
+    "="         -> binaryRelation("=",   _.equals(_)),
+    "<"         -> binaryRelation("<",   { case (Num(a), Num(b))=>a<b;  case (Str(a), Str(b))=>a<b;  case (Bool(a), Bool(b))=>a<b  }),
+    "<="        -> binaryRelation("<=",  { case (Num(a), Num(b))=>a<=b; case (Str(a), Str(b))=>a<=b; case (Bool(a), Bool(b))=>a<=b }),
+    ">"         -> binaryRelation("<",   { case (Num(a), Num(b))=>a>b;  case (Str(a), Str(b))=>a<b;  case (Bool(a), Bool(b))=>a>b  }),
+    ">="        -> binaryRelation("<=",  { case (Num(a), Num(b))=>a>=b; case (Str(a), Str(b))=>a<=b; case (Bool(a), Bool(b))=>a>=b }),
     "true"      -> Bool(true),
     "false"     -> Bool(false),
     "ENV"       -> Subr("ENV",   evalENV),
