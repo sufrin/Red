@@ -18,6 +18,34 @@ cwd=$(dirname "$inputfile")
 export TEXINPUTS=.:$HOME/Tex//:
 export TEXFONTS=$TEXINPUTS
 
+
+##########################################################
+#
+#       Sidecar file controls textract (etc)
+#
+sidecarfile=${inputfile%%.tex}.properties
+
+textract=""
+
+if [ -e "$sidecarfile" ]
+then
+   . "$sidecarfile"
+   cat "$sidecarfile"
+fi
+
+if [ "$textract" ]
+then
+   cmd="textract $textractflags $inputfile"
+   echo $cmd
+   eval $cmd
+fi
+#
+#
+#
+##########################################################
+
+
+
 if [ $(head -1 $inputfile) = "%xelatex" ]
 then
    processor=xelatex
