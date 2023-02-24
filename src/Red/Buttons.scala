@@ -19,6 +19,27 @@ object Buttons {
       if (toolTip.nonEmpty) tooltip = toolTip
     }
 
+  class SmallButton(val label: String, toolTip: String = "", act: => Unit) extends Button() {
+    action = new Action(label) {
+      def apply(): Unit = act
+    }
+    font = Utils.smallButtonFont
+    focusable = false
+
+    def setLabel(newLabel: String): Unit = {
+      val metrics = peer.getFontMetrics(font)
+      val labWidth = metrics.stringWidth("MMMMMM")
+      val charHeight = metrics.getHeight
+      preferredSize = new Dimension(labWidth + 4, charHeight + 2)
+      action.text = newLabel
+    }
+
+    if (toolTip.nonEmpty) tooltip = toolTip
+    setLabel(label)
+  }
+
+  def smallButton(label: String, toolTip: String = "")(act: => Unit): SmallButton = new SmallButton(label, toolTip, act)
+
   def SwingButton(
       name: String,
       toolTip: String = "",

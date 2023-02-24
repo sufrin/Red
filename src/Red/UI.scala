@@ -1,7 +1,7 @@
 package Red
 
 import Commands._
-import Red.Buttons.CentredLabel
+import Red.Buttons.{CentredLabel, smallButton}
 import Red.UserInputDetail.Key
 import Red.UserInputDetail.Modifiers._
 import Red.UserInputHandlers._
@@ -182,38 +182,6 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication with UIInte
     preferredSize = defaultSize()
     focusable     = true
   }
-
-  class  SmallButton(val label: String, toolTip: String="", act: => Unit) extends Button() {
-      action = new Action(label) { def apply(): Unit = act }
-      font = Utils.smallButtonFont
-      focusable = false
-      def setLabel(newLabel: String): Unit = {
-        val metrics = peer.getFontMetrics(font)
-        val labWidth = metrics.stringWidth("MMMMMM")
-        val charHeight = metrics.getHeight
-        preferredSize = new Dimension(labWidth+4, charHeight+2)
-        action.text = newLabel
-      }
-      if (toolTip.nonEmpty) tooltip=toolTip
-      setLabel(label)
-  }
-
-  def smallButton(label: String, toolTip: String="")(act: => Unit): SmallButton = new SmallButton(label, toolTip, act)
-
-  /*def Button(label: String, toolTip: String="")(act: => Unit): Button = new Button(new Action(label) { def apply(): Unit = act } ) {
-    font = Utils.menuButtonFont
-    focusable = false
-    if (false) {
-      val metrics = peer.getFontMetrics(font)
-      val labWidth = metrics.stringWidth(label)
-      val charHeight = metrics.getHeight
-      preferredSize = new Dimension(labWidth, charHeight)
-    }
-    focusable = false // Magic to avoid blue focus ring
-    if (toolTip.nonEmpty) tooltip=toolTip
-  }
-   */
-
 
   /** The history manager for `theSession`. It responds to DO/UNDO
    *  commands as described in its specification
@@ -498,42 +466,40 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication with UIInte
 
     contents += new Utils.Menu("File") {
 
-      contents += menuButton("Open \u24b6", "Edit the document at the path specified by the \u24b6 field or by making a choice of path") {
-        openArglinePath()
-      }
+        contents += menuButton("Open \u24b6", "Edit the document at the path specified by the \u24b6 field or by making a choice of path") {
+          openArglinePath()
+        }
 
-      contents += Utils.Recents.menu()
+        contents += Utils.Recents.menu()
 
-      contents += menuButton("Open New", "Create and edit a new document") {
-        Red.Server.process(Utils.freshDocumentName())
-      }
+        contents += menuButton("Open New", "Create and edit a new document") {
+          Red.Server.process(Utils.freshDocumentName())
+        }
 
-      contents += Separator()
-      contents += Separator()
+        contents += Separator()
+        contents += Separator()
 
-      contents += menuButton("Save") {
-        saveOperation()
-      }
+        contents += menuButton("Save") { saveOperation() }
 
-      contents += menuButton("Save as \u24b6", "Save at the path specified by the \u24b6 field or by making a choice of path") {
-        val text = argLine.text.trim
-        if (text.isEmpty)
-          { val chooser = fileChooser
-            chooser.showSaveDialog(top) match {
-              case Cancel  =>
-                feedbackPersistently("Save as: no path specified")
-              case Approve =>
-                val path = chooser.selectedFile.getAbsolutePath
-                top.saveAs(path.toString)
+        contents += menuButton("Save as \u24b6", "Save at the path specified by the \u24b6 field or by making a choice of path") {
+          val text = argLine.text.trim
+          if (text.isEmpty)
+            { val chooser = fileChooser
+              chooser.showSaveDialog(top) match {
+                case Cancel  =>
+                  feedbackPersistently("Save as: no path specified")
+                case Approve =>
+                  val path = chooser.selectedFile.getAbsolutePath
+                  top.saveAs(path.toString)
+              }
             }
-          }
-        else
-        top.saveAs(Utils.localizePath(text, theSession.CWD, Utils.toParentPath(theSession.path)))
-      }
+          else
+          top.saveAs(Utils.localizePath(text, theSession.CWD, Utils.toParentPath(theSession.path)))
+        }
 
-      contents += menuButton("Save & Quit", "Save the document if it needs saving; then close this session.") {
-        close()
-      }
+        contents += menuButton("Save & Quit", "Save the document if it needs saving; then close this session.") {
+          close()
+        }
 
     } // File Menu
 
