@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang xml:lang>
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>foo</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    span.underline{text-decoration: underline;}
+    div.column{display: inline-block; vertical-align: top; width: 50%;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    ul.task-list{list-style: none;}
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        background-color: #232629;
+        color: #7a7c7d;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #7a7c7d;  padding-left: 4px; }
+    div.sourceCode
+      { color: #cfcfc2; background-color: #232629; }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span { color: #cfcfc2; } /* Normal */
+    code span.al { color: #95da4c; background-color: #4d1f24; font-weight: bold; } /* Alert */
+    code span.an { color: #3f8058; } /* Annotation */
+    code span.at { color: #2980b9; } /* Attribute */
+    code span.bn { color: #f67400; } /* BaseN */
+    code span.bu { color: #7f8c8d; } /* BuiltIn */
+    code span.cf { color: #fdbc4b; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #3daee9; } /* Char */
+    code span.cn { color: #27aeae; font-weight: bold; } /* Constant */
+    code span.co { color: #7a7c7d; } /* Comment */
+    code span.cv { color: #7f8c8d; } /* CommentVar */
+    code span.do { color: #a43340; } /* Documentation */
+    code span.dt { color: #2980b9; } /* DataType */
+    code span.dv { color: #f67400; } /* DecVal */
+    code span.er { color: #da4453; text-decoration: underline; } /* Error */
+    code span.ex { color: #0099ff; font-weight: bold; } /* Extension */
+    code span.fl { color: #f67400; } /* Float */
+    code span.fu { color: #8e44ad; } /* Function */
+    code span.im { color: #27ae60; } /* Import */
+    code span.in { color: #c45b00; } /* Information */
+    code span.kw { color: #cfcfc2; font-weight: bold; } /* Keyword */
+    code span.op { color: #cfcfc2; } /* Operator */
+    code span.ot { color: #27ae60; } /* Other */
+    code span.pp { color: #27ae60; } /* Preprocessor */
+    code span.re { color: #2980b9; background-color: #153042; } /* RegionMarker */
+    code span.sc { color: #3daee9; } /* SpecialChar */
+    code span.ss { color: #da4453; } /* SpecialString */
+    code span.st { color: #f44f4f; } /* String */
+    code span.va { color: #27aeae; } /* Variable */
+    code span.vs { color: #da4453; } /* VerbatimString */
+    code span.wa { color: #da4453; } /* Warning */
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+  <style type="text/css">@font-face {
+font-family: octicons-link;
+src: url(data:font/woff;charset=utf-8;base64,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) format('woff');
+}
+.octicon {
+display: inline-block;
+fill: currentColor;
+vertical-align: text-bottom;
+}
+.anchor {
+float: left;
+line-height: 1;
+margin-left: -20px;
+padding-right: 4px;
+}
+.anchor:focus {
+outline: none;
+}
+h1 .octicon-link,
+h2 .octicon-link,
+h3 .octicon-link,
+h4 .octicon-link,
+h5 .octicon-link,
+h6 .octicon-link {
+color: #1b1f23;
+vertical-align: middle;
+visibility: hidden;
+}
+h1:hover .anchor,
+h2:hover .anchor,
+h3:hover .anchor,
+h4:hover .anchor,
+h5:hover .anchor,
+h6:hover .anchor {
+text-decoration: none;
+}
+h1:hover .anchor .octicon-link,
+h2:hover .anchor .octicon-link,
+h3:hover .anchor .octicon-link,
+h4:hover .anchor .octicon-link,
+h5:hover .anchor .octicon-link,
+h6:hover .anchor .octicon-link {
+visibility: visible;
+}
+body {
+-ms-text-size-adjust: 100%;
+-webkit-text-size-adjust: 100%;
+color: #24292e;
+line-height: 1.5;
+font-family: -apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol;
+font-size: 16px;
+line-height: 1.5;
+word-wrap: break-word;
+}
+.pl-c {
+color: #6a737d;
+}
+.pl-c1,
+.pl-s .pl-v {
+color: #005cc5;
+}
+.pl-e,
+.pl-en {
+color: #6f42c1;
+}
+.pl-s .pl-s1,
+.pl-smi {
+color: #24292e;
+}
+.pl-ent {
+color: #22863a;
+}
+.pl-k {
+color: #d73a49;
+}
+.pl-pds,
+.pl-s,
+.pl-s .pl-pse .pl-s1,
+.pl-sr,
+.pl-sr .pl-cce,
+.pl-sr .pl-sra,
+.pl-sr .pl-sre {
+color: #032f62;
+}
+.pl-smw,
+.pl-v {
+color: #e36209;
+}
+.pl-bu {
+color: #b31d28;
+}
+.pl-ii {
+background-color: #b31d28;
+color: #fafbfc;
+}
+.pl-c2 {
+background-color: #d73a49;
+color: #fafbfc;
+}
+.pl-c2:before {
+content: "^M";
+}
+.pl-sr .pl-cce {
+color: #22863a;
+font-weight: 700;
+}
+.pl-ml {
+color: #735c0f;
+}
+.pl-mh,
+.pl-mh .pl-en,
+.pl-ms {
+color: #005cc5;
+font-weight: 700;
+}
+.pl-mi {
+color: #24292e;
+font-style: italic;
+}
+.pl-mb {
+color: #24292e;
+font-weight: 700;
+}
+.pl-md {
+background-color: #ffeef0;
+color: #b31d28;
+}
+.pl-mi1 {
+background-color: #f0fff4;
+color: #22863a;
+}
+.pl-mc {
+background-color: #ffebda;
+color: #e36209;
+}
+.pl-mi2 {
+background-color: #005cc5;
+color: #f6f8fa;
+}
+.pl-mdr {
+color: #6f42c1;
+font-weight: 700;
+}
+.pl-ba {
+color: #586069;
+}
+.pl-sg {
+color: #959da5;
+}
+.pl-corl {
+color: #032f62;
+text-decoration: underline;
+}
+details {
+display: block;
+}
+summary {
+display: list-item;
+}
+a {
+background-color: transparent;
+}
+a:active,
+a:hover {
+outline-width: 0;
+}
+strong {
+font-weight: inherit;
+font-weight: bolder;
+}
+h1 {
+font-size: 2em;
+margin: .67em 0;
+}
+img {
+border-style: none;
+}
+code,
+kbd,
+pre {
+font-family: monospace,monospace;
+font-size: 1em;
+}
+hr {
+box-sizing: content-box;
+height: 0;
+overflow: visible;
+}
+input {
+font: inherit;
+margin: 0;
+}
+input {
+overflow: visible;
+}
+[type=checkbox] {
+box-sizing: border-box;
+padding: 0;
+}
+* {
+box-sizing: border-box;
+}
+input {
+font-family: inherit;
+font-size: inherit;
+line-height: inherit;
+}
+a {
+color: #0366d6;
+text-decoration: none;
+}
+a:hover {
+text-decoration: underline;
+}
+strong {
+font-weight: 600;
+}
+hr {
+background: transparent;
+border: 0;
+border-bottom: 1px solid #dfe2e5;
+height: 0;
+margin: 15px 0;
+overflow: hidden;
+}
+hr:before {
+content: "";
+display: table;
+}
+hr:after {
+clear: both;
+content: "";
+display: table;
+}
+table {
+border-collapse: collapse;
+border-spacing: 0;
+}
+td,
+th {
+padding: 0;
+}
+details summary {
+cursor: pointer;
+}
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+margin-bottom: 0;
+margin-top: 0;
+}
+h1 {
+font-size: 32px;
+}
+h1,
+h2 {
+font-weight: 600;
+}
+h2 {
+font-size: 24px;
+}
+h3 {
+font-size: 20px;
+}
+h3,
+h4 {
+font-weight: 600;
+}
+h4 {
+font-size: 16px;
+}
+h5 {
+font-size: 14px;
+}
+h5,
+h6 {
+font-weight: 600;
+}
+h6 {
+font-size: 12px;
+}
+p {
+margin-bottom: 10px;
+margin-top: 0;
+}
+blockquote {
+margin: 0;
+}
+ol,
+ul {
+margin-bottom: 0;
+margin-top: 0;
+padding-left: 0;
+}
+ol ol,
+ul ol {
+list-style-type: lower-roman;
+}
+ol ol ol,
+ol ul ol,
+ul ol ol,
+ul ul ol {
+list-style-type: lower-alpha;
+}
+dd {
+margin-left: 0;
+}
+code,
+pre {
+font-family: SFMono-Regular,Consolas,Liberation Mono,Menlo,Courier,monospace;
+font-size: 12px;
+}
+pre {
+margin-bottom: 0;
+margin-top: 0;
+}
+input::-webkit-inner-spin-button,
+input::-webkit-outer-spin-button {
+-webkit-appearance: none;
+appearance: none;
+margin: 0;
+}
+.border {
+border: 1px solid #e1e4e8!important;
+}
+.border-0 {
+border: 0!important;
+}
+.border-bottom {
+border-bottom: 1px solid #e1e4e8!important;
+}
+.rounded-1 {
+border-radius: 3px!important;
+}
+.bg-white {
+background-color: #fff!important;
+}
+.bg-gray-light {
+background-color: #fafbfc!important;
+}
+.text-gray-light {
+color: #6a737d!important;
+}
+.mb-0 {
+margin-bottom: 0!important;
+}
+.my-2 {
+margin-bottom: 8px!important;
+margin-top: 8px!important;
+}
+.pl-0 {
+padding-left: 0!important;
+}
+.py-0 {
+padding-bottom: 0!important;
+padding-top: 0!important;
+}
+.pl-1 {
+padding-left: 4px!important;
+}
+.pl-2 {
+padding-left: 8px!important;
+}
+.py-2 {
+padding-bottom: 8px!important;
+padding-top: 8px!important;
+}
+.pl-3,
+.px-3 {
+padding-left: 16px!important;
+}
+.px-3 {
+padding-right: 16px!important;
+}
+.pl-4 {
+padding-left: 24px!important;
+}
+.pl-5 {
+padding-left: 32px!important;
+}
+.pl-6 {
+padding-left: 40px!important;
+}
+.f6 {
+font-size: 12px!important;
+}
+.lh-condensed {
+line-height: 1.25!important;
+}
+.text-bold {
+font-weight: 600!important;
+}
+a:not([href]) {
+color: inherit;
+text-decoration: none;
+}
+blockquote,
+dl,
+ol,
+p,
+pre,
+table,
+ul {
+margin-bottom: 16px;
+margin-top: 0;
+}
+hr {
+background-color: #e1e4e8;
+border: 0;
+height: .25em;
+margin: 24px 0;
+padding: 0;
+}
+blockquote {
+border-left: .25em solid #dfe2e5;
+color: #6a737d;
+padding: 0 1em;
+}
+blockquote>:first-child {
+margin-top: 0;
+}
+blockquote>:last-child {
+margin-bottom: 0;
+}
+kbd {
+background-color: #fafbfc;
+border: 1px solid #c6cbd1;
+border-bottom-color: #959da5;
+border-radius: 3px;
+box-shadow: inset 0 -1px 0 #959da5;
+color: #444d56;
+display: inline-block;
+font-size: 11px;
+line-height: 10px;
+padding: 3px 5px;
+vertical-align: middle;
+}
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+font-weight: 600;
+line-height: 1.25;
+margin-bottom: 16px;
+margin-top: 24px;
+}
+h1 {
+font-size: 2em;
+}
+h1,
+h2 {
+border-bottom: 1px solid #eaecef;
+padding-bottom: .3em;
+}
+h2 {
+font-size: 1.5em;
+}
+h3 {
+font-size: 1.25em;
+}
+h4 {
+font-size: 1em;
+}
+h5 {
+font-size: .875em;
+}
+h6 {
+color: #6a737d;
+font-size: .85em;
+}
+ol,
+ul {
+padding-left: 2em;
+}
+ol ol,
+ol ul,
+ul ol,
+ul ul {
+margin-bottom: 0;
+margin-top: 0;
+}
+li {
+word-wrap: break-all;
+}
+li>p {
+margin-top: 16px;
+}
+li+li {
+margin-top: .25em;
+}
+dl {
+padding: 0;
+}
+dl dt {
+font-size: 1em;
+font-style: italic;
+font-weight: 600;
+margin-top: 16px;
+padding: 0;
+}
+dl dd {
+margin-bottom: 16px;
+padding: 0 16px;
+}
+table {
+display: block;
+overflow: auto;
+width: 100%;
+}
+table th {
+font-weight: 600;
+}
+table td,
+table th {
+border: 1px solid #dfe2e5;
+padding: 6px 13px;
+}
+table tr {
+background-color: #fff;
+border-top: 1px solid #c6cbd1;
+}
+table tr:nth-child(2n) {
+background-color: #f6f8fa;
+}
+img {
+background-color: #fff;
+box-sizing: content-box;
+max-width: 100%;
+}
+img[align=right] {
+padding-left: 20px;
+}
+img[align=left] {
+padding-right: 20px;
+}
+code {
+background-color: rgba(27,31,35,.05);
+border-radius: 3px;
+font-size: 85%;
+margin: 0;
+padding: .2em .4em;
+}
+pre {
+word-wrap: normal;
+}
+pre>code {
+background: transparent;
+border: 0;
+font-size: 100%;
+margin: 0;
+padding: 0;
+white-space: pre;
+word-break: normal;
+}
+.highlight {
+margin-bottom: 16px;
+}
+.highlight pre {
+margin-bottom: 0;
+word-break: normal;
+}
+.highlight pre,
+pre {
+background-color: #f6f8fa;
+border-radius: 3px;
+font-size: 85%;
+line-height: 1.45;
+overflow: auto;
+padding: 16px;
+}
+pre code {
+background-color: transparent;
+border: 0;
+display: inline;
+line-height: inherit;
+margin: 0;
+max-width: auto;
+overflow: visible;
+padding: 0;
+word-wrap: normal;
+}
+.commit-tease-sha {
+color: #444d56;
+display: inline-block;
+font-family: SFMono-Regular,Consolas,Liberation Mono,Menlo,Courier,monospace;
+font-size: 90%;
+}
+.blob-wrapper {
+border-bottom-left-radius: 3px;
+border-bottom-right-radius: 3px;
+overflow-x: auto;
+overflow-y: hidden;
+}
+.blob-wrapper-embedded {
+max-height: 240px;
+overflow-y: auto;
+}
+.blob-num {
+-moz-user-select: none;
+-ms-user-select: none;
+-webkit-user-select: none;
+color: rgba(27,31,35,.3);
+cursor: pointer;
+font-family: SFMono-Regular,Consolas,Liberation Mono,Menlo,Courier,monospace;
+font-size: 12px;
+line-height: 20px;
+min-width: 50px;
+padding-left: 10px;
+padding-right: 10px;
+text-align: right;
+user-select: none;
+vertical-align: top;
+white-space: nowrap;
+width: 1%;
+}
+.blob-num:hover {
+color: rgba(27,31,35,.6);
+}
+.blob-num:before {
+content: attr(data-line-number);
+}
+.blob-code {
+line-height: 20px;
+padding-left: 10px;
+padding-right: 10px;
+position: relative;
+vertical-align: top;
+}
+.blob-code-inner {
+color: #24292e;
+font-family: SFMono-Regular,Consolas,Liberation Mono,Menlo,Courier,monospace;
+font-size: 12px;
+overflow: visible;
+white-space: pre;
+word-wrap: normal;
+}
+.pl-token.active,
+.pl-token:hover {
+background: #ffea7f;
+cursor: pointer;
+}
+kbd {
+background-color: #fafbfc;
+border: 1px solid #d1d5da;
+border-bottom-color: #c6cbd1;
+border-radius: 3px;
+box-shadow: inset 0 -1px 0 #c6cbd1;
+color: #444d56;
+display: inline-block;
+font: 11px SFMono-Regular,Consolas,Liberation Mono,Menlo,Courier,monospace;
+line-height: 10px;
+padding: 3px 5px;
+vertical-align: middle;
+}
+:checked+.radio-label {
+border-color: #0366d6;
+position: relative;
+z-index: 1;
+}
+.tab-size[data-tab-size="1"] {
+-moz-tab-size: 1;
+tab-size: 1;
+}
+.tab-size[data-tab-size="2"] {
+-moz-tab-size: 2;
+tab-size: 2;
+}
+.tab-size[data-tab-size="3"] {
+-moz-tab-size: 3;
+tab-size: 3;
+}
+.tab-size[data-tab-size="4"] {
+-moz-tab-size: 4;
+tab-size: 4;
+}
+.tab-size[data-tab-size="5"] {
+-moz-tab-size: 5;
+tab-size: 5;
+}
+.tab-size[data-tab-size="6"] {
+-moz-tab-size: 6;
+tab-size: 6;
+}
+.tab-size[data-tab-size="7"] {
+-moz-tab-size: 7;
+tab-size: 7;
+}
+.tab-size[data-tab-size="8"] {
+-moz-tab-size: 8;
+tab-size: 8;
+}
+.tab-size[data-tab-size="9"] {
+-moz-tab-size: 9;
+tab-size: 9;
+}
+.tab-size[data-tab-size="10"] {
+-moz-tab-size: 10;
+tab-size: 10;
+}
+.tab-size[data-tab-size="11"] {
+-moz-tab-size: 11;
+tab-size: 11;
+}
+.tab-size[data-tab-size="12"] {
+-moz-tab-size: 12;
+tab-size: 12;
+}
+.task-list-item {
+list-style-type: none;
+}
+.task-list-item+.task-list-item {
+margin-top: 3px;
+}
+.task-list-item input {
+margin: 0 .2em .25em -1.6em;
+vertical-align: middle;
+}
+hr {
+border-bottom-color: #eee;
+}
+.pl-0 {
+padding-left: 0!important;
+}
+.pl-1 {
+padding-left: 4px!important;
+}
+.pl-2 {
+padding-left: 8px!important;
+}
+.pl-3 {
+padding-left: 16px!important;
+}
+.pl-4 {
+padding-left: 24px!important;
+}
+.pl-5 {
+padding-left: 32px!important;
+}
+.pl-6 {
+padding-left: 40px!important;
+}
+.pl-7 {
+padding-left: 48px!important;
+}
+.pl-8 {
+padding-left: 64px!important;
+}
+.pl-9 {
+padding-left: 80px!important;
+}
+.pl-10 {
+padding-left: 96px!important;
+}
+.pl-11 {
+padding-left: 112px!important;
+}
+.pl-12 {
+padding-left: 128px!important;
+}
+</style>
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
+</head>
+<body>
+<h1 id="on-tabulation-a-literate-haskell-program">On tabulation: a literate Haskell Program</h1>
+<h2 id="introduction">Introduction</h2>
+<p>This markdown file is at the same time a Haskell script. It can be typeset using the shell command:</p>
+<p><code>pandoc --from=markdown+lhs</code> <em>this file name</em></p>
+<p>Haskell code has been placed in <code>LaTeX</code>-like <code>code</code> environments in the script. For example, the following equations</p>
+<pre><code>\begin{code}
+        fix f  = f(fix f)
+        fact   = fix(\ fact n -&gt; if n==0 then 1 else n*fact(n-1))
+\end{code}</code></pre>
+<p>define a fixed point function, <code>fix</code> as well as a function <code>fact</code> – the latter as the fixed point of the (non-recursive) “generator”</p>
+<pre><code>    \ fact n -&gt; if n==0 then 1 else n*fact(n-1)</code></pre>
+<p>We can check that the fixed point - let us call it <code>fp</code> - has exactly the property we want of a factorial function, and thus justifies its name: <code>fact</code>.</p>
+<pre><code>    fp m
+   = { the fixed point was called fp 
+    fix(\ fact n -&gt; if n==0 then 1 else n*fact(n-1)) m
+   = { definition of fix
+    ((\ fact n -&gt; if n==0 then 1 else n*fact(n-1)) fp) m
+   = { application to fp
+    (\ n -&gt; if n==0 then 1 else n*fp(n-1)) m
+   = { application to m
+    if m==0 then 1 else m * fp(m-1)</code></pre>
+<p><em>If you really must</em>, you can also place code to the right of “Bird-tracks”. For example:</p>
+<pre><code>
+&gt;       fact20 = fact 20
+&gt;       fact10 = fact 10
+</code></pre>
+<p>The definitions above this paragraph were themselves placed in markdown code-quotes, but we dispense with markdown code quotes in what follows so as to produce colourized Haskell code.</p>
+<h2 id="tabulating-a-function-as-a-list">Tabulating a function as a list</h2>
+<p>One way of avoiding recomputing the value of a function <code>f</code> from nonnegative integer arguments is to make a lazy list of its values:</p>
+<pre><code>    tab = map f [0..]</code></pre>
+<p>then in place of <code>f n</code>, use <code>tab!!n</code>. Haskell’s policy of lazy evaluation means that it is only when <code>tab!!n</code> is evaluated for the first time that <code>f n</code> gets evaluated; and that the <code>tab</code> only ever gets to be as long as the highest index at which it is evaluated. Moreover, for a given <code>n</code> the second and subsequent evaluations of <code>tab n</code> no longer require the evaluation of <code>f n</code>.</p>
+<p>Thus the cost of computing <code>f</code> at <code>n</code> can be transformed to the cost of looking up the <code>n</code>th value in the list: <span class="math inline"><em>n</em></span>. Of course this will be pointless if the cost of computing <code>f n</code> is less than this. Nevertheless, we could “package” the idea of tabulation in the definition:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode haskell literate"><code class="sourceCode haskell"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true"></a><span class="ot">      tabular::</span> (<span class="dt">Int</span><span class="ot">-&gt;</span>a) <span class="ot">-&gt;</span> (<span class="dt">Int</span><span class="ot">-&gt;</span>a)</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true"></a>      tabular f <span class="ot">=</span> fun <span class="kw">where</span> fun n <span class="ot">=</span> tab<span class="op">!!</span>n</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true"></a>                            tab   <span class="ot">=</span> <span class="fu">map</span> f [<span class="dv">0</span><span class="op">..</span>]</span></code></pre></div>
+<p>If we define <code>factorial</code> by the usual “naturally recursive” specification; and define</p>
+<pre><code>    fact = tabular factorial</code></pre>
+<p>then for any specific <code>n</code>, the cost of invoking a second and subsequent</p>
+<pre><code>    fact n</code></pre>
+<p>is the cost of the lookup, not the cost of the recursive computations of <code>factorial n</code>.</p>
+<p>But we can do better. Suppose <code>f</code> is known to satisfy the equation</p>
+<pre><code> f = fix generator</code></pre>
+<p>Then from the definition of <code>tabular</code> we see</p>
+<pre><code>   tabular f
+ = fun
+   where fun n = tab!!n
+         tab   = map (fix generator) [0..]</code></pre>
+<p>In principle we could have defined <code>tabular</code> this way, too. But we have made things more complicated by invoking <code>fix</code>, and using both <code>f</code> and its generator.</p>
+<p>It is a remarkable fact that given the generator alone we can dispense with <code>fix</code>, as well as computing <code>fun</code>; for recalling that</p>
+<pre><code>   fix generator
+ = { fix definition 
+   generator(fix generator)
+ = { definition of fun
+   generator fun</code></pre>
+we define
+<div class="sourceCode" id="cb12"><pre class="sourceCode haskell literate"><code class="sourceCode haskell"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true"></a><span class="ot">        tabulate::</span> ((<span class="dt">Int</span><span class="ot">-&gt;</span>a) <span class="ot">-&gt;</span> (<span class="dt">Int</span><span class="ot">-&gt;</span>a)) <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> a</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true"></a>        tabulate generator <span class="ot">=</span> fun</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true"></a>                             <span class="kw">where</span> fun n <span class="ot">=</span> tab<span class="op">!!</span>n</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true"></a>                                   tab   <span class="ot">=</span> <span class="fu">map</span> (generator fun) [<span class="dv">0</span><span class="op">..</span>]</span></code></pre></div>
+<p>Now the function <code>tabulate g</code> is the same as the function <code>fix g</code>, because</p>
+<pre><code>      tabulate g i
+    =
+      fun i   where ...
+    =
+      tab!!i  where ...
+    =
+      g fun i
+    = { fix g = g fun
+      fix g i</code></pre>
+<p>Notice that if we were to tabulate into an array not a list, <code>tab!!n</code> would take constant time, not <code>O(n)</code> time. The only problematic question might be that of being able to build “flexible” arrays, but I imagine this has been solved in well-performing Haskell implementation.</p>
+<h2 id="peformance">Peformance</h2>
+<p>As empirical proof of speedup we shall use the fibonacci function, whose naturally recursive definition costs <span class="math inline"><em>O</em>(<em>n</em><sup>2</sup>)</span></p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode haskell literate"><code class="sourceCode haskell"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true"></a>        recfib n <span class="ot">=</span> <span class="kw">if</span> n<span class="op">==</span><span class="dv">0</span> <span class="kw">then</span> <span class="dv">0</span> <span class="kw">else</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true"></a>                   <span class="kw">if</span> n<span class="op">==</span><span class="dv">1</span> <span class="kw">then</span> <span class="dv">1</span> <span class="kw">else</span> recfib(n<span class="op">-</span><span class="dv">1</span>)<span class="op">+</span>recfib(n<span class="op">-</span><span class="dv">2</span>)</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true"></a>                   </span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true"></a>        tabfib   <span class="ot">=</span> tabulate (\ fib n <span class="ot">-&gt;</span> <span class="kw">if</span> n<span class="op">==</span><span class="dv">0</span> <span class="kw">then</span> <span class="dv">0</span> <span class="kw">else</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true"></a>                                        <span class="kw">if</span> n<span class="op">==</span><span class="dv">1</span> <span class="kw">then</span> <span class="dv">1</span> <span class="kw">else</span> fib(n<span class="op">-</span><span class="dv">1</span>)<span class="op">+</span>fib(n<span class="op">-</span><span class="dv">2</span>))</span></code></pre></div>
+<p>The tabulated implementation is considerably more efficient than the recursive implementation not just because the function has been tabulated, but because at least one of the evaluations of <code>fib(n-2)</code> that arise during the computation of <code>fib(n)</code> for <span class="math inline"><em>n</em> &gt; 1</span> has already been tabulated.</p>
+<p>The following comparisons were done using the <code>hugs</code> Haskell interpreter that permits space and time performance to be measured.</p>
+<p>Tabulation yields a striking performance increase from the start</p>
+<pre><code> &gt;  recfib 20
+ 6765
+ (351260 reductions, 543493 cells)
+ 
+ &gt;  tabfib 20
+ 6765
+ (8601 reductions, 10892 cells)
+ 
+ </code></pre>
+<p>Using the same table subsequently enhances performance even more</p>
+<pre><code> &gt;  tabfib 20
+ 6765
+ (417 reductions, 531 cells)
+ 
+ &gt;  tabfib 25
+ 75025
+ (4932 reductions, 6242 cells)
+ 
+ &gt;  tabfib 25
+ 75025
+ (512 reductions, 652 cells)
+ 
+ &gt;  tabfib 5
+ 5
+ (132 reductions, 168 cells)
+ 
+ &gt;  recfib 25
+ 75025
+ (3895523 reductions, 6027470 cells, 6 garbage collections)</code></pre>
+<p>Using the fixpoint is of comparable efficiency to using the recursive definition</p>
+<pre><code> &gt;  (fix (\ fib n -&gt; if n==0 then 0 else
+ &gt;                   if n==1 then 1 else fib(n-1)+fib (n-2))) 20 
+ 6765
+ (311660 reductions, 362218 cells)
+ </code></pre>
+</body>
+</html>
