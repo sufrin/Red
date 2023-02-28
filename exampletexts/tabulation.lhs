@@ -1,4 +1,3 @@
-=  On tabulation: a literate Haskell Program
 == Introduction
 
 This markdown file is at the same time a Haskell script. It can be typeset

@@ -45,6 +45,7 @@ toc=
 HIGHLIGHT="--highlight-style=breezedark"
 VERBOSE="--verbose"
 FROM="--from=gfm+gfm_auto_identifiers"
+MDATA=""
 
 #
 #       Sidecar sets various things
@@ -53,6 +54,8 @@ if [ -e "$sidecarfile" ]
 then
    . "$sidecarfile"
    cat "$sidecarfile"
+else
+   echo NO PROPERTIES FILE $sidecarfile
 fi
 
 
@@ -64,15 +67,17 @@ else
    METADATA=""
 fi
 
+
 #################
 #
 #               HTML
 #
 if [ "$html" ]
 then
+    echo "----------------- HTML"
     if [ "$css" ]; then CSS="--css=$HOME/.pandoc/$css.css"; fi
     if [ "$toc" ]; then TOC="--toc"; fi
-    cmd="(cd $cwd ; pandoc $METADATA --self-contained --standalone $VERBOSE $HIGHLIGHT $CSS $TOC $FROM -t html --output=$htmlfile $inputfile)"
+    cmd="(cd $cwd ; pandoc $MDATA $METADATA --self-contained --standalone $VERBOSE $HIGHLIGHT $CSS $TOC $FROM -t html --output=$htmlfile $inputfile)"
     echo $cmd
     eval $cmd
 fi
@@ -200,10 +205,12 @@ $atbegindocument
 %  END PREFIX PLACED BY REDPANDOC
 %
 HEADER
-    cmd="(cd $cwd ; pandoc $METADATA  --pdf-engine=xelatex $VERBOSE $HIGHLIGHT $CSS $TOC $FROM -t latex --output=/dev/stdout $inputfile | cat >> $texfile )"
+    echo "------------------------- TEX"
+    cmd="(cd $cwd ; pandoc $MDATA $METADATA  --pdf-engine=xelatex $VERBOSE $HIGHLIGHT $CSS $TOC $FROM -t latex --output=/dev/stdout $inputfile | cat >> $texfile )"
     echo $cmd
     eval $cmd  
     echo '\end{document}'>>"$texfile"
+    echo "------------------------- PDF"
     cmd="(cd $cwd ; xelatex $texfile; xelatex $texfile)"
     echo $cmd
     eval $cmd

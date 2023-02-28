@@ -1,10 +1,11 @@
 <!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml" lang xml:lang>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="EN" xml:lang="EN">
 <head>
   <meta charset="utf-8" />
   <meta name="generator" content="pandoc" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-  <title>foo</title>
+  <meta name="author" content="Bernard Sufrin" />
+  <title>Tabulation in Haskell</title>
   <style>
     code{white-space: pre-wrap;}
     span.smallcaps{font-variant: small-caps;}
@@ -849,7 +850,10 @@ padding-left: 128px!important;
   <![endif]-->
 </head>
 <body>
-<h1 id="on-tabulation-a-literate-haskell-program">On tabulation: a literate Haskell Program</h1>
+<header id="title-block-header">
+<h1 class="title">Tabulation in Haskell</h1>
+<p class="author">Bernard Sufrin</p>
+</header>
 <h2 id="introduction">Introduction</h2>
 <p>This markdown file is at the same time a Haskell script. It can be typeset using the shell command:</p>
 <p><code>pandoc --from=markdown+lhs</code> <em>this file name</em></p>
@@ -920,7 +924,7 @@ we define
       fix g i</code></pre>
 <p>Notice that if we were to tabulate into an array not a list, <code>tab!!n</code> would take constant time, not <code>O(n)</code> time. The only problematic question might be that of being able to build “flexible” arrays, but I imagine this has been solved in well-performing Haskell implementation.</p>
 <h2 id="peformance">Peformance</h2>
-<p>As empirical proof of speedup we shall use the fibonacci function, whose naturally recursive definition costs <span class="math inline"><em>O</em>(<em>n</em><sup>2</sup>)</span></p>
+<p>To derive empirical proof of speedup we shall consider the fibonacci function, whose naturally recursive implementation costs <span class="math inline"><em>O</em>(<em>n</em><sup>2</sup>)</span></p>
 <div class="sourceCode" id="cb14"><pre class="sourceCode haskell literate"><code class="sourceCode haskell"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true"></a>        recfib n <span class="ot">=</span> <span class="kw">if</span> n<span class="op">==</span><span class="dv">0</span> <span class="kw">then</span> <span class="dv">0</span> <span class="kw">else</span></span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true"></a>                   <span class="kw">if</span> n<span class="op">==</span><span class="dv">1</span> <span class="kw">then</span> <span class="dv">1</span> <span class="kw">else</span> recfib(n<span class="op">-</span><span class="dv">1</span>)<span class="op">+</span>recfib(n<span class="op">-</span><span class="dv">2</span>)</span>
 <span id="cb14-3"><a href="#cb14-3" aria-hidden="true"></a>                   </span>
