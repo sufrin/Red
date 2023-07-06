@@ -1,3 +1,4 @@
+#!/bin/bash
 #redpandoc  inputfile <texline#> editingfile
 # 
 # OS/X:
@@ -6,13 +7,25 @@
 #   corresponding to the numbered line <texline#>
 #
 echo redpandoc "$@"
-inputfile=${1%%.md}.md
-pdffile=${inputfile%%.md}.pdf
-htmlfile=${inputfile%%.md}.html
-texfile=${inputfile%%.md}.tex
+
+case $1 in
+  *.lhs) kind=".lhs";;
+  *.md)  kind=".md";;
+  *)     kind="";;
+esac
+
+inputstem=${1%%$kind}
+
+
+inputfile=${inputstem}${kind}
+pdffile=${inputstem}.pdf
+htmlfile=${inputstem}.html
+texfile=${inputstem}.tex
 line="${2-0}"
 editing="${3-$inputfile}"
 cwd=$(dirname $inputfile)
+sidecarfile=${inputstem}.properties
+metadata=${inputstem}.yaml
 echo "++++++++++++ REDPPDF ++++++++++"
 echo "EDITING:" $editing
 echo "INPUT:  " $inputfile
@@ -21,28 +34,213 @@ echo "HTML:   " $htmlfile
 echo "CWD:    " $cwd
 echo "+++++++++++++++++++++++++++++++"
 
-if [ -e $cwd/PANDOC-HTML -o $cwd/PANDOC-PDF-VIA-HTML ]
+#
+#       Defaults
+#
+css="github-markdown"
+html=true
+pdf=
+keeptex=
+toc=
+HIGHLIGHT="--highlight-style=breezedark"
+VERBOSE="--verbose"
+FROM="--from=gfm+gfm_auto_identifiers"
+MDATA=""
+
+#
+#       Sidecar sets various things
+#
+if [ -e "$sidecarfile" ]
 then
-    echo pandoc ... --output=$htmlfile
-    (cd $cwd ; pandoc  -s --from markdown+tex_math_dollars+pandoc_title_block --output=$htmlfile $inputfile)
-fi
-if [ -e $cwd/PANDOC-PDF-VIA-HTML ]
-then
-    echo pandoc ... --input $htmlfile --output=$texfile
-    (cd $cwd ; pandoc -s --output=$texfile $htmlfile)
-    (cd $cwd ; xelatex $texfile; xelatex $texfile)
+   . "$sidecarfile"
+   cat "$sidecarfile"
 else
-    echo pandoc  -s --pdf-engine=xelatex --from markdown+tex_math_dollars+pandoc_title_block --output=$pdffile $inputfile
-    (cd $cwd ; pandoc  -s --pdf-engine=xelatex --from markdown+tex_math_dollars+pandoc_title_block --output=$pdffile $inputfile)
+   echo NO PROPERTIES FILE $sidecarfile
 fi
 
 
-if [ $(uname) = Linux ]
+if [ -e "$metadata" ]
 then
+   METADATA=--metadata-file=\"$metadata\"
+else
+   echo NO METADATA FILE $metadata
+   METADATA=""
+fi
+
+
+#################
+#
+#               HTML
+#
+if [ "$html" ]
+then
+    echo "----------------- HTML"
+    if [ "$css" ]; then CSS="--css=$HOME/.pandoc/$css.css"; fi
+    if [ "$toc" ]; then TOC="--toc"; fi
+    cmd="(cd $cwd ; pandoc $MDATA $METADATA --self-contained --standalone $VERBOSE $HIGHLIGHT $CSS $TOC $FROM -t html --output=$htmlfile $inputfile)"
+    echo $cmd
+    eval $cmd
+fi
+#
+#
+#
+#################
+
+#################
+#
+#               PDF
+#
+if [ "$pdf" ]
+then
+    cat > $texfile <<HEADER
+%xelatex
+%
+% the top line tells redpdf to use xelatex not pdflatex
+
+%
+% Print a warning if a character is missing.
+%
+\tracinglostchars=2 
+
+%
+%  Prefix placed by REDPANDOC
+%
+\documentclass[11pt,a4paper]{article}
+\usepackage{unicode-math}
+\usepackage{verbatimstyle}
+\verbatimsize{\small}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% LHS
+
+%  fancyvrb has bugs
+%  \usepackage{color}
+%  \usepackage{fancyvrb}
+%  \newcommand{\VerbBar}{|}
+%  \newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+%  \DefineVerbatimEnvironment{Highlighting}{Verbatim}{}
+
+
+% Add ',fontsize=\small' for more characters per line
+
+\usepackage{alltt}
+\newenvironment{Highlighting}[1][]{\begin{alltt}}{\end{alltt}}
+\newenvironment{Shaded}{}{}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{1.00,0.00,0.00}{\textbf{#1}}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{#1}}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.49,0.56,0.16}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.25,0.63,0.44}{#1}}
+\newcommand{\BuiltInTok}[1]{#1}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{#1}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textit{#1}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{#1}}}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.53,0.00,0.00}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.00,0.44,0.13}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.56,0.13,0.00}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.25,0.63,0.44}{#1}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.73,0.13,0.13}{\textit{#1}}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{1.00,0.00,0.00}{\textbf{#1}}}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.25,0.63,0.44}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.02,0.16,0.49}{#1}}
+\newcommand{\ImportTok}[1]{#1}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{#1}}}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.00,0.44,0.13}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{#1}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.40,0.40,0.40}{#1}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.00,0.44,0.13}{#1}}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.74,0.48,0.00}{#1}}
+\newcommand{\RegionMarkerTok}[1]{#1}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{#1}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.73,0.40,0.53}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.10,0.09,0.49}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{#1}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{#1}}}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\defaultfontfeatures{Scale=MatchLowercase}
+\setmathfont{STIX Two Math}    % For symbols
+\setmainfont{STIX Two Text}    % For text
+\setmonofont{DejaVu Sans Mono} % for verbatim
+
+\usepackage{xcolor}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\IfFileExists{bookmark.sty}{\usepackage{bookmark}}{\usepackage{hyperref}}
+\hypersetup{
+  pdftitle={Red 1.5},
+  pdfauthor={Bernard Sufrin},
+  pdflang={en-GB},
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+\urlstyle{same} % disable monospaced font for URLs
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+\ifxetex
+  % Load polyglossia as late as possible: uses bidi with RTL langages (e.g. Hebrew, Arabic)
+  \usepackage{polyglossia}
+  \setmainlanguage[variant=british]{english}
+\else
+  \usepackage[shorthands=off,main=british]{babel}
+\fi
+\ifluatex
+  \usepackage{selnolig}  % disable illegal ligatures
+\fi
+
+\parindent=0pt
+\parskip=\medskipamount
+%
+%
+%
+% additionaltex=
+$additionaltex
+
+\begin{document}
+% atbegindocument=
+$atbegindocument
+
+
+%  END PREFIX PLACED BY REDPANDOC
+%
+HEADER
+    echo "------------------------- TEX"
+    cmd="(cd $cwd ; pandoc $MDATA $METADATA  --pdf-engine=xelatex $VERBOSE $HIGHLIGHT $CSS $TOC $FROM -t latex --output=/dev/stdout $inputfile | cat >> $texfile )"
+    echo $cmd
+    eval $cmd  
+    echo '\end{document}'>>"$texfile"
+    echo "------------------------- PDF"
+    cmd="(cd $cwd ; xelatex $texfile; xelatex $texfile)"
+    echo $cmd
+    eval $cmd
+    if [ ! "$keeptex" ]
+    then
+       rm -v $texfile
+    fi
+fi
+#
+#
+#
+#################
+
+#################
+#
+#       Open  pdf in viewer
+#
+if [ $pdf ]
+then
+    if [ $(uname) = Linux ]
+    then
     # we should really do a search for text on opening
-    evince $pdffile 
-else
-    echo open -a Skim $pdffile
-    # skim invokes pdfsync %file %line at the right gesture (shift cmd point)
-    open -a Skim $pdffile
+      evince $pdffile 
+    else
+      echo open -a Skim $pdffile
+      # skim invokes pdfsync %file %line at the right gesture (shift cmd point)
+      open -a Skim $pdffile
+    fi
 fi
+#
+#
+#
+#################

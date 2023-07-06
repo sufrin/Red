@@ -1,13 +1,11 @@
 <component name="ArtifactManager">
   <artifact type="jar" build-on-make="true" name="AppleRed">
-    <output-path>$PROJECT_DIR$/out/artifacts/</output-path>
+    <output-path>$PROJECT_DIR$/out/artifacts/AppleRed</output-path>
     <root id="archive" name="AppleRed.jar">
-      <element id="module-output" name="Jed" />
+      <element id="module-output" name="Red" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/../RegexKit/out/artifacts/regexkit.jar" path-in-jar="/" />
       <element id="extracted-dir" path="$USER_HOME$/local/scalalib/scala-swing_2.13-2.1.1.jar" path-in-jar="/" />
-      <element id="extracted-dir" path="$USER_HOME$/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/scala-lang/scala-reflect/2.13.8/scala-reflect-2.13.8.jar" path-in-jar="/" />
       <element id="extracted-dir" path="$USER_HOME$/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/scala-lang/scala-library/2.13.8/scala-library-2.13.8.jar" path-in-jar="/" />
-      <element id="extracted-dir" path="$USER_HOME$/.ivy2/cache/org.scala-lang/scala-library/jars/scala-library-2.13.8.jar" path-in-jar="/" />
-      <element id="file-copy" path="$PROJECT_DIR$/../RegexKit/out/artifacts/regexkit.jar" />
     </root>
   </artifact>
 </component>

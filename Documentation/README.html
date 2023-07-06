@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>README</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    span.underline{text-decoration: underline;}
+    div.column{display: inline-block; vertical-align: top; width: 50%;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    ul.task-list{list-style: none;}
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
+</head>
+<body>
+<h2 id="red-1.5">Red (1.5)</h2>
+<p><code>Red</code> (also known as <code>AppleRed</code>) is no-frills <em>unicode-capable</em> modeless (and colourless) text editor with a simple implementation that can be customized using the <code>redscript</code> language (a Lisp-like notation). Its underlying capabilities can be straightforwardly extended using <code>scala</code>. It has no pretensions to being an all-encompassing workplace, and unlike many IDE and modern editors does not confuse its user by <em>spontaneously</em> trying to be helpful: everything it does it does in response to user input from mouse, pad, or keyboard.</p>
+<h2 id="unicode">Unicode</h2>
+<p><code>Red</code> comes equipped with configuration facilities that make working with a wide range of unicode characters straightforward. Configurations may include mnemonic abbreviations for character sequences that include unicode symbols. For example (material to the right of # is a comment):</p>
+<pre><code>UI:abbrev  &quot;exists&quot;    &quot;\u2203&quot;  # ∃
+UI:abbrev  &quot;notexists&quot; &quot;\u2204&quot;  # ∄
+UI:abbrev  &quot;~∃&quot;        &quot;\u2204&quot;  # ∄
+UI:abbrev  &quot;in&quot;        &quot;\u2208&quot;  # ∈
+UI:abbrev  &quot;notin&quot;     &quot;\u2190&quot;  # ∉
+UI:abbrev  &quot;&lt;-&quot;        &quot;\u2190&quot;  # ←
+
+UI:abbrev &quot;lb&quot;         &quot;pound&quot;
+UI:abbrev &quot;lbs&quot;        &quot;pounds and pounds&quot;</code></pre>
+<p>When the abbrev key (often <code>ESC</code>) is pressed at the right of a mnemonic in text, that mnemonic is replaced by the corresponding character (sequence).</p>
+<p>They may also bind specific keystrokes to actions that insert character sequences that include unicode symbols. For example, this (perhaps-eccentric) declaration binds <code>ALT</code>, and <code>ALT-SHIFT</code> of the up, down, left, and right keys to various unicode arrows.</p>
+<pre><code>(UI:keys
+  (&quot;LEFT(SA)&quot;   . (insert &quot;⇐&quot;))
+  (&quot;RIGHT(SA)&quot;  . (insert &quot;⇒&quot;))
+  (&quot;LEFT(A)&quot;    . (insert &quot;←&quot;))
+  (&quot;RIGHT(A)&quot;   . (insert &quot;→&quot;))
+  (&quot;UP(SA)&quot;     . (insert &quot;⇑&quot;))
+  (&quot;DOWN(SA)&quot;   . (insert &quot;⇓&quot;))
+  (&quot;UP(A)&quot;      . (insert &quot;↑&quot;))
+  (&quot;DOWN(A)&quot;    . (insert &quot;↓&quot;))
+)</code></pre>
+<p>These declarations bind <code>ALT</code> variants of some ordinary keys to unicode characters.</p>
+<pre><code> (ALTS: &quot;,&quot; &quot;←&quot; &quot;≤&quot;)
+ (ALTS: &quot;.&quot; &quot;→&quot; &quot;≥&quot;)
+ (ALTS: &quot;1&quot; &quot;⇓&quot; &quot;⇑&quot;)
+ (ALTS: &quot;6&quot; &quot;↓&quot; &quot;↑&quot;)
+ (ALTS: &quot;7&quot; &quot;∧&quot; &quot;∨&quot;)
+ (ALTS: &quot;o&quot; &quot;∘&quot; &quot;•&quot;)
+ (ALT:  &quot;A&quot; &quot;∀&quot;)
+ (ALT:  &quot;E&quot; &quot;∃&quot;)
+ (ALT:  &quot;Z&quot; &quot;↯&quot;)</code></pre>
+<h2 id="tex">Tex</h2>
+<p><code>Red</code> was designed to work comfortably with Latex/Xelatex manuscripts, and to that end implements single-click actions that make the flow of work in producing, typesetting, and proofreading such manuscripts straightforward. It also comes equipped with actions to support convenient selection and motion of nested <code>\begin</code>-<code>end</code> blocks.</p>
+<h2 id="markdown">Markdown</h2>
+<p>Markdown manuscripts are also straighforward to work with; though the varieties of markdown-like manuscript languages and dialects means that some local configuration <em>may be</em> necessary in order to work with a particular dialect.</p>
+<p>Bernard Sufrin</p>
+<p>Oxford, May and December 2022</p>
+</body>
+</html>

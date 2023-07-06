@@ -1,5 +1,10 @@
+package Red
+
+object SafeConfiguration {
+  def apply(): String =
+"""
 #
-# Red profile and bindings in RedScript
+# SAFE Red profile and bindings in RedScript (derived from ~/.red/profile.redscript 4th Feb 2023, but without includes)
 #
 
 ##############################################################################
@@ -67,7 +72,7 @@ constant shell:Commands (list "wc" "ls -lt" "date" "printenv")
 #
 (def (CONFIG:needsLatex      path)
      (if (endsWith path ".tex") (seq (LOADTEX:) true) false))
-     
+
 (def (CONFIG:latexBlockTypes path) latex:blocktypes)
 
 
@@ -91,15 +96,15 @@ constant LATEX:Snippets (queue:new)
 (defForm (LATEX:snippet env tag text)
          (LATEX:Snippets.enq (tag ↦ text))
          ())
-        
+
 # bind a keystroke to a styling action
-(def (STYLE: key before after) 
+(def (STYLE: key before after)
      #(log key before after)
      (UI:keys ( key ↦ (UI:styleAs before after) )))
 
 (def (LOADTEX:)
      # Main keyboard
-     (STYLE: "SLASH(C)"            “\textit{” “}”)    
+     (STYLE: "SLASH(C)"            “\textit{” “}”)
      (STYLE: "SLASH(SC)"           “\textsl{” “}”)
      (STYLE: "BACKSLASH(SC)"       “\emph{”   “}”)
      (STYLE: "BACKSLASH(C)"        “\textbf{” “}”)
@@ -109,34 +114,13 @@ constant LATEX:Snippets (queue:new)
      (STYLE: "Numpad*@Numpad"      “\textbf{” “}”)
      (STYLE: "Numpad*(S)@Numpad"   “\emph{”   “}”)
      (STYLE: "Numpad/@Numpad"      “\textit{” “}”)
-     (STYLE: "Numpad/(S)@Numpad"   “\textsl{” “}”)                    
-     
+     (STYLE: "Numpad/(S)@Numpad"   “\textsl{” “}”)
+
      (UI:abbrev  "\\f"                "\\footnote{}")
      (UI:abbrev  "\\s"                "\\section{}")
      (UI:abbrev  "\\ss"               "\\subsection{}")
      (UI:abbrev  "\\sss"              "\\subsubsection{}")
 )
-
-##  (def (LOADMD:)
-##       # Main keyboard
-##       (STYLE: "SLASH(C)"            “_” “_”)     
-##       (STYLE: "SLASH(SC)"           “\textsl{” “}”)
-##       (STYLE: "BACKSLASH(SC)"       “\emph{” “}”)
-##       (STYLE: "BACKSLASH(C)"        “\textbf{” “}”)
-##       (STYLE: "4(C)"                “$” “$”)
-##       (STYLE: "BACKQUOTE(C)"        “`” “`”)
-##       # Numeric keyboard
-##       (STYLE: "Numpad*@Numpad"      “**” “**”)
-##       (STYLE: "Numpad*(S)@Numpad"   “\emph{” “}”)
-##       (STYLE: "Numpad/@Numpad"      “\textit{” “}”)
-##       (STYLE: "Numpad/(S)@Numpad"   “\textsl{” “}”)                    
-##       
-##       (UI:abbrev  "\\f"                "\\footnote{}")
-##       (UI:abbrev  "\\s"                "\\section{}")
-##       (UI:abbrev  "\\ss"               "\\subsection{}")
-##       (UI:abbrev  "\\sss"              "\\subsubsection{}")
-##  )
-
 
 #
 #
@@ -174,7 +158,7 @@ constant LATEX:Snippets (queue:new)
 # indents, etc on the keypad
 #
 (constant ArrowKeys
-          (UI:newEventMap 
+          (UI:newEventMap
              ("LEFT(SC)"  ↦ (UI:commandNamed "removeCommonPrefix"))
              ("LEFT(C)"   ↦ (UI:commandNamed "undentSelection"))
              ("RIGHT(C)"  ↦ (UI:commandNamed "indentSelection"))
@@ -192,7 +176,7 @@ constant LATEX:Snippets (queue:new)
 #
 PROFILE:bool    quietignore  "Features" "Silence Undefined Keys" false
 
-# 
+#
 (def (CONFIG:unhandledInput key where)
      (if quietignore
          ()
@@ -217,7 +201,7 @@ PROFILE:bool    quietignore  "Features" "Silence Undefined Keys" false
 #############################################################################
 #
 #
-#       Experimental scripts for the foot of the "Pipe" menu 
+#       Experimental scripts for the foot of the "Pipe" menu
 #
 
 # evaluate the selection
@@ -237,15 +221,15 @@ constant PIPE:transformNames (queue:new `(Eval))
 #    the replacements are applied simultaneously, with matching priority from the left
 #    replacements are independently specified, and
 #    each pattern's groups are numbered individually in its corresponding template
-#    (with $0 denoting the entire match)  
+#    (with $0 denoting the entire match)
 #
 (def (PIPE:transform translations)
-     (val (patterns  => (re:regex false (translations.map (fun (p) (p.fst)))))
+     (val (patterns  => (re:new false (translations.map (fun (p) (p.fst)))))
           (templates => (translations.map (fun (p) (p.snd))))
           (fun (path arg find repl sel) (patterns.replace sel templates))))
 
 # (PIPE:transform translations...) constructs a pipe-transform from translations..., where
-#    translations... is any number of specs of the form (pat=>template) or (quote pat template) 
+#    translations... is any number of specs of the form (pat=>template) or (quote pat template)
 (defForm (PIPE:transform* (env => translations))
          (PIPE:transform (translations.map (fun (t) (eval env t)))))
 
@@ -261,7 +245,7 @@ constant PIPE:transformNames (queue:new `(Eval))
               (seq (monitor (string "defTransform " name " " translations))
                    (val
                      (theFun => (PIPE:transform (translations.map (fun (t) (eval env t)))))
-                     (seq 
+                     (seq
                           (eval (list `constant name theFun))
                           (PIPE:transformNames.enq name))
                    )
@@ -270,10 +254,10 @@ constant PIPE:transformNames (queue:new `(Eval))
 )
 
 #   Examples: (all definitions yield the same transform)
-##  defTransform ABBARROW  ("B" ↦ "A")  (‘\\usepackage({[^}]+})’ ↦ ‘\useful$1’)
-##  defTransform ABBA     `("B" "A")   `(‘\\usepackage({[^}]+})’ ‘\useful$1’)
-##  defTransform ABBQ      (quote "B" "A") (quote ‘\\usepackage({[^}]+})’ ‘\useful$1’)
-         
+##  defTransform ABBARROW  ("B" ↦ "A")  (‘\\usepackage({[^}]+})’ ↦ ‘useful$1’)
+##  defTransform ABBA     `("B" "A")   `(‘\\usepackage({[^}]+})’ ‘useful$1’)
+##  defTransform ABBQ      (quote "B" "A") (quote ‘\\usepackage({[^}]+})’ ‘useful$1’)
+
 (def (CONFIG:pipeRedScripts path) (PIPE:transformNames.toList))
 (def (CONFIG:needsPandoc    path) (endsWith path ".md"))
 
@@ -282,24 +266,6 @@ constant PIPE:transformNames (queue:new `(Eval))
 #
 #############################################################################
 
-#############################################################################
-#
-#
-#       Abbreviations
-#
-include "symbols.redscript"
-#
-#
-#
-#############################################################################
+"""
 
-#############################################################################
-#
-#
-#       Latex templates
-#
-include "latex.redscript"
-#
-#
-#
-#############################################################################
+}

@@ -25,16 +25,16 @@ trait Env {
     val newEnv =
     pattern match {
       case Variable(name) =>
-        val newPairs: List[(String, SExp)] = List((name, Language.SExps(values)))
+        val newPairs: List[(String, SExp)] = List((name, Language.SExpSeq(values)))
         new LocalEnv(newPairs, Some(this))
 
-      case SExps(patterns) if patterns.forall(_.isInstanceOf[Variable]) =>
+      case SExpSeq(patterns) if patterns.forall(_.isInstanceOf[Variable]) =>
         if (patterns.length==values.length)
            new LocalEnv(patterns.map {  case Variable(v) => v }.zip(values), Some(thisEnv))
         else
            throw RuntimeError(s"${patterns.length} variables ${values.length} values: binding $patterns to $values")
 
-      case SExps(patterns) if !patterns.forall(_.isInstanceOf[Variable]) =>
+      case SExpSeq(patterns) if !patterns.forall(_.isInstanceOf[Variable]) =>
         throw SyntaxError(s"Pattern must be a sequence of variables: binding $patterns to $values")
 
       /** One layer of matching */
@@ -107,7 +107,9 @@ class MutableEnv extends LocalEnv(Nil, None) {
   def define(name: String, value: SExp): Unit =
     map.get(name) match {
       case None    => map.put(name, value)
-      case Some(v) => throw new RuntimeError(s"Redefinition of global $name")
+      case Some(v) =>
+        map.put(name, value)
+        throw SyntaxError(s"Redefinition of global $name")
     }
 
   def set(name: String, value: SExp): Unit = map.put(name, value)

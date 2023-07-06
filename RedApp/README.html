@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="generator" content="pandoc" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-  <title>BUILDME</title>
+  <title>README</title>
   <style>
     code{white-space: pre-wrap;}
     span.smallcaps{font-variant: small-caps;}
@@ -784,47 +784,31 @@ padding-left: 128px!important;
   <![endif]-->
 </head>
 <body>
-<h1 id="building-applered">Building AppleRed</h1>
-<h2 id="building-appleredjar-infrom-the-red-folder">Building AppleRed.jar in/from the Red folder</h2>
-<h3 id="using-scalac-via-make">Using <code>scalac</code> via <code>make</code></h3>
-<p>The command</p>
-<pre><code>    make</code></pre>
-<p>compiles (using <code>scalac</code>) the entire source into Red.jar, then makes from it an <code>AppleRed.jar</code> that can be run from the java top-level anywhere, on any operating system, because it has embedded in it all the libraries it requires.</p>
-<p>You will need to have jars corresponding to the libraries <code>regexkit,</code> <code>scala-swing,</code> and a recent <code>scala-library</code> present: this can be achieved by making symbolic links to them.</p>
-<h3 id="using-intellij">Using <code>IntelliJ</code></h3>
-<p>After an <code>IntelliJ</code> project build, an artefact named <code>AppleRed</code> will be found in <code>./out/artifacts/AppleRed/</code> as <code>AppleRed.jar</code>; it should be functionally equivalent to the <code>make</code>-built <code>AppleRed.jar</code>, and can be used in subsequent steps.</p>
-<h2 id="distribution-and-installation">Distribution and Installation</h2>
-<p>When you are happy with the program, you can take steps to package it for distribution or installation for your own purposes. There are detailed instructions for doing so in the folder <code>RedApp</code> (see <code>RedApp/README.md</code> or <code>RedApp/README.pdf</code>). The OS/X distribution instructions probably need following to the letter if you want to build something that behaves like an OS/X app; but the Linux ones can be obeyed less strictly.</p>
-<h2 id="working-on-new-features">Working on new features</h2>
-<p>The files <code>Makefile</code>, and <code>Makefile-Scala</code> specify various other make targets, some of which will be of use while working on new features with <code>IntelliJ</code>.</p>
-<pre><code>    ./ired [args]</code></pre>
-<p>runs the editor using the compilation classpath and the current <code>IntelliJ</code>-compiled class files.</p>
-<p>If you don&#39;t use <code>IntelliJ</code> in your development it&#39;s not a problem, because:</p>
-<pre><code>    ./sred [args]</code></pre>
-<p>runs the editor using the compilation classpath and <code>Red.jar</code></p>
-<p>You can test a new variant you have compiled with either of the above two commands.</p>
-<p>You specify the logging of classes/modules by providing additional arguments of the form</p>
-<pre><code>    -l&lt;package&gt;.&lt;class&gt;</code></pre>
-<p>which logs at or below the most detailed level; or</p>
-<pre><code>    -l&lt;package&gt;.&lt;class&gt;=&lt;level&gt;</code></pre>
-<p>which logs at or below the specified level.</p>
-<p>\newpage</p>
-<p>For example:</p>
-<pre><code>    ./ired -lRed.EditSession=FINER exampletexts/L03.tex</code></pre>
-<p>generates this log as the first few mouse clicks are made</p>
-<pre><code>  INFO@Logging.Default     :
-**********
-AppleRed starting at 2022-09-05-182803
-**********
-  INFO@Logging.Default  : Red.EditSession=FINER
- FINER@Red.EditSession  : theSession.setMark(254)
- FINER@Red.EditSession  : selectUntil 254 -&gt; 254
- FINER@Red.EditSession  : setCursorAndMark(12, 35) with selection=Span(254,254,false)
- FINER@Red.EditSession  : theSession.setMark(240)
- FINER@Red.EditSession  : selectUntil 240 -&gt; 240
- FINER@Red.EditSession  : setCursorAndMark(12, 21) with selection=Span(240,240,false)
- FINER@Red.EditSession  : theSession.setMark(246)
- FINER@Red.EditSession  : selectUntil 235 -&gt; 246</code></pre>
-<p>\newpage</p>
+<h1 id="applered-application">AppleRed Application</h1>
+<h2 id="introduction">Introduction</h2>
+<p>The &quot;Universal&quot; <code>AppleRed.app</code> is a folder/application that can safely be used on both Linux and OS/X, and can be installed on either without a fuss. On OS/X it functions as well as an &quot;orthodox&quot; OS/X app (<em>ie</em> it can be used to open files with the <code>open</code> command or act as a drop target).</p>
+<p>Its only difference with an orthodox OS/X app is that it splits its functions into two parts, one of which acts as an editing service provider for all instantiations of the app: each invocation of the app passes its arguments to the service provider over a UDP port.</p>
+<p>On OS/X it is nearly always somewhat faster to invoke <code>AppleRed</code> on the command line with one of the scripts (<code>red</code>, <code>cred</code>) discussed below rather than using</p>
+<pre><code>    open -a AppleRed ...</code></pre>
+<h2 id="how-to-build-and-install-it-from-osx">How to build and install it (from OS/X)</h2>
+<ol type="1">
+<li><p>Build <code>AppleRed.jar</code> in the parent folder by: <code>make AppleRed.jar</code>, or by linking to the <code>IntelliJ</code> artefact in <code>out/artifacts/AppleRed/AppleRed.app</code>.</p></li>
+<li><p>Build <code>AppleRed.app</code> in this folder by: <code>make clean app</code></p></li>
+<li><p>(optional: OS/X or Linux) Install <code>AppleRed.app</code> in your local <code>~/Applications</code> folder by: <code>make install</code></p></li>
+<li><p>(optional: OS/X or Linux) Install all the scripts from the application <code>~/Applications/AppleRed.app/Contents/Resources/Shellscripts</code> in your local OS/X or Linux scripts folder. This is often named <code>~/bin/</code> but needn&#39;t be. Installing may be done by copying or by making (symbolic or other) links.</p></li>
+<li><p>Copy the various <code>.AppleRed</code>...<code>.profile</code> files to your home folder. You may wish to edit them to establish a richer environment or to select a different editing service port number.</p></li>
+</ol>
+<h2 id="how-to-build-and-install-it-linux">How to build and install it (Linux)</h2>
+<p>The &quot;universality&quot; is heavily compromised, of course, unless you have a way of compiling the Applescript program <code>AppleRed.scpt</code> and generating a &quot;skeleton&quot; <code>AppleRed.app</code> structure into which the Linux components can be &quot;poured&quot;.</p>
+<p>The <code>Makefile</code> target <code>linuxapp</code> does the right thing:</p>
+<pre><code>    make clean linuxapp app</code></pre>
+<p>But the resulting <code>AppleRed.app</code> is now suitable only for deployment on a Linux system.</p>
+<h2 id="scripts">Scripts</h2>
+<p>The shell script <code>red [</code><em>paths</em><code>]</code> starts an AppleRed service provider if one isn&#39;t already running: the service starts an editing session for each <em>path</em>. Otherwise it passes the given <em>paths</em> to the running service by invoking netcat. This avoids the (irritating) overhead of starting a <code>JVM</code> simply to pass on arguments to a running service.</p>
+<p>The script <code>red-nonnc [</code><em>paths</em><code>]</code> runs a service (if one isn&#39;t already running), and passes <code>_paths_</code> to the running service if one is running. It doesn&#39;t use netcat, but has the overhead of (always) starting up a <code>JVM</code>.</p>
+<p>The shell script <code>cred [</code><em>paths</em><code>]</code> runs standalone (<em>ie.</em> not as a server). It starts an editing window for each <em>path</em>.</p>
+<h2 id="why-is-applered-not-an-orthodox-osx-app-on-osx">Why is AppleRed not an orthodox OS/X App on OS/X?</h2>
+<p>The &quot;orthodox&quot; OS/X app (instructions for building/installing are elsewhere) acts as its own editing service, and relies on OS/X to ensure that there is no more than one such service running at the same time.</p>
+<p>At present one of the features provided to support <code>Skim</code> integration via <code>pdfsync</code> -- namely <code>Skim</code> moving its point of interest to the pdf region resulting from the]ine on which the editor cursor is sitting -- can only operate if the red server was started from a shell rather than from <em>the first</em> invocation of <code>AppleRed</code>. This slight inconvenience, is because of (legitimate, though stringent) Apple-imposed security requirements that it would be tedious to try and meet.</p>
 </body>
 </html>

@@ -17,9 +17,9 @@ import scala.swing.{Dialog, Font}
  */
 object Personalised extends Logging.Loggable {
 
-  def applyScript(name: String, path: String): SExp = {
+  def applyScript(name: String, path: String, extra: List[SExp] = Nil): SExp = {
     val fname = Variable(name)
-    val sexp = SExps(List(fname,  Str(path)))
+    val sexp = SExpSeq(List(fname,  Str(path)) ++ extra)
     sexp.position  = SourcePosition(s"setting up UI for $path")
     fname.position = sexp.position
     Bindings.RedScriptEvaluator.run(sexp)
@@ -27,16 +27,16 @@ object Personalised extends Logging.Loggable {
 
   def latexBlockTypes(path: String): Seq[String] =
   { applyScript("CONFIG:latexBlockTypes",  path) match {
-      case SExps(Nil) => Nil
-      case SExps(es)  => es.map(_.toPlainString)
+      case SExpSeq(Nil) => Nil
+      case SExpSeq(es)  => es.map(_.toPlainString)
       case other      => profileWarning(s"latexBlockTypes: path -> Seq[String]: $other"); Nil
     }
   }
 
   def latexSnippets(path: String): Seq[(String,String)] =
   { applyScript("CONFIG:latex:Snippets",  path) match {
-    case SExps(Nil) => Nil
-    case SExps(es)  => es.map {
+    case SExpSeq(Nil) => Nil
+    case SExpSeq(es)  => es.map {
       case Pair(button, (Str(text))) => (button.toPlainString, text)
       case other => profileWarning(s"CONFIG:latex:Snippets $other"); ("BAD", other.toString)
     }
@@ -60,18 +60,18 @@ object Personalised extends Logging.Loggable {
     }
   }
 
-  def pipeShellCommands(path: String): Seq[String] =
+  def pipeShellCommands(path: String, ui: UIInterface): Seq[String] =
   { Bindings.importBindings()
-    applyScript("CONFIG:pipeShellCommands", path) match {
-      case SExps(es) => es.map(_.toPlainString)
+    applyScript("CONFIG:pipeShellCommands", path, List(Bindings.RedScriptEvaluator.UINTERFACE(ui))) match {
+      case SExpSeq(es) => es.map(_.toPlainString)
       case other     => profileWarning(s"pipeShellCommands: path -> Seq[String]: $other"); Nil
     }
   }
 
-  def pipeRedScripts(path: String): Seq[String] =
+  def pipeRedScripts(path: String, ui: UIInterface): Seq[String] =
   { Bindings.importBindings()
-    applyScript("CONFIG:pipeRedScripts", path) match {
-      case SExps(es) => es.map(_.toPlainString)
+    applyScript("CONFIG:pipeRedScripts", path, List(Bindings.RedScriptEvaluator.UINTERFACE(ui))) match {
+      case SExpSeq(es) => es.map(_.toPlainString)
       case other     => profileWarning(s"pipeRedScripts: path -> Seq[fun]: $other"); Nil
     }
   }
@@ -176,7 +176,7 @@ object Personalised extends Logging.Loggable {
             profileWarning(s"""
            |USING THE BUILT-IN SAFE CONFIGURATION SCRIPT
            |
-           |This is because there is no configuration script file: $path
+           |This is because there is no configuration script file at the path: "$path"
            |
            |This is not catastrophic; but to avoid seeing this message again
            |
@@ -188,9 +188,6 @@ object Personalised extends Logging.Loggable {
            |The environment variable REDBINDINGS indicates the filestore path of the "root"
            |configuration script. It is normally "~/.red/bindings.redscript".
            |
-           |The button Pipe/SafeConfiguration inserts a safe configuration
-           |script into the current document. It can be extended and modified
-           |as you require.
            |""".stripMargin)
           notfoundCount += 1
           safeReadEvalPrint(safeConfiguration, false, true)
@@ -202,163 +199,7 @@ object Personalised extends Logging.Loggable {
        * my original Red, but without abbreviations. It's here in case there's no
        * script in the expected location.
        */
-      lazy val safeConfiguration = """
-                              |##############################################################################
-                              |# AppleRed safe configuration file:
-                              |##############################################################################
-                              |##############################################################################
-                              |#
-                              |# Persistent features for the profile
-                              |#
-                              |constant font:pref "Dejavu Sans Mono"
-                              |constant font:fams (list font:pref "Monospaced")
-                              |
-                              |PROFILE:select  font:style   "Features" "Font Style"  "plain" (list "plain" "bold")
-                              |PROFILE:select  font:size    "Features" "Font Size"   18 (list 12 14 16 18 20 24 28)
-                              |PROFILE:select  font:family  "Features" "Font Family" font:pref font:fams
-                              |
-                              |PROFILE:bool    mathkeyboard "Features" "Mathematical Keyboard"  true
-                              |PROFILE:bool    develop      "Features" "Development"            false
-                              |PROFILE:bool    monitoring   "Features" "Monitoring"             false
-                              |#
-                              |#############################################################################
-                              |
-                              |# syntactic sugar for several global constant declarations
-                              |(val (monitor . (if monitoring popup (fun x ())))
-                              |     (user    . (ENV "USER"))
-                              |     (os      . (PROP "os.name"))
-                              |     (OSX     . (<=  "Mac" os))
-                              |)
-                              |
-                              |(monitor (SOURCE)
-                              |         user
-                              |         os
-                              |         (if OSX "OSX" "Linux")
-                              |         #(string "Cut Ring: " (CONFIG:cutringBound))
-                              |         )
-                              |
-                              |#############################################################################
-                              |#
-                              |#
-                              |#       Declare fonts and their roles
-                              |#
-                              |constant font:A (UI:font (string font:family "/" font:style "/" font:size))
-                              |constant font:B (UI:font (string font:family "/" font:style "/" (- font:size 2)))
-                              |constant font:C (UI:font (string "Dialog" "/" "bold" "/" (max font:size 16)))
-                              |
-                              |monitor (SOURCE) (list font:family font:style font:size) font:A font:B font:C
-                              |
-                              |UI:useFont font:A widget default button menu menubutton feedback
-                              |UI:useFont font:B menu menubutton feedback
-                              |UI:useFont font:C menu menubutton button
-                              |#
-                              |#
-                              |#
-                              |#############################################################################
-                              |
-                              |
-                              |#############################################################################
-                              |#
-                              |#
-                              |#       Declare features of the UI
-                              |#
-                              |constant shell:Commands (list "wc" "ls -lt" "date" "printenv")
-                              |
-                              |(def (CONFIG:pipeShellCommands path) shell:Commands)
-                              |
-                              |#
-                              |#       Latex menu is to be present for .tex files / what's on the menu
-                              |#
-                              |(def (CONFIG:needsLatex      path) (endsWith path ".tex"))
-                              |(def (CONFIG:latexBlockTypes path) latex:blocktypes)
-                              |
-                              |
-                              |(constant latex:blocktypes
-                              |  `(      foil     itemize   enumerate        -
-                              |          note     exercise  answer           -
-                              |          code     "-code"   "code*"  alltt   -
-                              |          center   verbatim  comment  smaller -
-                              |          question part      ans
-                              |  )
-                              |)
-                              |
-                              |# Latex snippets are on the \begin{...}/Tex menu
-                              |(def (CONFIG:latex:Snippets path) latex:Snippets)
-                              |
-                              |variable  latex:Snippets ()
-                              |
-                              |(defForm (LATEX:snippet env tag text)
-                              |         (:= LATEX:Snippets (:: (tag . text) LATEX:Snippets))
-                              |         ())
-                              |
-                              |#
-                              |#
-                              |#
-                              |#############################################################################
-                              |
-                              |#############################################################################
-                              |#
-                              |#    Declaration notation for specification of alt-keystrokes
-                              |#
-                              |#       alt: ch ins             -- alt-ch       inserts ins
-                              |#       ALT: ch ins'            -- alt-shift-ch inserts ins'
-                              |#       ALTS: ch ins ins'       == both the above
-                              |#
-                              |(def (alt: ch ins)
-                              |     (CONFIG:keys ( (string "'" ch "'(A)")  . (insert (string ins)) )))
-                              |
-                              |(def (ALT: ch ins)
-                              |     (UI:keys ( (string "'" ch "'(AS)") . (insert (string ins)) )))
-                              |
-                              |(def (ALTS: ch insUnshifted insShifted)
-                              |  (seq
-                              |     #(log "ALTS: " ch insUnshifted insShifted)
-                              |     (UI:keys
-                              |         ( (string "'" ch "'(A)")  . (insert (string insUnshifted)) )
-                              |         ( (string "'" ch "'(AS)") . (insert (string insShifted))   )
-                              |     )))
-                              |#
-                              |#
-                              |#
-                              |#############################################################################
-                              |
-                              |#############################################################################
-                              |#
-                              |#
-                              |#       Report unhandled input
-                              |#
-                              |PROFILE:bool    quietignore  "Features" "Silence Undefined Keys" false
-                              |
-                              |# A () result needs no further evaluation
-                              |# A non-() result is re-evaluated, and the result inserted in the
-                              |# current document if it's a string.
-                              |(def (CONFIG:unhandledInput key where)
-                              |     (if quietignore
-                              |         ()
-                              |         (UI:popup (string:cat "Undefined Keystroke from " where) " " (UI:inputToString key))))
-                              |
-                              |(def (CONFIG:eventMap path) ())
-                              |#
-                              |#
-                              |#############################################################################
-                              |
-                              |#############################################################################
-                              |#
-                              |#
-                              |#       Experimental scripts for the foot of the "Pipe" menu
-                              |#
-                              |def  (Eval path arg find repl sel) (readEval sel false)
-                              |def  (SafeConfiguration path arg find repl sel) UI:minimalconfiguration)
-                              |
-                              |(def (CONFIG:pipeRedScripts path) (list `Eval `SafeConfiguration))
-                              |(def (CONFIG:needsPandoc    path) (endsWith path ".md"))
-                              |
-                              |#
-                              |#
-                              |#
-                              |#############################################################################
-                              |
-                              |""".stripMargin
+      lazy val safeConfiguration  = Red.SafeConfiguration()
 
       def safeReadEvalPrint(sourceString: String, show:  Boolean, throwError: Boolean): Unit =
           readEvalPrint(new Parser(io.Source.fromString(sourceString), "<Minimal Red Bindings>"), show, throwError)
@@ -369,16 +210,31 @@ object Personalised extends Logging.Loggable {
           paths.pop()
       }
 
+
+      /**
+       *   `(include path)`
+       *   `(include path optionally)`
+       *   `(include path optionally showprogress)`
+       */
       def doInclude(args: List[SExp]): SExp = {
-        val (newPath, show) = args match {
-          case Str(newPath)::Nil                       => (newPath, false)
-          case List(Str(newPath), Language.Bool(show)) => (newPath, show)
+        val (newPath, optional, show) = args match {
+          case Str(newPath)::Nil                       => (newPath, false, false)
+          case List(Str(newPath), Language.Bool(optional)) => (newPath, optional, false)
+          case List(Str(newPath), Language.Bool(optional), Language.Bool(show)) => (newPath, optional, show)
         }
+        val position = args.head.position
+        // TODO: Fix the noPath ugliness
+        val noPath = paths.isEmpty
+        if (noPath) paths.push(Paths.get(position.path))
+        //
         val exPath = toPath(paths.top, newPath)
-        if (exPath.toFile.exists() && exPath.toFile.canRead())
+        if (exPath.toFile.exists() && exPath.toFile.canRead()) {
           importBindings(1+paths.length, paths.top, exPath, show)
-        else
-          profileWarning(s"Error including:  $exPath)\nFrom           : ${position}\nNon-existent path or unreadable file.")
+          if (noPath) paths.pop()
+        } else {
+          if (noPath) paths.pop()
+          if (!optional) profileWarning(s"Error including:  $exPath)\nFrom           : ${position}\nNon-existent path or unreadable file.")
+        }
         Nothing
       }
 
@@ -402,7 +258,7 @@ object Personalised extends Logging.Loggable {
 
       /** Implements {{{(usefont font role1 role2 ...)}}} */
       def useFont(env: Env, params: SExp) : SExp = {
-        val SExps(font :: roles) = params
+        val SExpSeq(font :: roles) = params
         val roleNames = for {case Variable(role) <- roles} yield role
         font.eval(env) match {
           case FontExpr(fontName, font)  => Utils.setFontRoles(font, roleNames)
@@ -413,8 +269,8 @@ object Personalised extends Logging.Loggable {
 
       /** Implements {{{(PROFILE:select name path menu-title initialValue choices)}}}*/
       def declSelect(env: Env, params: SExp) : Const = {
-        val SExps(Variable(name) :: args) = params
-        val Str(path) :: Str(title) :: _value :: SExps(_choices) :: update = args.map(_.eval(env))
+        val SExpSeq(Variable(name) :: args) = params
+        val Str(path) :: Str(title) :: _value :: SExpSeq(_choices) :: update = args.map(_.eval(env))
         val feature = new Persistent.StringFeature(name, path, _value.toPlainString, title) {
           override def choices: Seq[String] = _choices.map(_.toPlainString)
           override def toString(t: String): String = t
@@ -443,7 +299,7 @@ object Personalised extends Logging.Loggable {
 
       /** Implements: {{{(tick name path menu-title initialValue)}}} */
       def declBool(env: Env, params: SExp) : Const = {
-        val SExps(Variable(name) :: args) = params
+        val SExpSeq(Variable(name) :: args) = params
         val Str(path) :: Str(title) :: Bool(value) :: update = args.map(_.eval(env))
         val feature = new Persistent.BoolFeature(name, path, value, title)
         val persist = new LoadUpdate {
@@ -508,14 +364,31 @@ object Personalised extends Logging.Loggable {
         command
       }
 
-      case class SESSION(theSession: Session) extends Const {
+      case class SESSION(theSession: Session) extends Obj {
         override def toString: String = theSession.toString
+        override def getType: String = "SESSION"
+
+        /** Returns a method body: for the moment a subr */
+        override def method(name: String): SExp = name match {
+            case "text" => Subr("session:text", {
+              case List(Personalised.Bindings.RedScriptEvaluator.SESSION(editSession)) => Str(editSession.session.document.characters.toString)
+            })
+          }
+        }
+
+      case class UINTERFACE(theUI: UIInterface) extends Obj {
+        override def toString: String = theUI.toString
+
+        override def getType: String = "UINTERFACE"
+
+        /** Returns a method body: for the moment a subr */
+        override def method(name: String): SExp = Nothing
       }
 
 
 
       import Language._
-      val bindingPrimitives: List[(String, Const)] = List(
+      val bindingPrimitives: List[(String, SExp)] = List(
         "abbrev"      -> Subr("abbrev",      {  case List(Str(abbr), Str(text)) => mapTo(abbr, text); Nothing }),
         "diacritical" -> Subr("diacritical", doDia(_)),
         "altclear"    -> Subr("UI:altclear", {  Nil => AltKeyboard.clear(); Nothing }),

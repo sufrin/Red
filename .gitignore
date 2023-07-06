@@ -5,10 +5,14 @@ doc/*
 *.class
 *.jar
 *.fls
+*.aux
 *.gitdate
 *.log
 *.texlog
 *.pdf
+README.tex
+README.html
+README*gz
 
 MacRed.jar
 *.jar

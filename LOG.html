@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>LOG</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    span.underline{text-decoration: underline;}
+    div.column{display: inline-block; vertical-align: top; width: 50%;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    ul.task-list{list-style: none;}
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
+</head>
+<body>
+<h1 id="applered-log-and-roadmap">AppleRed Log and Roadmap</h1>
+<h1 id="log">Log</h1>
+<p>Wed 19 Oct 2022 12:11:28 BST</p>
+<ul>
+<li><p>Branch Version_1.0</p>
+<ul>
+<li><p>Fully-functioning.</p></li>
+<li><p>Branched from main to mark the start of an experiment in using RedScript to read profile/bindings.</p>
+<p>It’s my intention to carry forward any non-profile changes made on <code>main</code> to <code>Version_1.0</code>.</p></li>
+</ul></li>
+</ul>
+<p>Fri 11 Nov 2022 21:49:25 GMT</p>
+<ul>
+<li><p>Tag Version_1.09</p>
+<ul>
+<li><p>Fully functioning with RedScript configuration</p></li>
+<li><p>Key-map construction-notation enables a single keyboard handler to supplant the previous <code>orElse</code>ed chain of handlers.</p></li>
+<li><p><code>Red</code> invokes <code>RedScript</code> functions defined in the bindings script to populate its various menus.</p>
+<p><code>RedScript</code> functions defined in the bindings script have access to <code>SessionCommands</code> (mostly known by their name).</p></li>
+</ul></li>
+</ul>
+<h1 id="roadmap">Roadmap</h1>
+<h2 id="short-term">Short term</h2>
+<p>Before the end of January 2023 I expect to:</p>
+<ol type="1">
+<li><p>Refactor the UI after introducing the notion of <em>language configuration</em> – an assemblage of special-purpose keystrokes and menu items that correspond to a particular language or formalism.</p></li>
+<li><p>Rebuild the implementation of <code>RedScript</code>, systematising its object protocol, and using it more opervasively, so as to simplify adding new functionality implemented in Scala, but delivered through <code>RedScript</code>.</p></li>
+</ol>
+<h2 id="longer-term">Longer term</h2>
+<ul>
+<li><p>Right-to-left scripts are currently out of bounds: this should not remain the case.</p></li>
+<li><p>Admit the colouring of parts of documents to prepare the way for syntax highlighting.</p></li>
+<li><p>Experiment with <em>straightforward</em> ways of interfacing to the ``Language Server Protocol”.</p>
+<pre><code>https://en.wikipedia.org/wiki/Language_Server_Protocol</code></pre>
+<p>I don’t yet know what I mean: clearly the services offered are going to determine the detail and the complexity of the implementation. So, for example, I imagine it will be fairly easy to implement a ``go to definition’’ keystroke, that’ll just open a session at the definition. I’m less sure about how to make a light and <em>unobtrusive</em> interface to (for example) type checker and/or method inventory. (I find IntelliJ/Scala somewhat obtrusive).</p></li>
+</ul>
+</body>
+</html>

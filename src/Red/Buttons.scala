@@ -3,19 +3,7 @@ package Red
 import Red.Utils.appleRedUI
 
 import java.awt.Font
-import scala.swing.{
-  Action,
-  Alignment,
-  BoxPanel,
-  Button,
-  ButtonGroup,
-  CheckMenuItem,
-  Component,
-  Label,
-  MenuItem,
-  Orientation,
-  event
-}
+import scala.swing.{Action, Alignment, BoxPanel, Button, ButtonGroup, CheckMenuItem, Component, Dimension, Label, MenuItem, Orientation, event}
 
 object Buttons {
 
@@ -31,7 +19,28 @@ object Buttons {
       if (toolTip.nonEmpty) tooltip = toolTip
     }
 
-  def Button(
+  class SmallButton(val label: String, toolTip: String = "", act: => Unit) extends Button() {
+    action = new Action(label) {
+      def apply(): Unit = act
+    }
+    font = Utils.smallButtonFont
+    focusable = false
+
+    def setLabel(newLabel: String): Unit = {
+      val metrics = peer.getFontMetrics(font)
+      val labWidth = metrics.stringWidth("MMMMMM")
+      val charHeight = metrics.getHeight
+      preferredSize = new Dimension(labWidth + 4, charHeight + 2)
+      action.text = newLabel
+    }
+
+    if (toolTip.nonEmpty) tooltip = toolTip
+    setLabel(label)
+  }
+
+  def smallButton(label: String, toolTip: String = "")(act: => Unit): SmallButton = new SmallButton(label, toolTip, act)
+
+  def SwingButton(
       name: String,
       toolTip: String = "",
       theFont: Font = Utils.menuButtonFont
@@ -44,6 +53,21 @@ object Buttons {
       horizontalAlignment = Alignment.Center
       verticalAlignment = Alignment.Center
     }
+
+  def Button(label: String, toolTip: String = "", theFont: Font = Utils.menuButtonFont)(act: => Unit): Button = new Button(new Action(label) {
+    def apply(): Unit = act
+  }) {
+    font = theFont
+    focusable = false
+    if (false) {
+      val metrics = peer.getFontMetrics(font)
+      val labWidth = metrics.stringWidth(label)
+      val charHeight = metrics.getHeight
+      preferredSize = new Dimension(labWidth, charHeight)
+    }
+    focusable = false // Magic to avoid blue focus ring
+    if (toolTip.nonEmpty) tooltip = toolTip
+  }
 
   /** @return a centred label
     *  TODO: Make this more efficient. It is only

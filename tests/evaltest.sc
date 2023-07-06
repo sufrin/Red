@@ -20,16 +20,16 @@ import RedScript.Test.SourceCode
 
 """ SOURCE
   | (SOURCE)
-  | 0AABB
+  | 0xAABB
   | 0xab00
-  | \xaabb
+  | "\uaabb"
   |""".stripMargin.rep
 
 """
-  |(val (a.3))
+  |(val (a↦3))
   |a
   |(constant + 4)
-  |(val (nil . 99))
+  |(val (nil ↦ 99))
   |+ 3 4
   |""".stripMargin.rep
 
@@ -38,17 +38,17 @@ import RedScript.Test.SourceCode
  toHex (toNum (+ \x123ab  1))
 """.rep
 
-"""` ( (1 . "foo") (2 . "bar") `( 3 . ("foobaz" is best)))""".rep
+"""` ( (1 ↦ "foo") (2 ↦ "bar") `( 3 ↦ ("foobaz" is best)))""".rep
 
-"""` [ (1 . "foo") (2 . "bar") `( 3 . ("foobaz" is best))]""".rep
+"""` [ (1 ↦ "foo") (2 ↦ "bar") `( 3 ↦ ("foobaz" is best))]""".rep
 
-"""` [ (1 . "foo") (2 . "bar") `( 3 . ["foobaz" is best])]""".rep
+"""` [ (1 ↦ "foo") (2 ↦ "bar") `( 3 ↦ ["foobaz" is best])]""".rep
 
-"""` [ (1 . "foo") (2 . "bar") (3 . "baz") ]""".rep
+"""` [ (1 ↦ "foo") (2 ↦ "bar") (3 ↦ "baz") ]""".rep
 
-"""` [ (1 . "foo") (2 . "bar") `(3 . "baz") ]""".rep
+"""` [ (1 ↦ "foo") (2 ↦ "bar") `(3 ↦ "baz") ]""".rep
 
-"""` [ (1 . "foo") (2 . "bar") `(3 . [foo "baz"]) ]""".rep
+"""` [ (1 ↦ "foo") (2 ↦ "bar") `(3 ↦ [foo "baz"]) ]""".rep
 
 
 """ [ + 2 3 4 5 ]""".rep
@@ -58,29 +58,29 @@ import RedScript.Test.SourceCode
 
 
 """()
-   (1 . "foo") """.rep
-"""list (1 . "foo") (2 . "bar") `( 3 . "foobaz" )""".rep
-"""list (1 . "foo") (2 . "bar") `( 3 . ("foobaz" is best))""".rep
+   (1 ↦ "foo") """.rep
+"""list (1 ↦ "foo") (2 ↦ "bar") `( 3 ↦ "foobaz" )""".rep
+"""list (1 ↦ "foo") (2 ↦ "bar") `( 3 ↦ ("foobaz" is best))""".rep
 
-"MISTAKE: continued pair"
-"""list (1 . "foo") (2 . "bar") `( 3 . "foobaz" is best)""".rep
+"MISTAKE: continued binding"
+"""list (1 ↦ "foo") (2 ↦ "bar") `( 3 ↦ "foobaz" is best)""".rep
 
 "WELL-FORMED QUOTE"
-"""quote (1 . "foo") (2 . "bar") `( 3 . ("foobaz" is best))""".rep
+"""quote (1 ↦ "foo") (2 ↦ "bar") `( 3 ↦ ("foobaz" is best))""".rep
 
 
 
 "PARENTHESISED PAIR IS STILL A PAIR"
-"""` (((1 . "foo"))) """.rep
-""" (quote ((1 . "foo"))) """.rep
+"""` (((1 ↦ "foo"))) """.rep
+""" (quote ((1 ↦ "foo"))) """.rep
 
-""" (list `(1 . "foo") (2 . "bar") `( 3 . ("foobaz" is best)) )""".rep
-"""` (1 . "foo") """.rep
+""" (list `(1 ↦ "foo") (2 ↦ "bar") `( 3 ↦ ("foobaz" is best)) )""".rep
+"""` (1 ↦ "foo") """.rep
 
 """+ 3 4 """.rep
 " :: 1 (list 2 3 4) ".rep
 "constant aaa 3\naaa".rep
-"(val (aaaa . 42)( bbb . 43))\n(+ aaaa bbb)\n := aaaa 14".rep
+"(val (aaaa ↦ 42)( bbb ↦ 43))\n(+ aaaa bbb)\n := aaaa 14".rep
 """+ 3 "x" """.rep
 """`(`ENV "USER")""".rep
 """`(ENV "USER")""".rep
@@ -94,7 +94,7 @@ import RedScript.Test.SourceCode
 "(null)\n(null 42)\n(:: `a 3)".rep
 "(def (Ω a b c) 43 (+ a b c))".rep
 "(def (ΩΩ a b c) (seq 43 (+ a b c)))".rep
-"""(def (ΩΩΩ . all) (println "all: " all))""".rep
+"""(def (ΩΩΩ ↦ all) (println "all: " all))""".rep
 "Ω\nΩΩ".rep
 "(Ω 1 2 3)\n".rep
 "(ΩΩΩ 1 2 3)\nΩΩΩ".rep
@@ -104,8 +104,8 @@ import RedScript.Test.SourceCode
 "= (list 1 3) (list (- 2 1) (+ 1 2))".rep
 "nil".rep
 "< 2 2\n< 2 3\n<= true false\n<= false true".rep
-"""(val (a . 1) (b . 2) (+ a b))
-  (var (a . 1) (b . 2) (seq (:= a 3)
+"""(val (a ↦ 1) (b ↦ 2) (+ a b))
+  (var (a ↦ 1) (b ↦ 2) (seq (:= a 3)
                         (:= a (+ a b))
                         (println "a: " a)))
   (val a 3 b 4 3)
@@ -113,23 +113,23 @@ import RedScript.Test.SourceCode
   """.rep
 
 """ "USING FEXPRS"
-  |(defForm (fe (env . args))
+  |(defForm (fe (env ↦ args))
   |         (seq (println args)
   |              (println (eval env (hd args)))
   |              (println (tl args))))
   |fe
   |
-  |(val (a . "This is a")
+  |(val (a ↦ "This is a")
   |     (fe a b (c d e)))
   |
   |(defForm (IF env cond tp fp)
-  |         (if* ((eval env cond) . (eval env tp))
-  |              (true            . (eval env fp))))
+  |         (if* ((eval env cond) ↦ (eval env tp))
+  |              (true            ↦ (eval env fp))))
   |
   |IF
   |
   |(defForm (IFF env cond tp fp)
-  |         (if* ((eval env cond) . (eval env tp))
+  |         (if* ((eval env cond) ↦ (eval env tp))
   |              (eval env fp)))
   |
   |(IF (= 3 3) (println `three) (println `nonthree))
@@ -192,8 +192,8 @@ import RedScript.Test.SourceCode
     |(tl ay)
     |(null nil)
     |
-    |(def (copy xs) (if* ((null xs) . nil)
-    |                    ( true .
+    |(def (copy xs) (if* ((null xs) ↦ nil)
+    |                    ( true ↦
     |                      (:: (hd xs)
     |                          (copy (tl xs))))
     |                   )))

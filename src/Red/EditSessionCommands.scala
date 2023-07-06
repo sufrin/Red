@@ -2,7 +2,7 @@ package Red
 
 import Commands.{Command, StateChange}
 import Red.FilterUtilities.inputStreamOf
-import RedScript.Language.{SExps, Str, Variable}
+import RedScript.Language.{SExpSeq, Str, Variable}
 import sufrin.regex.Regex
 
 import java.nio.file.Path
@@ -58,6 +58,7 @@ object EditSessionCommands extends Logging.Loggable {
   }
 
   // TODO: make these a user preference (maybe)
+  // NO: multi-space ind/undentation is trivial.
   private val indentBy = " "
   private val undentBy = " "
 
@@ -183,7 +184,7 @@ object EditSessionCommands extends Logging.Loggable {
     protected override def transform(input: String, cwd: Path): Option[String] = {
       try {
         Some((if (replaceSelection) "" else input) ++
-            evaluator.run(SExps(List(Variable(functionName), Str(path), Str(argLine), Str(findLine), Str(replLine), Str(input)))).toPlainString)
+            evaluator.run(SExpSeq(List(Variable(functionName), Str(path), Str(argLine), Str(findLine), Str(replLine), Str(input)))).toPlainString)
       } catch {
         case exn: Throwable => Some(exn.toString)
       }
@@ -196,7 +197,7 @@ object EditSessionCommands extends Logging.Loggable {
     val theKey    = Personalised.Bindings.RedScriptEvaluator.USERINPUT(key)
 
     override def DO(target: EditSession): Option[StateChange] = {
-      evaluator.run(SExps(List(Variable("CONFIG:unhandledInput"), theKey, Str(caption)))) match {
+      evaluator.run(SExpSeq(List(Variable("CONFIG:unhandledInput"), theKey, Str(caption)))) match {
         case r: Error => Logging.Default.error(s"Unhandled input: $r")
         case other    =>
       }

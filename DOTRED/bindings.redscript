@@ -60,7 +60,7 @@ UI:useFont font:C menu menubutton button
 #
 constant shell:Commands (list "wc" "ls -lt" "date" "printenv")
 
-(def (CONFIG:pipeShellCommands path) shell:Commands)
+(def (CONFIG:pipeShellCommands path ui) shell:Commands)
 
 #
 #       Latex menu is to be present for .tex files / what's on the menu
@@ -240,7 +240,7 @@ constant PIPE:transformNames (queue:new `(Eval))
 #    (with $0 denoting the entire match)  
 #
 (def (PIPE:transform translations)
-     (val (patterns  => (re:regex false (translations.map (fun (p) (p.fst)))))
+     (val (patterns  => (re:new false (translations.map (fun (p) (p.fst)))))
           (templates => (translations.map (fun (p) (p.snd))))
           (fun (path arg find repl sel) (patterns.replace sel templates))))
 
@@ -274,7 +274,7 @@ constant PIPE:transformNames (queue:new `(Eval))
 ##  defTransform ABBA     `("B" "A")   `(‘\\usepackage({[^}]+})’ ‘\useful$1’)
 ##  defTransform ABBQ      (quote "B" "A") (quote ‘\\usepackage({[^}]+})’ ‘\useful$1’)
          
-(def (CONFIG:pipeRedScripts path) (PIPE:transformNames.toList))
+(def (CONFIG:pipeRedScripts path ui) (PIPE:transformNames.toList))
 (def (CONFIG:needsPandoc    path) (endsWith path ".md"))
 
 #

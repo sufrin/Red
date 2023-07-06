@@ -19,14 +19,14 @@
 
   # Bind ALT variants of some function keys
   (UI:keys
-    ("LEFT(SA)"   ↦ (insert "⇐"))
-    ("RIGHT(SA)"  ↦ (insert "⇒"))
-    ("LEFT(A)"    ↦ (insert "←"))
-    ("RIGHT(A)"   ↦ (insert "→"))
-    ("UP(SA)"     ↦ (insert "⇑"))
-    ("DOWN(SA)"   ↦ (insert "⇓"))
-    ("UP(A)"      ↦ (insert "↑"))
-    ("DOWN(A)"    ↦ (insert "↓"))
+    ("LEFT(SA)"   . (insert "⇐"))
+    ("RIGHT(SA)"  . (insert "⇒"))
+    ("LEFT(A)"    . (insert "←"))
+    ("RIGHT(A)"   . (insert "→"))
+    ("UP(SA)"     . (insert "⇑"))
+    ("DOWN(SA)"   . (insert "⇓"))
+    ("UP(A)"      . (insert "↑"))
+    ("DOWN(A)"    . (insert "↓"))
   )
 ]
 
@@ -34,64 +34,20 @@
 [if mathkeyboard (BindMathematicalKeys) ()]
 
 
-#
-#  Making mathematical mss a little more legible
-#  (See also the following (xetex) definitions for use in mathematical environments)
-#  \def\@arow{lllllllll}
-#  \def\=#1{\gdef\@arow{#1}}
-#  \catcode`⟦=\active
-#  \gdef ⟦{\left[\begin{array}{\@arow}}
-#  \catcode`⟧=\active
-#  \gdef ⟧{\end{array}\right]}
-#  \catcode`⸨=\active
-#  \gdef ⸨{\begin{array}{\@arow}}
-#  \catcode`⸩=\active
-#  \gdef ⸩{\end{array}}
-#  \catcode`❴=\active
-#  \gdef ❴{\left\{\begin{array}{\@arow}}
-#  \catcode`❵=\active
-#  \gdef ❵{\end{array}\right\}}
-#  \catcode`│=\active
-#  \gdef │{\\}
-#  \catcode`├=\active
-#  \gdef ├{\with}
-#
-# Characters to show left box-drawing marks
-UI:abbrev  "│-"  "\u251C" # ├ -- as an afterthought -- turn │ into ├
-UI:abbrev  "|"   "\u2502" # |
-UI:abbrev  "[-"  "\u250c" # ┌
-UI:abbrev  "-]"  "\u2514" # └
-
-UI:abbrev  "{{"  "\u23a8" # ⎨
-UI:abbrev  "}}"  "\u23ac" # ⎬
-
-# Fat bracketing characters
-UI:abbrev  "["         "\u27e6" # ⟦ 
-UI:abbrev  "]"         "\u27e7" # ⟧
-UI:abbrev  "("         "\u2e28" # ⸨ 
-UI:abbrev  ")"         "\u2e29" # ⸩ 
-UI:abbrev  "{"         "\u2774" # ❴
-UI:abbrev  "}"         "\u2775" # ❵
-
-# Newline followed by │ or by ├
-(UI:keys   ("ENTER(C)"  ↦ (insert "\n│"))
-           ("MINUS(C)"  ↦ (insert "\n├")) ) 
-
 
 #
 #       Common Unicode symbol abbreviations
 #
-UI:abbrev  "exists"           "\u2203"  # ∃
-UI:abbrev  "notexists"        "\u2204"  # ∄
-UI:abbrev  "∃/"               "\u2204"  # ∄
-UI:abbrev  "in"               "\u2208"  # ∈
-UI:abbrev  "notin"            "\u2209"  # ∉
-UI:abbrev  "∈/"               "\u2209"  # ∉
+UI:abbrev  "exists"           "\u2203"  
+UI:abbrev  "notexists"        "\u2204"  
+UI:abbrev  "in"               "\u2208" 
+UI:abbrev  "notin"            "\u2209"
+UI:abbrev  "~\u2203"          "\u2204"
 UI:abbrev  "<-"               "\u2190"
-UI:abbrev  "ua"               "\u2191"  # ↑
-UI:abbrev  "->"               "\u2192"  # →
-UI:abbrev  "da"               "\u2193"  # ↓
-UI:abbrev  "<->"              "\u2194"  # ←
+UI:abbrev  "ua"               "\u2191"
+UI:abbrev  "->"               "\u2192"
+UI:abbrev  "da"               "\u2193"
+UI:abbrev  "<->"              "\u2194"
 
 # Dominates and refinement
 UI:abbrev  "≤"                "\u227c" # ≼
@@ -102,15 +58,11 @@ UI:abbrev  "<="               "\u2264" # ≤
 UI:abbrev  "=>"               "\u2265" # ≥
 UI:abbrev  "leq"              "\u2264" # ≤
 UI:abbrev  "geq"              "\u2265" # ≥
-UI:abbrev  "neq"              "\u2260" # ≠
 
 UI:abbrev  "[="               "\u2291" # ⊑ 
 UI:abbrev  "]="               "\u2292" # ⊒
-UI:abbrev  "[["               "\u228f" # ⊏
-UI:abbrev  "]]"               "\u2290" # ⊐
-UI:abbrev  "nand"             "\u22bc" # ⊼
-
-
+UI:abbrev  "["                "\u228f" # ⊏
+UI:abbrev  "]"                "\u2290" # ⊐
 
 
 # Quotation marks
@@ -119,9 +71,7 @@ UI:abbrev  "''"               "\u201d" # ”
 UI:abbrev  "`"                "\u2018" # ‘  
 UI:abbrev  "'"                "\u2019" # ’  
    
-UI:abbrev  "+/>"      "\u219b"          # ↛ 
-UI:abbrev  "+>"       "\u21f8"          # ⇸   
-UI:abbrev  "++>"      "\u21fb"          # ⇻   
+UI:abbrev  "+>"       "\u219b"    
 UI:abbrev  "->>"      "\u21a0"          # ↠
 UI:abbrev  ">->"      "\u21a3"          # ↣
 UI:abbrev  "to"       "\u21a6"          # ↦
@@ -136,10 +86,10 @@ UI:abbrev  "iff"      "\u2194"          # ↔
 UI:abbrev  "Iff"      "\u21D4"          # ⇔
 UI:abbrev  "<=>"      "\u21D4"          # ⇔
 
-UI:abbrev  "sub"       "\u2282"          # ⊂
-UI:abbrev  "sup"       "\u2283"          # ⊃
-UI:abbrev  "sub="      "\u2286"          # ⊆
-UI:abbrev  "sup="      "\u2287"          # ⊇
+UI:abbrev  "<<="      "\u2286"          # ⊆
+UI:abbrev  "=>>"      "\u2287"          # ⊇
+UI:abbrev  "sub"      "\u2286"          # ⊆
+UI:abbrev  "sup"      "\u2287"          # ⊇
     
 UI:abbrev  "<=="      "\u21DA"          # ⇚
 UI:abbrev  "==>"      "\u21DB"          # ⇛
@@ -153,8 +103,7 @@ UI:abbrev  "dwa"      "\u21E9"          # ⇩
     
 UI:abbrev  "[]"       "\u220E"          # ∎  
 UI:abbrev  "compose"  "\u2218"          # ∘ 
-UI:abbrev  "."        "\u00b7"          # ·
-UI:abbrev  "bull"     "\u2219"          # ∙
+UI:abbrev  "dot"      "\u2219"          # ∙
 UI:abbrev  "tick"     "\u221a"          # √ 
 UI:abbrev  "||"       "\u2225"          # ∥ 
 
@@ -266,6 +215,9 @@ UI:abbrev  ">>"        "\u00BB" # »
 
 UI:abbrev  "So"        "\u2042" # ⁂
 UI:abbrev  "--"        "\u2014" # — (wide minus)
+UI:abbrev  "[["        "\u27e6" # ⟦ 
+UI:abbrev  "]]"        "\u27e7" # ⟧
+
 
 ############################################
 #

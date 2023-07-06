@@ -319,7 +319,8 @@ object Utils {
       Path.of(arg).toAbsolutePath.toString
     }
 
-  /** Return the PID of the current processConditional if possible
+  /**
+   *  Return the PID of the current process if possible
    */
   def getPID: String = {
     try {

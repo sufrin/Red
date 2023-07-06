@@ -1,7 +1,7 @@
 package Red
 
 import Commands._
-import Red.Buttons.CentredLabel
+import Red.Buttons.{CentredLabel, smallButton}
 import Red.UserInputDetail.Key
 import Red.UserInputDetail.Modifiers._
 import Red.UserInputHandlers._
@@ -22,10 +22,13 @@ import scala.swing._
  * refactoring should be.
  *
  */
-class UI(val theSession: EditSession) extends SimpleSwingApplication {
+class UI(val theSession: EditSession) extends SimpleSwingApplication with UIInterface {
+  thisUI: UIInterface =>
+
   import Menus.EmbeddedDynamicMenu
   import UI._
   import Utils.Menu
+
   /**
    * `theSession` emits feedback and warnings about things like find/replace failures
    * that we wish to report via this user interface.
@@ -180,37 +183,6 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
     focusable     = true
   }
 
-  class  SmallButton(val label: String, toolTip: String="", act: => Unit) extends Button() {
-      action = new Action(label) { def apply(): Unit = act }
-      font = Utils.smallButtonFont
-      focusable = false
-      def setLabel(newLabel: String): Unit = {
-        val metrics = peer.getFontMetrics(font)
-        val labWidth = metrics.stringWidth("MMMMMM")
-        val charHeight = metrics.getHeight
-        preferredSize = new Dimension(labWidth+4, charHeight+2)
-        action.text = newLabel
-      }
-      if (toolTip.nonEmpty) tooltip=toolTip
-      setLabel(label)
-  }
-
-  def smallButton(label: String, toolTip: String="")(act: => Unit): SmallButton = new SmallButton(label, toolTip, act)
-
-  def Button(label: String, toolTip: String="")(act: => Unit): Button = new Button(new Action(label) { def apply(): Unit = act } ) {
-    font = Utils.menuButtonFont
-    focusable = false
-    if (false) {
-      val metrics = peer.getFontMetrics(font)
-      val labWidth = metrics.stringWidth(label)
-      val charHeight = metrics.getHeight
-      preferredSize = new Dimension(labWidth, charHeight)
-    }
-    focusable = false // Magic to avoid blue focus ring
-    if (toolTip.nonEmpty) tooltip=toolTip
-  }
-
-
   /** The history manager for `theSession`. It responds to DO/UNDO
    *  commands as described in its specification
    */
@@ -301,7 +273,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
 
   }
 
-  private val argLine: TextLine = new TextLine(25) {
+  val argLine: TextLine = new TextLine(25) {
     focusable = true
     override protected def eventMap: EventMap = Personalised.theEventMap(theSession.path)
     override protected def lastHandler = handlers.unhandled("(A)rgument")
@@ -327,7 +299,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
     tooltip = "Argument(s) for some commands"
   }
 
-  private val findLine: TextLine = new TextLine(25) {
+  val findLine: TextLine = new TextLine(25) {
     focusable = true
     override protected def eventMap: EventMap = Personalised.theEventMap(theSession.path)
     override protected def lastHandler = handlers.unhandled("(F)ind")
@@ -336,7 +308,7 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
     override def mouseExited(): Unit = theView.requestFocusInWindow()
   }
 
-  private val replLine: TextLine = new TextLine(25) {
+  val replLine: TextLine = new TextLine(25) {
     focusable = true
     override protected def eventMap: EventMap = Personalised.theEventMap(theSession.path)
     override protected def lastHandler = handlers.unhandled("(R)eplace")
@@ -356,20 +328,20 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
    *  linked to the undo history
    */
   private val theWidgets = new BoxPanel(Orientation.Horizontal) {
-    contents += Button("\u24b6", toolTip = "(Clear) the \u24b6 field \u2191") {
+    contents += Buttons.SwingButton("\u24b6", toolTip = "(Clear) the \u24b6 field \u2191") {
       argLine.text = ""
       argLine.requestFocusInWindow()
       // TODO: make this button drop down a menu of recents
     } // (A)
     contents += argLine
     contents += regexCheck
-    contents += Button("\u24bb", toolTip = "Clear the adjacent find pattern") {
+    contents += Buttons.SwingButton("\u24bb", toolTip = "Clear the adjacent find pattern") {
       findLine.text = ""
       findLine.requestFocusInWindow()
       // TODO: make this button drop down a menu of recents
     } // (F)
     contents += findLine
-    contents += Button("\u24c7", toolTip = "Clear the adjacent replacement template") {
+    contents += Buttons.SwingButton("\u24c7", toolTip = "Clear the adjacent replacement template") {
       replLine.text = ""
       replLine.requestFocusInWindow()
       // TODO: make this button drop down a menu of recents
@@ -379,11 +351,9 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
 
 
 
-  private val theMenuBar: MenuBar = new MenuBar {
+  val theMenuBar: MenuBar = new MenuBar {
     import Buttons.menuButton
     font = Utils.menuFont
-
-
 
     contents += new Utils.Menu("Red") {
 
@@ -492,46 +462,44 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
       contents += Separator()
 
       contents += menuButton("Quit", toolTip = "Quit now if there are no unsaved document sessions; else ask each unsaved document session what to do")  { top.closeOperation() }
-    }
+    } // Red Menu
 
     contents += new Utils.Menu("File") {
 
-      contents += menuButton("Open \u24b6", "Edit the document at the path specified by the \u24b6 field or by making a choice of path") {
-        openArglinePath()
-      }
+        contents += menuButton("Open \u24b6", "Edit the document at the path specified by the \u24b6 field or by making a choice of path") {
+          openArglinePath()
+        }
 
-      contents += Utils.Recents.menu()
+        contents += Utils.Recents.menu()
 
-      contents += menuButton("Open New", "Create and edit a new document") {
-        Red.Server.process(Utils.freshDocumentName())
-      }
+        contents += menuButton("Open New", "Create and edit a new document") {
+          Red.Server.process(Utils.freshDocumentName())
+        }
 
-      contents += Separator()
-      contents += Separator()
+        contents += Separator()
+        contents += Separator()
 
-      contents += menuButton("Save") {
-        saveOperation()
-      }
+        contents += menuButton("Save") { saveOperation() }
 
-      contents += menuButton("Save as \u24b6", "Save at the path specified by the \u24b6 field or by making a choice of path") {
-        val text = argLine.text.trim
-        if (text.isEmpty)
-          { val chooser = fileChooser
-            chooser.showSaveDialog(top) match {
-              case Cancel  =>
-                feedbackPersistently("Save as: no path specified")
-              case Approve =>
-                val path = chooser.selectedFile.getAbsolutePath
-                top.saveAs(path.toString)
+        contents += menuButton("Save as \u24b6", "Save at the path specified by the \u24b6 field or by making a choice of path") {
+          val text = argLine.text.trim
+          if (text.isEmpty)
+            { val chooser = fileChooser
+              chooser.showSaveDialog(top) match {
+                case Cancel  =>
+                  feedbackPersistently("Save as: no path specified")
+                case Approve =>
+                  val path = chooser.selectedFile.getAbsolutePath
+                  top.saveAs(path.toString)
+              }
             }
-          }
-        else
-        top.saveAs(Utils.localizePath(text, theSession.CWD, Utils.toParentPath(theSession.path)))
-      }
+          else
+          top.saveAs(Utils.localizePath(text, theSession.CWD, Utils.toParentPath(theSession.path)))
+        }
 
-      contents += menuButton("Save & Quit", "Save the document if it needs saving; then close this session.") {
-        close()
-      }
+        contents += menuButton("Save & Quit", "Save the document if it needs saving; then close this session.") {
+          close()
+        }
 
     } // File Menu
 
@@ -593,178 +561,22 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication {
 
     } // Edit Menu
 
-    contents += new Utils.Menu("Pipe") {
-      // should piped output replace the selection or prefix it
-      var augmentSelection: Boolean = false
 
-      // Pipe the selection through ...
-      contents += menuButton("\u24b6", "Pipe the selection through the shell command \u24b6 (see also \"Append Selection\")") {
-        withFilterWarnings("\u24b6") { UI_DO(EditSessionCommands.pipeThrough(argLine.text, replaceSelection = !augmentSelection)) }
-      }
-
-      for { program <- Personalised.pipeShellCommands(theSession.path) } {
-        contents += menuButton(s"$program", s"Pipe the selection through the shell command \"$program\" (see also \"(++sel'n)\"") {
-          withFilterWarnings(s"$program") { UI_DO(EditSessionCommands.pipeThrough(program, replaceSelection = !augmentSelection)) }
-        }
-      }
-
-      contents += Separator()
-
-      for { program <- Personalised.pipeRedScripts(theSession.path) } {
-        contents += menuButton(s"$program", s"Evaluate the Redscript ($program <the session path> Ⓐ \u24bb \u24c7 <the selection>)  (see also \"(++sel'n)\"") {
-          withFilterWarnings(s"$program") {
-            UI_DO(EditSessionCommands.pipeThroughScript(program, theSession.path, argLine.text, findLine.text, replLine.text, replaceSelection = !augmentSelection))
-          }
-        }
-      }
-
-      contents += Separator()
-
-      contents += new Buttons.PersistentCheckItem("(++sel'n)", "appendselectiontopipedoutput", {b => augmentSelection=b}, augmentSelection) {
-        tooltip  = "When enabled, the original selection is appended to the piped output from the above commands."
-        font     = Utils.buttonFont
-      }
-
-    } // Pipe Menu
-
-
-    ////////////////////////////////////////////////////// 2 Candidates for separation during a refactoring
+    ////////////////////////////////////////////////////// Candidates for separation during a refactoring
     //
     //
     //
 
-    // Latex
-
-    if (Red.Personalised.needsLatex(theSession.path)) {
-
-        contents += new Label("     ")
-
-        contents += Button("Tex", toolTip = "Run redpdf now") {
-          saveOperation()
-          UI_DO(EditSessionCommands.latexToPDF)
-        }
-
-        val headers = Red.Personalised.latexSnippets(theSession.path)
-
-        contents += new EmbeddedDynamicMenu("\\begin{...}", { Red.Personalised.latexBlockTypes(theSession.path) }) {
-          font = Utils.menuButtonFont
-          prefix += menuButton("%%%%%%%%") {
-            val header =
-              """%%%%%%%%%%%%%%%%%%%%%%%%
-                |%%%%%%%%%%%%%%%%%%%%%%%%
-                |%%%%%%%%%%%%%%%%%%%%%%%%
-                |""".stripMargin
-            UI_DO(EditSessionCommands.latexInsert(header))
-          }
-
-          prefix += Separator()
-
-          def component (block: String): Component = {
-            if (block == "-")
-              Separator()
-            else
-              menuButton(s"""\\begin{$block}""") { UI_DO(EditSessionCommands.latexBlock(block)) }
-          }
-
-          // contents ++= dynamic
-
-          suffix += Separator()
-          suffix += menuButton("\\begin{\u24b6}", "Embed selection in latex block named in \u24b6") {
-            UI_DO(EditSessionCommands.latexBlock(argLine.text.trim))
-          }
-
-          suffix += menuButton("""\begin{...}->...""", "Extract content of selected latex block") {
-            UI_DO(EditSessionCommands.latexUnblock)
-          }
-
-          suffix += Separator()
-
-          // Infrequent additions
-          suffix += new Menu("Tex") {
-
-            for { (button, header) <- headers }
-              contents += menuButton(button) { UI_DO(EditSessionCommands.latexInsert(header)) }
-            if (headers.isEmpty) { // PRO-TEM until we get template-definition implemented in RedScript
-              contents += menuButton("\\documentclass{article}") {
-                val up = "\\usepackage[]{}"
-                val header =
-                  s"""\\documentclass[11pt,a4paper]{article}
-                     |%%%%%%%%%%%%%%%%%%%%%
-                     |$up
-                     |%%%%%%%%%%%%%%%%%%%%%
-                     |\\author{}
-                     |\\title{}
-                     |\\date{}
-                     |%%%%%%%%%%%%%%%%%%%%%
-                     |\\begin{document}
-                     |\\maketitle
-                     |
-                     |\\end{document}
-                     |""".stripMargin
-                UI_DO(EditSessionCommands.latexInsert(header))
-              }
-            }
-            if (headers.isEmpty) { // PRO-TEM
-              contents +=
-                menuButton(
-                  "\\documentclass{letter}") {
-                  val header =
-                    s"""\\documentclass[12pt,lab|wor|home|magd,bernard|sufrin]{letter} %
-                       |\\To{lines\\\\of\\\\mailing address}
-                       |\\Dear[Dear]{Victim}
-                       |\\Re{subject matter}
-                       |    This is the body
-                       |\\Ps{ps paragraph}
-                       |\\PostSig{post signature para}
-                       |\\Cc{carrbon1, carbon2, ...}
-                       |\\Sign[yours sincerely]{Bernard Sufrin}
-                       |""".stripMargin
-                  UI_DO(EditSessionCommands.latexInsert(header))
-                }
-            }
-            contents += Separator()
-            contents += Separator()
-
-            contents += menuButton("Tex source := \u24b6", toolTip = "Change default tex source using dialogue or nonempty \u24b6 field") {
-              var text = argLine.text.trim
-              if (text.isEmpty) {
-                val chooser = fileChooser
-                chooser.showOpenDialog(top) match {
-                  case Approve => text = chooser.selectedFile.toString
-                  case Cancel  => text = ""
-                }
-              }
-              if (text.nonEmpty) theSession.TEX=Utils.toPath(text)
-              feedbackPersistently(s"Tex source: ${theSession.TEX.toString}")
-            }
-
-            contents += menuButton(s"Default tex source := ${theSession.path}", toolTip = "Change default latex source to current file") {
-              theSession.TEX=Utils.toPath(theSession.path)
-              feedbackPersistently(s"Tex source: ${theSession.TEX.toString}")
-            }
-          }
-
-        }
-
-        contents += Glue.horizontal()
-    }
-
-    // Pandoc
-
-    if (Personalised.needsPandoc(theSession.path)) {
-        contents += Button("Pandoc", toolTip = "Run redpandoc now") {
-          saveOperation()
-          UI_DO(EditSessionCommands.pandocToPDF)
-        }
 
 
-    }
+    val fileSpecific = new FileSpecificMenubarComponents(thisUI)
+    contents ++= fileSpecific.components
+
 
     //
     //
     //
     //////////////////////////////////////////////////////////// end of candidates for refactoring
-
 
     contents += Glue.horizontal()
     contents += undoButton

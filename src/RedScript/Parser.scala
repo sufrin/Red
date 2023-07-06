@@ -1,6 +1,6 @@
 package RedScript
 
-import RedScript.Language.{Pair, SExps, SyntaxError, nil}
+import RedScript.Language.{Dot, Pair, SExpSeq, SyntaxError, nil}
 
 
 object Lexical {
@@ -84,6 +84,7 @@ class Parser(source: io.Source, val path: String="") {
      case '"'   => false
      case '\u0000' => false
      case '`'  => false
+     case '.'  => false
      case other => !other.isSpaceChar & !other.isLetterOrDigit
    }
 
@@ -212,16 +213,22 @@ class Parser(source: io.Source, val path: String="") {
            while ( { getNext(); inHex }) buf.append(in.ch)
            import Useful.CharSequenceOperations._
            Hex(buf.toString().hexToLong.get)
-         } else {
+         } else
+         if (in.ch.isDigit) {
            var n: Long = in.ch-'0'
            while (getNext().isDigit) n = n*10 + (in.ch-'0')
            Num(n)
          }
+         else Num(0)
 
        case other if other.isDigit =>
          var n: Long = other-'0'
          while (getNext().isDigit) n = n*10 + (in.ch-'0')
          Num(n)
+
+       case '.' =>
+         getNext()
+         Chunk(".", symbolic = true)
 
        case other if (other.isLetterOrDigit) =>
          val buf = new collection.mutable.StringBuilder()
@@ -317,7 +324,7 @@ class Parser(source: io.Source, val path: String="") {
   def pairOrTail(hd: SExp): SExp =
     symb match {
       // ( hd .         tl)
-      case Chunk(".", _) =>
+      case Chunk("↦", _) | Chunk("=>", _) =>
         val tl  = readWithClosing (Ket) { expr }
         val res = Pair(hd, tl)
         res.position = hd.position
@@ -325,12 +332,12 @@ class Parser(source: io.Source, val path: String="") {
       // (hd            )
       case Ket =>
         nextSymb()
-        SExps(List(hd))
+        SExpSeq(List(hd))
       // (hd            e1 ... )
       case other =>
         val tl = exprs
         if (symb==Ket) nextSymb() else throw SyntaxError(s"Expecting ')' after ($hd ... but looking at $symb")
-        SExps(hd :: tl)
+        SExpSeq(hd :: tl)
     }
 
   /**
@@ -345,7 +352,7 @@ class Parser(source: io.Source, val path: String="") {
     symb match {
       case Quote => nextSymb(); Language.Quote(expr)
       case Bra   => nextSymb(); pairOrExprs
-      case SqBra => SExps(readWithClosing (SqKet) { sqexprs } )
+      case SqBra => SExpSeq(readWithClosing (SqKet) { sqexprs } )
       case Chunk(text, symbolic) => nextSymb()
         syntaxEnv(text) match {
           case None                =>
@@ -360,7 +367,15 @@ class Parser(source: io.Source, val path: String="") {
       case other => nextSymb(); Language.Variable(other.toString)
     }
     res.position = pos
-    res
+    symb match {
+      case Chunk(".", _) =>
+        val pos = this.position
+        nextSymb()
+        val d = Dot(res, expr)
+        d.position = pos
+        d
+      case _ => res
+    }
   }
 
   /**
@@ -421,7 +436,7 @@ class Parser(source: io.Source, val path: String="") {
       case Quote => expr
       case other => lineOfExprs match {
         case List(e)  => e
-        case es       => SExps(es)
+        case es       => SExpSeq(es)
       }
     }
     res.position=pos
