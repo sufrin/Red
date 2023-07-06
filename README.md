@@ -1,25 +1,27 @@
 
-## Introduction
 
-`Red` (also known as `AppleRed`) is an efficient, no-frills
-*unicode-capable* mode-free (and colourless) text editor with a
-simple implementation and user interface that can be customized
-using the `redscript` language (a Lisp-like notation).  Its underlying
-capabilities can extended straightforwardly using `scala`.  It has
-no pretensions to being an all-encompassing workplace, and unlike
-many IDEs and modern editors does not confuse its user by *spontaneously*
-trying to be helpful: everything it does it does in response to
-user input from mouse, pad, or keyboard.
 
-## Unicode
+Red (1.5)
+---
 
+`Red` (also known as `AppleRed`) is no-frills *unicode-capable*
+modeless (and colourless) text editor with a simple implementation
+that can be customized using the `redscript` language (a Lisp-like
+notation).  Its underlying capabilities can be straightforwardly
+extended using `scala`.  It has no pretensions to being an
+all-encompassing workplace, and unlike many IDE and modern editors
+does not confuse its user by *spontaneously* trying to be helpful:
+everything it does it does in response to user input from mouse,
+pad, or keyboard.
+
+Unicode
+-------
 
 `Red` comes equipped with configuration facilities that make working with a
 wide range of unicode characters straightforward.  Configurations may
 include mnemonic abbreviations for character sequences that include unicode
 symbols. For example (material to the right of # is a comment):
 
-~~~~~
     UI:abbrev  "exists"    "\u2203"  # ∃
     UI:abbrev  "notexists" "\u2204"  # ∄
     UI:abbrev  "~∃"        "\u2204"  # ∄
@@ -29,7 +31,6 @@ symbols. For example (material to the right of # is a comment):
  
     UI:abbrev "lb"         "pound"
     UI:abbrev "lbs"        "pounds and pounds"
-~~~~~
 
 When the abbrev key (often `ESC`) is pressed at the right of a
 mnemonic in text, that mnemonic is replaced by the corresponding
@@ -72,7 +73,6 @@ to unicode characters.
 
 
 ## Tex
-
 
 `Red` was designed to work comfortably with Latex/Xelatex manuscripts,
 and to that end implements single-click actions that make the flow
