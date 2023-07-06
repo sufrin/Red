@@ -58,6 +58,7 @@ object EditSessionCommands extends Logging.Loggable {
   }
 
   // TODO: make these a user preference (maybe)
+  // NO: multi-space ind/undentation is trivial.
   private val indentBy = " "
   private val undentBy = " "
 

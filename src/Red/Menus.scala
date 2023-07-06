@@ -62,7 +62,7 @@ object Menus extends Logging.Loggable {
      *  causes this to be invoked ''before'' any action invoked by
      *  the menu item.
      *
-     *  '''One the other hand:''' pressing an ordinary button, checkbutton,
+     *  '''On the other hand:''' pressing an ordinary button, checkbutton,
      *  etc doesn't cause a menu it is on to become invisible: that
      *  only happens when the cursor strays outside the menu box.
      *

@@ -47,6 +47,7 @@ object Server extends ServerInterface with Logging.Loggable {
         UDPServer
     // TODO:  experiment with wakening swing when the server has decided whether it is serving or not
     //        (see UDPServer.startServer/ing)
+    // (July 2023: why? BS)
     scala.swing.Swing.onEDTWait { server.startServer() }
   }
 

@@ -210,9 +210,9 @@ class EditSession(val document: DocumentInterface, private var _path: String)
     cursor = document.insert(cursor, ch)
   }
 
-  /** Insert a newline followed by an indentation, ensuring that
-   * a screen refresh is triggered. Inelegant to do it this
-   * way, but the alternative may be to have a one-purpose flag.
+  /** Insert a newline followed by an indentation, and ensure that
+   * a screen refresh is triggered. A little inelegantly this
+   * is done by setting the one-purpose flag, `forceRefresh`.
    * TODO: revise the refresh-triggering machinery; perhaps by counting changes since the last refresh
    */
   def insertNewlineAndIndentBy(indent: Int): Unit = {
@@ -699,7 +699,7 @@ class EditSession(val document: DocumentInterface, private var _path: String)
    *        It is possible to limit the resources used during a find; and
    *        to interrupt if the limit is exceeded. The simplest resource
    *        to limit is cycles of the abstract machine. Limiting ''time'' will
-   *        be more complicated.
+   *        be more complicated. DONE.
    */
   def find(thePattern: String, backwards: Boolean, asRegex: Boolean): Boolean = {
     try {

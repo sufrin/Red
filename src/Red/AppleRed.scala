@@ -25,7 +25,7 @@ import scala.swing.{Component, FileChooser, Frame, MainFrame}
  * Defines a `QuitHandler` to respond to `Command-Q` so as to avoid
  * uncontrolled termination of the entire program -- which leads to loss
  * of all unsaved edits.
- * This behaviour is replaced by controlled "polling" of currently
+ * Loss is replaced by controlled "polling" of currently
  * open editing sessions to see what the user's intent for them is.
  *
  * === OS/X Packaged App ===
@@ -43,7 +43,7 @@ import scala.swing.{Component, FileChooser, Frame, MainFrame}
  * 24/July/2022 the packaged app cannot read Unix domain sockets either,
  * without specific permissions are given!
  *
- * TODO: investigate UDP-receive permissions
+ * TODO: investigate UDP-receive permissions. DONE: Sadly uncertified OS/X apps cannot communicate.
  *
  */
 object AppleRed extends Logging.Loggable {

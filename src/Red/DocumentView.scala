@@ -332,10 +332,10 @@ import java.awt.{Color, Graphics2D, RenderingHints}
 
     /** Respond to `MouseWheel` events by scrolling.
       * There is no need to inform the session.
-      * BUT the selection background could be misplaced
+      * BUT the selection background can be misplaced
       * on a lateral scroll.
       * TODO: FIX selection background on lateral scroll
-      *
+      * (too infrequent to bother with)
       */
     def mouseWheel(rotation: Int, mods: UserInputDetail.Detail): Unit = {
         if (logging) info(s"wheel $rotation $mods")
@@ -378,6 +378,7 @@ import java.awt.{Color, Graphics2D, RenderingHints}
          *  the only ones needing to be redrawn. But
          *  for the moment we will always repaint everything
          *  that's visible since that's efficient enough and much simpler.
+         *  The days of driving slow terminals via serial lines are over!
          */
         repaint()
 

@@ -133,10 +133,15 @@ class Document(textSize: Int=400, lineCount: Int=40)
 
   /** Write the document (without its terminal `END`) to `out`.
    * TODO: decide on a policy and implementation technique
-   *       for recompressing expanded tabs.
+   *       for recompressing expanded tabs that appear in files being read.
    *       One idea is to expand tabs into sequences of tabs on input; then
-   *       compress such sequences to single tabs on output. It appears that
-   *       most fonts toPlainString tabs as if they were single spaces....
+   *       compress such sequences to single tabs on output. THis is
+   *       justified if, as appears, most fonts `toPlainString` tabs as
+   *       if they were single spaces.... A more hygienic (though uglier)
+   *       alternative is to expand them into a sequence of visible "auxiliary"
+   *       Unicode characters. In either case, file I/O is made more complex;
+   *       and there's also a judgment to be made about the meaning of sequences
+   *       containing URR-tabs and spaces.
    */
   def writeTo(out: java.io.BufferedWriter): Unit = {
     characters.writeTo(out, 1)
