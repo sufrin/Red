@@ -50,6 +50,15 @@ Before the end of January 2023 I expect to:
   adding new functionality implemented in Scala, but delivered
   through `RedScript`.
 
+Fri Jul  7 16:51:44 BST 2023
+
+Both the above were completed.
+
+A bug in selection-shading that manifested when the
+display was "panned" (as lineshadings not being
+wide enough) was fixed today. 
+
+
 Longer term
 -----------
 

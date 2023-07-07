@@ -1,8 +1,8 @@
 package Red
 
 import java.awt.{Color, Graphics2D, RenderingHints}
-  import javax.swing.border.MatteBorder
-  import scala.swing._
+import javax.swing.border.MatteBorder
+import scala.swing._
 
   /**
    * A component that continuously displays the state of the given editing session.
@@ -249,18 +249,20 @@ import java.awt.{Color, Graphics2D, RenderingHints}
         // by abstracting the fillRect invocation. Left as an exercise.
         var left  = 0
         var width = 0
+        var delta = 0
+        if (originCol>selectionLeft) delta = colsToPixels(selectionLeft - originCol)
         if (documentRow == selectionTop) {
           left = 0 max colsToPixels(selectionLeft - originCol)
           if (selectionTop == selectionBottom)
-            width = colsToPixels(selectionRight - selectionLeft)
+            width = colsToPixels(selectionRight - selectionLeft) + delta
           else
             width = colsToPixels(textWidth) - left
         }
         else
         if (documentRow == selectionBottom)
-          width = colsToPixels(selectionRight - originCol)
+          width = colsToPixels(selectionRight - originCol) - delta
         else
-          width = colsToPixels(textWidth-originCol)
+          width = colsToPixels(textWidth - originCol) - delta
         g.setColor(if (tentative) Color.pink else Color.lightGray)
         g.fillRect(hBorder + left, baseLine - charAscent, width, charHeight)
         g.setColor(foreground)
@@ -330,12 +332,9 @@ import java.awt.{Color, Graphics2D, RenderingHints}
       repaint()
     }
 
-    /** Respond to `MouseWheel` events by scrolling.
+    /**
+      * Respond to `MouseWheel` events by scrolling.
       * There is no need to inform the session.
-      * BUT the selection background can be misplaced
-      * on a lateral scroll.
-      * TODO: FIX selection background on lateral scroll
-      * (too infrequent to bother with)
       */
     def mouseWheel(rotation: Int, mods: UserInputDetail.Detail): Unit = {
         if (logging) info(s"wheel $rotation $mods")
