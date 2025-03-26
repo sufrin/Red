@@ -7,4 +7,4 @@ export REDMODE=server
 # This for when the application is installed in ~/Applications 
 export REDCONTAINER=$HOME/Applications/AppleRed.app/Contents
 Java=${REDCONTAINER}/Java
-$Java/AppleRed-server $REDCONTAINER $@ &
+$Java/AppleRed-server $REDCONTAINER $@ 2>/dev/null &

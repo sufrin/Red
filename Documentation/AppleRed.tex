@@ -1,4 +1,4 @@
-%xelatex
+%processor=xelatex
 % Options for packages loaded elsewhere
 \PassOptionsToPackage{unicode}{hyperref}
 \PassOptionsToPackage{hyphens}{url}
@@ -38,9 +38,9 @@
 }
 %
 %
-\title{AppleRed (Version 1.01)}
+\title{AppleRed (Version 1.02)}
 \author{Bernard Sufrin}
-\date{November 24th 2022}
+\date{November 24th 2022\\(Revised March 26th 2025)}
 
 \begin{document}
 \maketitle
@@ -50,11 +50,12 @@
 
 \hypertarget{introduction}{\subsection{Introduction}\label{introduction}}
 
-\texttt{Red} (also known as \texttt{AppleRed}) is no-frills
+\texttt{Red} (also known as \texttt{AppleRed}) is a no-frills
 \texttt{UNICODE}-capable \emph{modeless} (and \emph{colourless}) text
 editor with a simple implementation that can be customized using the
 \texttt{redscript} language, and can be straightforwardly extended using
-\texttt{scala}. It has no pretensions to being an all-encompassing
+\texttt{scala}, and configured using \textsf{redscript}\footnote{An extensible
+dialect of the Lisp family.}}. It has no pretensions to being an all-encompassing
 workplace, and unlike many IDE and modern editors does not confuse its
 user by spontaneously trying to be helpful: everything it does it does
 in response to user input from mouse, pad, or keyboard.
@@ -383,16 +384,20 @@ where \emph{n} is the depth of the \emph{undone stack}. \emph{Undo}
 can also be invoked from the redo button to the left of the redo
 button: it is labelled \emph{n}\texttt{\textless{}}, where \emph{n}
 is the depth of the \emph{done stack}. Consecutive character
-insertions on the same line (between other actions) ``bunched'',
+insertions on the same line (between other actions) are ``bunched'',
 so that their effect can be undone all at once. Consecutive cuts
-or other deletions are also bunched.
+or other deletions \textit{of adjacent text} are also bunched.
 
 When editing actions other than \emph{Undo} or \emph{Redo} happen,
 the entire \emph{redo stack} is emptied.\footnote{There is in
 principle no bound on the depth of the \emph{done stack} (I have
 seen it deeper than \texttt{4k}. The bunching of insertions and
 deletions make this feasible; but it is inadvisable to try to
-\emph{Undo} too far.}
+\emph{Undo} too far.}  A \textit{Save} writes the document in its
+current state to the filestore with its current name; and will
+(usually) preserve one or more backup copies of the file. The undo
+stack is preserved over a save; but when a save is (notionally)
+undone nothing happens to the filestore.
 
 
 
@@ -450,17 +455,17 @@ replaced. Otherwise it is interpreted literally.
 
 \begin{itemize}
 \item
-  \emph{FindDown} (\texttt{C-f}, or \texttt{Numpad-0}) selects the
+  \emph{FindDown} (\texttt{F7}, or \texttt{Numpad-0}) selects the
   nearest \emph{following} instance of \textbf{(F)}
 \item
-  \emph{FindUp} \texttt{(C-F)}, or \texttt{Shift-Numpad-0}) selects the
+  \emph{FindUp} \texttt{(Shift-F7)}, or \texttt{Shift-Numpad-0}) selects the
   nearest \emph{preceeding} instance of \textbf{(F)}
 \item
-  \emph{FindSelDown} (\texttt{C-Alt-f}, or \texttt{Alt-Numpad-0}) makes
+  \emph{FindSelDown} (\texttt{Alt-f7}, or \texttt{Alt-Numpad-0}) makes
   the current selection the \emph{Find} pattern, turns off regular
   expression interpretation, and then acts as \emph{FindDown}.
 \item
-  \emph{FindSelUp} (\texttt{C-Alt-F}, or \texttt{Shift-Alt-Numpad-0})
+  \emph{FindSelUp} (\texttt{Shift-Alt-F7}, or \texttt{Shift-Alt-Numpad-0})
   makes the current selection the \emph{Find} pattern, then acts as
   \emph{FindUp}.
 \item
@@ -490,6 +495,32 @@ If the current selection is an instance of \textbf{(F)} then:
   the left of the mark.
 \end{itemize}
 
+
+\def\SEL{\textbf{(S)}}
+\def\FND{\textbf{(F)}}
+\def\FIND{\textbf{FIND}}
+\def\ALT{\textbf{Alt}}
+The \texttt{C-f}  key behaves as much as possible like its behaviour in
+more conventional applications. Its behaviour is summarized by the following table, in
+which the selection is denoted \textbf{(S)}, and \FIND\ means selecting
+the nearest \textbf{(F)} in the direction indicated by the shift key (upwards if it is
+pressed).\footnote{The effect of \texttt{C-f} while editing
+\FND\ is also \FIND.} 
+\begin{center}
+\begin{tabular}{|c|c|c|l|}
+\hline
+\SEL&\FND&&Effect\\\hline
+nonempty&empty&&\FIND \\
+nonempty&nonempty&with \ALT\ shift& \FND := \SEL; \FIND\\
+nonempty&nonempty&otherwise&  \FIND\\
+empty&nonempty&&\FND := \SEL; \FIND\\
+empty&empty&&move editing cursor to \FND\\
+\hline
+\end{tabular}
+\end{center}
+
+
+
 \hypertarget{find-and-replace-technique}{%
 \subsubsection{Find and Replace
 (Technique)}\label{find-and-replace-technique}}
@@ -511,7 +542,7 @@ to the right pattern and replacement, replacing the following
 instance just requires the two keystrokes \emph{FindDown} \emph{ReplaceDown},
 that is, either:
 \begin{alltt}
-    Numpad-0 Numpad-.      \textrm{or}         C-f C-r
+    Numpad-0 Numpad-.      \textrm{or}   F7 F8      \textrm{or}   C-f C-r 
 \end{alltt}
 
 Subsequent instances can be found/replaced with the same keystrokes;

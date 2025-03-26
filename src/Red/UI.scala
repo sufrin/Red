@@ -262,12 +262,29 @@ class UI(val theSession: EditSession) extends SimpleSwingApplication with UIInte
       find(findLine.text, backwards = mods.hasShift)
 
     case Instruction(Key.F, _, mods)  =>
-      if (mods.hasAlt && theSession.hasSelection) {
-        findLine.text = theSession.selectionText()
-        regexCheck.selected=false
-      }
-      find(findLine.text, backwards = mods.hasShift)
+      // Emulate common command-F
+      (findLine.text.nonEmpty, theSession.hasSelection) match {
+          case (false, true) => // find the selection
+            findLine.text = theSession.selectionText()
+            regexCheck.selected=false
+            find(findLine.text, backwards = mods.hasShift)
+            
+          case (false, false) =>
+            findLine.requestFocusInWindow()
 
+          case (true, true) => // find (non-Alt=>last-find) (Alt=>the selection)
+            if (mods.hasAlt) {
+              findLine.text = theSession.selectionText()
+              regexCheck.selected=false
+            }
+            find(findLine.text, backwards = mods.hasShift)
+            
+            
+         case (true, false) => // find the last-find
+            find(findLine.text, backwards = mods.hasShift)
+           
+      }
+      
 
     case Diacritical(mark: Char) => feedback(s"[$mark]")
 
