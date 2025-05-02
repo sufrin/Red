@@ -8,24 +8,25 @@
 #
 echo redpandoc "$@"
 
-case $1 in
+case "$1" in
   *.lhs) kind=".lhs";;
   *.md)  kind=".md";;
   *)     kind="";;
 esac
 
-inputstem=${1%%$kind}
+inputstem="${1%%$kind}"
 
 
-inputfile=${inputstem}${kind}
-pdffile=${inputstem}.pdf
-htmlfile=${inputstem}.html
-texfile=${inputstem}.tex
+inputfile="${inputstem}${kind}"
+pdffile="${inputstem}.pdf"
+htmlfile="${inputstem}.html"
+texfile="${inputstem}.tex"
 line="${2-0}"
 editing="${3-$inputfile}"
-cwd=$(dirname $inputfile)
-sidecarfile=${inputstem}.properties
-metadata=${inputstem}.yaml
+cwd=$(dirname "$inputfile")
+sidecarfile="${inputstem}.properties"
+metadata="${inputstem}.yaml"
+defaults="${inputstem}.defaults"
 echo "++++++++++++ REDPPDF ++++++++++"
 echo "EDITING:" $editing
 echo "INPUT:  " $inputfile
@@ -35,17 +36,18 @@ echo "CWD:    " $cwd
 echo "+++++++++++++++++++++++++++++++"
 
 #
-#       Defaults
-#
-css="github-markdown"
+#       Defaults (overridden by sidecar file)
 html=true
-pdf=
+pdf=true
 keeptex=
+keepdefaults=
 toc=
-HIGHLIGHT="--highlight-style=breezedark"
-VERBOSE="--verbose"
-FROM="--from=gfm+gfm_auto_identifiers"
+HIGHLIGHT="breezedark"
+VERBOSITY="INFO"
+FROM="gfm"
+CSS="github-markdown"
 MDATA=""
+
 
 #
 #       Sidecar sets various things
@@ -55,16 +57,29 @@ then
    . "$sidecarfile"
    cat "$sidecarfile"
 else
-   echo NO PROPERTIES FILE $sidecarfile
+   echo "NO PROPERTIES FILE " $sidecarfile
 fi
 
-
-if [ -e "$metadata" ]
+if [ -e "$defaults" ]
 then
-   METADATA=--metadata-file=\"$metadata\"
+   echo "DEFAULTS FILE " $defaults
+   keepdefaults=true
 else
-   echo NO METADATA FILE $metadata
-   METADATA=""
+  echo > "$defaults"
+  function D() {
+    echo "$@" >> "$defaults" 
+  }
+  
+  if [ -e "$metadata" ]
+  then
+     D metadata-file:     \"$metadata\"
+  else
+     echo "NO METADATA FILE   " "$metadata"
+  fi
+  
+  D highlight-style:      $HIGHLIGHT
+  D verbosity:            $VERBOSITY
+  D css:                  $CSS
 fi
 
 
@@ -75,16 +90,23 @@ fi
 if [ "$html" ]
 then
     echo "----------------- HTML"
-    if [ "$css" ]; then CSS="--css=$HOME/.pandoc/$css.css"; fi
-    if [ "$toc" ]; then TOC="--toc"; fi
-    cmd="(cd $cwd ; pandoc $MDATA $METADATA --self-contained --standalone $VERBOSE $HIGHLIGHT $CSS $TOC $FROM -t html --output=$htmlfile $inputfile)"
-    echo $cmd
-    eval $cmd
+    if [ "$css" ]
+    then
+       CSS="--css=$HOME/.pandoc/$css.css"
+    fi
+    if [ "$toc" ]
+    then
+      TOC="--toc"
+    fi
+
+    (cd "$cwd" ; pandoc --defaults "$defaults"  --from=$FROM -t html --output="$htmlfile" "$inputfile")
 fi
 #
 #
 #
 #################
+
+
 
 #################
 #
@@ -92,8 +114,9 @@ fi
 #
 if [ "$pdf" ]
 then
-    cat > $texfile <<HEADER
-%xelatex
+    cat > "$texfile" <<HEADER
+%processor=xelatex
+% Translated from "$inputfile" by redpdf on $(date)
 %
 % the top line tells redpdf to use xelatex not pdflatex
 
@@ -162,7 +185,7 @@ then
 \defaultfontfeatures{Scale=MatchLowercase}
 \setmathfont{STIX Two Math}    % For symbols
 \setmainfont{STIX Two Text}    % For text
-\setmonofont{DejaVu Sans Mono} % for verbatim
+%\setmonofont{DejaVu Sans Mono} % for verbatim
 
 \usepackage{xcolor}
 \IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
@@ -205,24 +228,32 @@ $atbegindocument
 %  END PREFIX PLACED BY REDPANDOC
 %
 HEADER
+
     echo "------------------------- TEX"
-    cmd="(cd $cwd ; pandoc $MDATA $METADATA  --pdf-engine=xelatex $VERBOSE $HIGHLIGHT $CSS $TOC $FROM -t latex --output=/dev/stdout $inputfile | cat >> $texfile )"
-    echo $cmd
-    eval $cmd  
+    (cd "$cwd" ; pandoc --defaults "$defaults"  --pdf-engine=xelatex --from=$FROM -t latex --output=/dev/stdout "$inputfile" | cat >> "$texfile" )
     echo '\end{document}'>>"$texfile"
     echo "------------------------- PDF"
     cmd="(cd $cwd ; xelatex $texfile; xelatex $texfile)"
     echo $cmd
-    eval $cmd
-    if [ ! "$keeptex" ]
+    (cd "$cwd" ; xelatex "$texfile"; xelatex "$texfile")
+    if [  "$keeptex" ]
     then
-       rm -v $texfile
+       echo "KEPT " $texfile
+    else
+       rm -v "$texfile"
     fi
 fi
 #
 #
 #
 #################
+
+if [ "$keepdefaults" ]
+then
+   echo "KEPT " $defaults
+else
+   rm -v "$defaults"
+fi 
 
 #################
 #
@@ -233,11 +264,11 @@ then
     if [ $(uname) = Linux ]
     then
     # we should really do a search for text on opening
-      evince $pdffile 
+      evince "$pdffile" 
     else
-      echo open -a Skim $pdffile
+      echo open -a Skim "$pdffile"
       # skim invokes pdfsync %file %line at the right gesture (shift cmd point)
-      open -a Skim $pdffile
+      open -a Skim "$pdffile"
     fi
 fi
 #
