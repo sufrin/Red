@@ -33,9 +33,9 @@ object CharSequenceOperations {
       var n: Long    = 0
       var wellFormed = true
       for { c <- chars.forwardIterator() }
-        if ('a'<=c&&c<='f')  n = n*16+c-'a'+10 else
-        if ('A'<=c&&c<='F')  n = n*16+c-'A'+10 else
-        if ('0'<=c&&c<='9')  n = n*16+c-'0' else wellFormed = false
+        if ('a'<=c&&c<='f')  n = (n<<4)+c-'a'+10 else
+        if ('A'<=c&&c<='F')  n = (n<<4)+c-'A'+10 else
+        if ('0'<=c&&c<='9')  n = (n<<4)+c-'0' else wellFormed = false
       if (wellFormed) Some(n.toChar) else None
     }
 
@@ -50,9 +50,9 @@ object CharSequenceOperations {
       val u          = it.next()
       var wellFormed = slosh=='\\' && (u=='u' || u=='U')
       if (wellFormed) for { c <- it }
-        if ('a'<=c&&c<='f')  n = n*16+c-'a'+10 else
-        if ('A'<=c&&c<='F')  n = n*16+c-'A'+10 else
-        if ('0'<=c&&c<='9')  n = n*16+c-'0' else wellFormed = false
+        if ('a'<=c&&c<='f')  n = (n<<4)+c-'a'+10 else
+        if ('A'<=c&&c<='F')  n = (n<<4)+c-'A'+10 else
+        if ('0'<=c&&c<='9')  n = (n<<4)+c-'0' else wellFormed = false
       if (wellFormed) Some(n.toChar) else None
     }
 
