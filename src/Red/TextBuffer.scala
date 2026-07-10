@@ -83,7 +83,7 @@ class TextBuffer(initialSize: Int = 20)
     super.elements(n)
   }
 
-  /** '''Returns''' {{{ chars[serveWith..end) }}}
+  /** '''Returns''' {{{ chars[start..end) }}}
     *
     * as a String. Note that `String<:CharSequence`
     */
