@@ -9,7 +9,8 @@ doc/*
 *.gitdate
 *.log
 *.texlog
-*.pdf
+*~
+
 README.tex
 README.html
 README*gz
